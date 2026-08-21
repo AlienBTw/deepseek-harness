@@ -1,59 +1,50 @@
-# DeepSeek Harness
+# ?? Maple Harness
 
-English | [中文](README.zh.md)
+Maple Harness (maple / mph) is an open-source, modular AI agent harness designed for token efficiency, AST repo-mapping, sovereign proxy observability, and seamless developer workflows.
 
-DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
+Built on an extensible **everything-is-a-plugin** architecture powered by [Cordis](https://github.com/cordiverse/cordis) and originating from the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) foundation.
 
-It uses an architecture where **everything is a plugin**, and is powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper).
+---
 
-## Developer preview
+## ?? Key Capabilities
 
-DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
+* **Token-Efficient Context Engine**: Built-in 14-language Tree-Sitter AST repo-mapping with PageRank personalization to keep prompt overhead low (~2k tokens).
+* **Sovereign BYOK Proxy Integration**: Complete transparency over token usage, latency, and cost with zero source code exfiltration.
+* **Pluggable Agent Architecture**: Modular runtime supporting MCP (Model Context Protocol), LSP (Language Server Protocol), sandboxed code execution, and multi-turn workflows.
+* **Flexible Interfaces**: Run as a standalone terminal CLI (maple / mph), a local Web UI, or bridged into the Mapl VS Code extension.
 
-## Run
+---
 
-### Run from `npm`
+## ?? Quick Start
 
-Install `Node.js`, then run:
+### Run from Source
 
-```sh
-npx @deepseek-ai/dsh web
-```
+`sh
+# Clone and enter the directory
+git clone https://github.com/AlienBTw/maple-harness.git
+cd maple-harness
 
-The command starts the Web UI at `http://127.0.0.1:3080` by default and opens it in the default browser for a local launch. An SSH launch only prints the host URL because the SSH client or editor owns the local forwarded address. Pass `--no-open` to run the server without opening a browser. See [Web UI guide](docs/user/guide/index.md).
-
-### Run from source
-
-To run from a repository checkout:
-
-```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+# Install dependencies and build
 pnpm install
 pnpm run build
-pnpm dsh web
-```
 
-`pnpm run build` prepares the repository artifacts. `pnpm dsh web` uses those built artifacts without rebuilding.
+# Start the web UI
+pnpm maple web
+`
 
-## Community and support
+### CLI Usage
 
-- Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
-- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.
+`sh
+# Run interactive CLI session
+pnpm maple
 
-## Contributing
+# Run in headless non-interactive mode
+pnpm maple "explain this codebase" --headless
+`
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+---
 
-## Development
+## ?? License & Attribution
 
-Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
-
-For agents, follow [AGENTS.md](AGENTS.md).
-
-## License
-
-[MIT](LICENSE)
-
-Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Maple Harness is licensed under the [MIT License](LICENSE).
+Originates from [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (c) 2026 DeepSeek under the MIT License. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
