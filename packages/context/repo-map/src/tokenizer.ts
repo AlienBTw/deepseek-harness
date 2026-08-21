@@ -43,7 +43,7 @@ export function tokenCount(text: string): number {
   const step = Math.floor(numLines / 100) || 1
   const sample: string[] = []
   for (let i = 0; i < numLines; i += step) {
-    sample.push(lines[i])
+    const l = lines[i]; if (l !== undefined) sample.push(l)
   }
   // Reconstruct keeping line breaks (Aider uses keepends; we approximate by re-joining).
   const sampleText = sample.join('\n')

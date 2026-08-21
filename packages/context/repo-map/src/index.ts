@@ -12,9 +12,9 @@ import type { PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { RepoMap } from './repomap.ts'
-import { getTags } from './parser.ts'
-import type { SourceFile } from './types.ts'
+import { RepoMap } from './repomap'
+import { getTags } from './parser'
+import type { SourceFile } from './types'
 
 export const name = 'repo-map'
 export const inject = ['agents']
@@ -108,7 +108,7 @@ export function apply(ctx: Context, config: Config): void {
     if (step !== 1) return decision
 
     // Determine workspace root
-    const workspaceRoot = agent.session.cwd || process.cwd()
+    const workspaceRoot = agent.session.header.cwd || process.cwd()
 
     try {
       const sourceFiles = await scanWorkspace(workspaceRoot, workspaceRoot, maxFiles)

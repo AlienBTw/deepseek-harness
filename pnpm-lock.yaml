@@ -303,6 +303,9 @@ importers:
       '@deepseek-ai/dsh-workflow-worker-thread':
         specifier: workspace:^
         version: link:../../packages/workflow/workflow-worker-thread
+      '@maple/context-repo-map':
+        specifier: workspace:^
+        version: link:../../packages/context/repo-map
       commander:
         specifier: ^15.0.0
         version: 15.0.0

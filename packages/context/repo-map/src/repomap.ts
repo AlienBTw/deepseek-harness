@@ -50,11 +50,15 @@ function isImportant(rel_fname: string): boolean {
 }
 
 /** The RepoMap engine. */
-export class RepoMap {
-  private customGetTags?: (rel_fname: string, fname?: string, content?: string) => Promise<Tag[]>
+export type TagExtractor = (rel_fname: string, fname?: string, content?: string) => Promise<Tag[]>
 
-  constructor(options?: { getTags?: (rel_fname: string, fname?: string, content?: string) => Promise<Tag[]> }) {
-    this.customGetTags = options?.getTags
+export class RepoMap {
+  private customGetTags?: TagExtractor
+
+  constructor(options?: { getTags?: TagExtractor }) {
+    if (options?.getTags) {
+      this.customGetTags = options.getTags
+    }
   }
   /**
    * Compute the full repo-map for a set of source files.
