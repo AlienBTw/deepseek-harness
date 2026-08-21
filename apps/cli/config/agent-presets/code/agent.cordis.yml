@@ -39,6 +39,12 @@
   config:
     maxBytes: 65536
 
+- id: repo-map
+  name: '@maple/context-repo-map'
+  config:
+    maxTokens: 2000
+    maxFiles: 5000
+
 # ── shell ───────────────────────────────────────────────────────────────────
 
 # `shell-env` stays in the HOST composition: `apps/cli/src/web.ts` injects it to
