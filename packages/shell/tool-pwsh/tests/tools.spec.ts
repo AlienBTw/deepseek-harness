@@ -4,7 +4,7 @@
  * registry. The fake executor makes every seam outcome scriptable — output
  * text, truncation, timeout, abort, nonzero exits, background handles — so
  * these tests verify the schema, argument validation, workdir derivation,
- * managed `DSH_*` collection, abort translation, canonical result projection,
+ * managed `MAPLE_*` collection, abort translation, canonical result projection,
  * sandbox denial rendering with the escalation surface, rendering,
  * background job wiring, and the UI presenters. Real-pwsh behavior
  * is pinned separately in integration.spec.ts.
@@ -58,7 +58,7 @@ class FakeBash extends ShellExecutor {
       ...request.signal ? { signal: request.signal } : {},
       ...request.stdin !== undefined ? { stdin: request.stdin } : {},
       ...request.env !== undefined ? { env: request.env } : {},
-      ...request.dshEnv !== undefined ? { dshEnv: request.dshEnv } : {},
+      ...request.mapleEnv !== undefined ? { mapleEnv: request.mapleEnv } : {},
       sandboxPolicy: request.sandboxPolicy,
     }
   }
@@ -177,7 +177,7 @@ class ConfiningFakeBash extends ShellExecutor {
       timeoutMs: request.timeoutMs ?? 60_000,
       stdoutMaxBytes: request.stdoutMaxBytes ?? 64_000,
       ...request.signal ? { signal: request.signal } : {},
-      ...request.dshEnv !== undefined ? { dshEnv: request.dshEnv } : {},
+      ...request.mapleEnv !== undefined ? { mapleEnv: request.mapleEnv } : {},
       sandboxPolicy: request.sandboxPolicy,
     }
   }
@@ -350,7 +350,7 @@ describe('argument validation', () => {
 })
 
 describe('execution through the bash seam', () => {
-  it('forwards command, session cwd, timeout, and managed DSH_* environment', async () => {
+  it('forwards command, session cwd, timeout, and managed MAPLE_* environment', async () => {
     const dshHome = mkdtempSync(join(tmpdir(), 'dsh-tool-pwsh-home-'))
     const { ctx, bash } = await setup({}, dshHome)
     bash.handler = () => runResult('hi\n')
@@ -366,10 +366,10 @@ describe('execution through the bash seam', () => {
     expect(request?.command).toBe('Write-Output hi')
     expect(request?.workdir).toBe('/sessions/s1')
     expect(request?.timeoutMs).toBe(1234)
-    expect(request?.dshEnv).toEqual({
-      DSH_HOME: dshHome,
-      DSH_SHELL: '1',
-      DSH_SESSION_ID: 'session-1',
+    expect(request?.mapleEnv).toEqual({
+      MAPLE_HOME: dshHome,
+      MAPLE_SHELL: '1',
+      MAPLE_SESSION_ID: 'session-1',
     })
     expect(bash.specs[0]?.workdir).toBe('/sessions/s1')
   })
@@ -390,11 +390,11 @@ describe('execution through the bash seam', () => {
     bash.handler = () => runResult('ok\n')
     await call(ctx, 'pwsh', { command: 'Write-Output ok', description: 'ok' })
     expect(bash.requests[0]).not.toHaveProperty('workdir')
-    const dshEnv = bash.requests[0]?.dshEnv
-    expect(dshEnv).toBeDefined()
-    expect(dshEnv?.['DSH_SHELL']).toBe('1')
-    expect(dshEnv?.['DSH_HOME']).toEqual(expect.any(String))
-    expect(dshEnv).not.toHaveProperty('DSH_SESSION_ID')
+    const mapleEnv = bash.requests[0]?.mapleEnv
+    expect(mapleEnv).toBeDefined()
+    expect(mapleEnv?.['MAPLE_SHELL']).toBe('1')
+    expect(mapleEnv?.['MAPLE_HOME']).toEqual(expect.any(String))
+    expect(mapleEnv).not.toHaveProperty('MAPLE_SESSION_ID')
   })
 
   it('forwards exec.signal into the resolved request', async () => {

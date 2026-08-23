@@ -277,7 +277,7 @@ PascalCase 标识符中的首字母缩略词使用首字母大写格式：`Ui`�
 | `@maple/jsonrpc-demo` | `@maple/sdk-jsonrpc-demo` | 该示例演示通过 JSON-RPC 使用运行时 SDK，属于 SDK 的唯一含义。 |
 | `@maple/frontend` | `@maple/web-frontend` | 该应用是 Web 前端。保留其物理目录 `apps/web/`。 |
 
-保留 atomic-write、brand、native-command、timeout 实用工具、目录选择器、`dsh-base`、`dsh-web-app`、应用启动、CLI（命令行界面）名称，以及 `headless` 包、组合包和示例身份。`headless` 是预期的产品本质，未来也可以支持不止一次性执行。
+保留 atomic-write、brand、native-command、timeout 实用工具、目录选择器、`maple-base`、`maple-web-app`、应用启动、CLI（命令行界面）名称，以及 `headless` 包、组合包和示例身份。`headless` 是预期的产品本质，未来也可以支持不止一次性执行。
 
 ### 客户端运行时与 UI
 

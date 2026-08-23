@@ -22,7 +22,7 @@ Harness 的浏览器界面已经通过回环 HTTP 提供了完整 GUI——RPC �
 
 ## Alternatives considered
 
-**为什么不把前端 dist 内嵌进 webview、改走与无头宿主的 IPC？** 内嵌 dist 意味着外壳要自己接管 API 路由、插件服务与信任围栏——这些 `@deepseek-ai/dsh-web-app` 已经拥有——而且每一项 harness 能力都得有一条并行通路进入 webview。经由真实组合来服务，让一个表面只有一个所有者。
+**为什么不把前端 dist 内嵌进 webview、改走与无头宿主的 IPC？** 内嵌 dist 意味着外壳要自己接管 API 路由、插件服务与信任围栏——这些 `@deepseek-ai/maple-web-app` 已经拥有——而且每一项 harness 能力都得有一条并行通路进入 webview。经由真实组合来服务，让一个表面只有一个所有者。
 
 **为什么不让 Tauri 对话框充当目录选择器后端？** 该 seam 已经组合了 `ctx.directoryPicker` 之后的多个后端；第三个后端会为毫无新增能力而复制 Win32 koffi 实现，且 koffi 选择器在被拉起的宿主下原样可用。
 

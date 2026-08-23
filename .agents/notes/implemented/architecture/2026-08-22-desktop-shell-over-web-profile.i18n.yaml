@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-22-desktop-shell-over-web-profile.md
-2026-08-22-desktop-shell-over-web-profile.md: 5ea48754a8404627a6b7a6b83d3c7e930b106950
-2026-08-22-desktop-shell-over-web-profile.zh.md: d228e07cbd26d925d1e2c9555fce6864199d993b
+2026-08-22-desktop-shell-over-web-profile.md: 81140929186b755ab22761dcbcdbcdb39072306f
+2026-08-22-desktop-shell-over-web-profile.zh.md: 3adea59c214f75df0afae970271e325f2892a914

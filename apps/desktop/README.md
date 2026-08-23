@@ -6,7 +6,7 @@ The Maple desktop shell: one native window over the harness's own local server. 
 
 ## How it works
 
-`src-tauri/src/main.rs` spawns `dsh web --no-open --port 0` (OS-chosen port, no browser handoff), watches the child's stdout for the readiness line `dsh web: http://127.0.0.1:<port>` that `@deepseek-ai/dsh-web-app` prints once bound, then navigates the window from the bundled splash page to that URL. Every capability the browser surface has — RPC gateway, plugin roster, native directory picker — stays owned by the harness composition; the shell adds only windowing and lifetime.
+`src-tauri/src/main.rs` spawns `dsh web --no-open --port 0` (OS-chosen port, no browser handoff), watches the child's stdout for the readiness line `dsh web: http://127.0.0.1:<port>` that `@deepseek-ai/maple-web-app` prints once bound, then navigates the window from the bundled splash page to that URL. Every capability the browser surface has — RPC gateway, plugin roster, native directory picker — stays owned by the harness composition; the shell adds only windowing and lifetime.
 
 No Tauri IPC is exposed to the loaded page: the UI talks to the harness exclusively through its own `/api` origin.
 

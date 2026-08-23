@@ -1,4 +1,4 @@
-/** Local durable attachment backend rooted below `DSH_HOME`. @module @maple/attachment-local */
+/** Local durable attachment backend rooted below `MAPLE_HOME`. @module @maple/attachment-local */
 
 import { join, resolve } from 'node:path'
 import { Context } from '@maple/cordis'
@@ -12,7 +12,7 @@ import type {
   SaveImageAttachment,
   StoredImageAttachment,
 } from '@maple/attachment'
-import { resolveDshHome } from '@maple/home-paths'
+import { resolveMapleHome } from '@maple/home-paths'
 import type { NormalizationPolicy } from './normalization.ts'
 import { CompressionLimiter } from './compression-limiter.ts'
 import { commitPreparedImageFile, prepareImageFile, readImageFile, validateImageFile } from './store.ts'
@@ -49,7 +49,7 @@ export const MAX_IMAGE_COMPRESSION_CONCURRENCY = 8
 
 /** Local attachment backend configuration. */
 export interface Config {
-  /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh`. */
+  /** Explicit harness home; omitted follows `MAPLE_HOME`, then `~/.maple`. */
   dshHome?: string
   /** Maximum encoded bytes accepted for one submitted image. Default: 20 MiB. */
   maxImageBytes?: number
@@ -157,7 +157,7 @@ export class LocalAttachmentStore extends AttachmentStore {
 
   constructor(ctx: Context, config: Config) {
     super(ctx)
-    this.root = resolve(join(resolveDshHome(config.dshHome), 'attachments', 'v1'))
+    this.root = resolve(join(resolveMapleHome(config.dshHome), 'attachments', 'v1'))
     this.imageLimits = Object.freeze({
       maxImageBytes: config.maxImageBytes ?? DEFAULT_MAX_IMAGE_BYTES,
       maxImagesPerMessage: config.maxImagesPerMessage ?? DEFAULT_MAX_IMAGES_PER_MESSAGE,

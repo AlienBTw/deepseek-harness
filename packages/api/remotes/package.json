@@ -33,7 +33,7 @@
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
-  "dsh": {
+  "maple": {
     "client": {
       "inject": [
         "@maple/api-gateway"

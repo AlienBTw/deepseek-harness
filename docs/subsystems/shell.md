@@ -8,7 +8,7 @@ Source: [`packages/shell/shell/src/types.ts`](../../packages/shell/shell/src/typ
 
 ## Managed shell environment namespace
 
-`DSH_*` variables are Harness-owned child-process facts. The model-facing bash tool collects them through `ctx.shellEnv` and passes them through `ShellExecRequest.dshEnv`; the subprocess service removes inherited `DSH_*` names before merging the current snapshot. The `DshEnvironmentKey`/`DshEnvironment` vocabulary is owned by the [subprocess seam](subprocess.md) and re-exported by `dsh-shell`.
+`MAPLE_*` variables are Harness-owned child-process facts. The model-facing bash tool collects them through `ctx.shellEnv` and passes them through `ShellExecRequest.mapleEnv`; the subprocess service removes inherited `MAPLE_*` names before merging the current snapshot. The `MapleEnvironmentKey`/`MapleEnvironment` vocabulary is owned by the [subprocess seam](subprocess.md) and re-exported by `dsh-shell`.
 
 ## Request vs. spec: the `resolve()` split
 
@@ -46,20 +46,20 @@ interface ShellExecRequest {
   stdin?: string | undefined
   /**
    * Ordinary environment entries for the command, merged after the credential
-   * scrub. Managed facts belong in {@link dshEnv}, which merges after this
+   * scrub. Managed facts belong in {@link mapleEnv}, which merges after this
    * map, so an entry here can never displace one. Set by in-process plugins
    * (the hooks bridges set `CLAUDE_PROJECT_DIR`, `CLAUDE_PLUGIN_ROOT`, …); the
    * model-facing bash tool does not expose it as a parameter.
    */
   env?: Record<string, string> | undefined
   /**
-   * Harness-owned `DSH_*` variables for this execution (typed to managed
-   * keys). Executors discard ambient `DSH_*` entries before merging this
+   * Harness-owned `MAPLE_*` variables for this execution (typed to managed
+   * keys). Executors discard ambient `MAPLE_*` entries before merging this
    * snapshot last, so an unavailable current fact cannot inherit a stale
    * value from the harness process and a caller {@link env} entry cannot
    * displace a managed one.
    */
-  dshEnv?: DshEnvironment | undefined
+  mapleEnv?: MapleEnvironment | undefined
   /** Fully resolved per-call sandbox policy; sandboxing executors default it. */
   sandboxPolicy?: SandboxExecutionPolicy | undefined
 }
@@ -86,13 +86,13 @@ interface ShellExecSpec {
   stdin?: string | undefined
   /**
    * Ordinary environment entries carried through from
-   * {@link ShellExecRequest.env}; {@link dshEnv} still merges after them.
+   * {@link ShellExecRequest.env}; {@link mapleEnv} still merges after them.
    * OPTIONAL on the spec for the same reason as `stdin`: absent means no
    * ordinary extra environment.
    */
   env?: Record<string, string> | undefined
-  /** Managed `DSH_*` snapshot (typed to managed keys); merges after {@link env}. */
-  dshEnv?: DshEnvironment | undefined
+  /** Managed `MAPLE_*` snapshot (typed to managed keys); merges after {@link env}. */
+  mapleEnv?: MapleEnvironment | undefined
   /** Resolved sandbox policy; ignored by executors that do not confine. */
   sandboxPolicy: SandboxExecutionPolicy | undefined
 }
@@ -272,7 +272,7 @@ Source: [`packages/shell/shell/src/index.ts`](../../packages/shell/shell/src/ind
 
 ### `ctx.shellEnv` — `ShellEnvRegistry`
 
-Registry (`ctx.shellEnv`) for trusted, per-execution `DSH_*` variables. The namespace is rebuilt for every model shell call: ambient `DSH_*` values are discarded by the executor, then the registry's current snapshot is injected. Built-in shell facts remain owned by the registry itself while plugins can register additional, enumerable facts with effect-scoped disposal.
+Registry (`ctx.shellEnv`) for trusted, per-execution `MAPLE_*` variables. The namespace is rebuilt for every model shell call: ambient `MAPLE_*` values are discarded by the executor, then the registry's current snapshot is injected. Built-in shell facts remain owned by the registry itself while plugins can register additional, enumerable facts with effect-scoped disposal.
 
 ```ts cordis-catalog
 /**
@@ -284,11 +284,11 @@ Registry (`ctx.shellEnv`) for trusted, per-execution `DSH_*` variables. The name
 register(contributor: BashEnvContributor): () => void
 
 /**
- * Build the trusted `DSH_*` snapshot for one shell tool execution.
+ * Build the trusted `MAPLE_*` snapshot for one shell tool execution.
  * @param execution - the current tool execution.
  * @returns an immutable environment overlay containing built-ins and current contributions.
  */
-collect(execution: ToolExecution): DshEnvironment
+collect(execution: ToolExecution): MapleEnvironment
 
 /**
  * Enumerate plugin-contributed variables without executing their resolvers.
@@ -297,7 +297,7 @@ collect(execution: ToolExecution): DshEnvironment
 list(): BashEnvVariableInfo[]
 ```
 
-Types: [DshEnvironment](subprocess.md) · [ToolExecution](tools.md)
+Types: [MapleEnvironment](subprocess.md) · [ToolExecution](tools.md)
 
 Source: [`packages/shell/shell-env/src/index.ts`](../../packages/shell/shell-env/src/index.ts)
 <!-- END GENERATED cordis-surface -->

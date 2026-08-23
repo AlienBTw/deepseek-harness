@@ -14,7 +14,7 @@ const moduleFace = modulesClient as unknown as Record<string, unknown>
 
 afterEach(() => {
   vi.restoreAllMocks()
-  delete win.__DSH_BOOT__
+  delete win.__MAPLE_BOOT__
   delete win.__ModuleLoader__
   document.body.innerHTML = ''
 })
@@ -66,15 +66,15 @@ describe('bootstrap failure rendering', () => {
   it('renders a malformed boot manifest', async () => {
     await expectBootFailure(() => {
       installFacade()
-      delete win.__DSH_BOOT__
-    }, 'window.__DSH_BOOT__ is missing or not an object')
+      delete win.__MAPLE_BOOT__
+    }, 'window.__MAPLE_BOOT__ is missing or not an object')
   })
 
   it('renders a module-system construction failure', async () => {
     await expectBootFailure(() => {
       installFacade()
       const duplicate = { id: 'duplicate', url: '/duplicate/client.js', rev: '1' }
-      win.__DSH_BOOT__ = { rev: 'graph', entries: [duplicate, duplicate] }
+      win.__MAPLE_BOOT__ = { rev: 'graph', entries: [duplicate, duplicate] }
     }, 'duplicate graph entry "duplicate"')
   })
 })
@@ -90,7 +90,7 @@ describe('plugin activation', () => {
       { id: MODULES_ID, url: '/modules.js', rev: '1' },
       { id: 'renderer', url: '/renderer.js', rev: '1' },
     ]
-    win.__DSH_BOOT__ = { rev: 'graph', entries }
+    win.__MAPLE_BOOT__ = { rev: 'graph', entries }
     const registrations = new Map<string, ClientBundleRegistration>([
       ['/consumer.js', {
         id: 'consumer',

@@ -11,4 +11,4 @@
 
 即使消费方重载，进程生命周期仍由服务负责管理；消费方负责定义进程的含义（一条 bash 命令、未来的非 shell 运行器），以及决定塑造该进程的每一项默认值。
 
-子系统参考——spawn spec、输出读取器、结果、`DSH_*` 环境——见 [docs/subsystems/subprocess.md](../../docs/subsystems/subprocess.zh.md)；seam 决定见 [subprocess seam Agent Note](../../.agents/notes/implemented/architecture/2026-07-26-subprocess-seam.zh.md)。
+子系统参考——spawn spec、输出读取器、结果、`MAPLE_*` 环境——见 [docs/subsystems/subprocess.md](../../docs/subsystems/subprocess.zh.md)；seam 决定见 [subprocess seam Agent Note](../../.agents/notes/implemented/architecture/2026-07-26-subprocess-seam.zh.md)。

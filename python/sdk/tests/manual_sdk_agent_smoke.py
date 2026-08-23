@@ -15,8 +15,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from deepseek_harness import DeepSeekHarness
-from deepseek_harness_runtime import bundled_default_config_path
+from maple_harness import DeepSeekHarness
+from maple_harness_runtime import bundled_default_config_path
 
 
 class MockCompletionHandler(BaseHTTPRequestHandler):
@@ -104,7 +104,7 @@ def main() -> None:
         "--repo-root",
         type=Path,
         default=Path(__file__).resolve().parents[3],
-        help="Path to the deepseek-harness checkout.",
+        help="Path to the maple-harness checkout.",
     )
     parser.add_argument("--keep-sessions", action="store_true")
     args = parser.parse_args()

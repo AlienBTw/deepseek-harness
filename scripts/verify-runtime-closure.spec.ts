@@ -71,7 +71,7 @@ describe('verifyRuntimeClosure', () => {
       'apps/cli/config/agent-presets/standard/agent.cordis.yml': `
 - id: conditional
   name: '@scope/conditional'
-  disabled: !!js process.env.DSH_DISABLE_CONDITIONAL === '1'
+  disabled: !!js process.env.MAPLE_DISABLE_CONDITIONAL === '1'
 `,
     })
 

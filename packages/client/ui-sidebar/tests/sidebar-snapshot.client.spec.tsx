@@ -18,7 +18,7 @@ import { apply, inject } from '@maple/client-ui-sidebar/client'
 // the shipped Chinese copy, so they state the browser they assume.
 usePinnedBrowserLanguages('zh-CN')
 
-beforeEach(() => { vi.stubEnv('DSH_CLIENT_COMMIT_HASH', 'abc1234') })
+beforeEach(() => { vi.stubEnv('MAPLE_CLIENT_COMMIT_HASH', 'abc1234') })
 
 afterEach(() => {
   cleanup()

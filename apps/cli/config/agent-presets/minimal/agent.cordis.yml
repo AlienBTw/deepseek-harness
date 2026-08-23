@@ -80,7 +80,7 @@
     - id: fs-local
       name: '@maple/fs-local'
       config:
-        cwd: !!js process.env.DSH_CWD ?? process.cwd()
+        cwd: !!js process.env.MAPLE_CWD ?? process.cwd()
 
     - id: str-replace-editor
       name: '@maple/tool-str-replace-editor'

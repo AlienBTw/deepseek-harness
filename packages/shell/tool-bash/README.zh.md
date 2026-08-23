@@ -28,7 +28,7 @@
 
 ### 托管 shell 环境
 
-每次模型发起的前台或后台 bash 调用都会通过共享的 [`dsh-shell-env`](../shell-env/README.zh.md) 注册表收到新收集的一组可信 `DSH_*` 环境变量：`DSH_HOME`（Harness home 绝对路径）、`DSH_SHELL=1`、agent 的 `DSH_SESSION_ID`，以及当活跃持久化后端能定位时的 `DSH_SESSION_JSONL`。注册表约定——贡献方注册、重复键／未声明键的显式报错机制、内置项保留与贡献方示例——载于该包的 README。快照通过专用的 `ShellExecRequest.dshEnv` 通道传递；本地执行器会先删除继承的所有 `DSH_*` 再合并，因此嵌套 harness 和并发的父／子 agent 不会泄漏陈旧身份，且绝不修改 `process.env`。工具说明只教授通用 `$DSH_*` 约定，不会点名持久化专用变量，也不会添加永久的系统提示词段落。
+每次模型发起的前台或后台 bash 调用都会通过共享的 [`dsh-shell-env`](../shell-env/README.zh.md) 注册表收到新收集的一组可信 `MAPLE_*` 环境变量：`MAPLE_HOME`（Harness home 绝对路径）、`MAPLE_SHELL=1`、agent 的 `MAPLE_SESSION_ID`，以及当活跃持久化后端能定位时的 `MAPLE_SESSION_JSONL`。注册表约定——贡献方注册、重复键／未声明键的显式报错机制、内置项保留与贡献方示例——载于该包的 README。快照通过专用的 `ShellExecRequest.mapleEnv` 通道传递；本地执行器会先删除继承的所有 `MAPLE_*` 再合并，因此嵌套 harness 和并发的父／子 agent 不会泄漏陈旧身份，且绝不修改 `process.env`。工具说明只教授通用 `$MAPLE_*` 约定，不会点名持久化专用变量，也不会添加永久的系统提示词段落。
 
 结果文本依次包含 stdout、可选的 `[stderr]` 段落和适用的沙箱拒绝、超时、信号、退出代码及截断标记。超时与最终退出状态分别报告；非零退出仍是由模型解释的结果，不会成为 `isError`。截断结果会链接安全的完整 spill 文件，或报告文件不可用。只有 spawn 错误和中止等基础设施故障才会产生 `isError`。
 
@@ -42,7 +42,7 @@
 
 ## 工具仅使用具名参数构建请求
 
-`ShellExecRequest` 携带可选的 `stdoutMaxBytes`、`stdin`、普通 `env` 和托管 `dshEnv`，供可信进程内插件及此工具的环境注册表使用。模型侧工具不公开 `stdoutMaxBytes`、`stdin` 或 `env`：它使用具名的命令／工作目录／超时／信号／沙箱字段，加上从注册表收集的 `dshEnv` 来构建请求。额外模型键会被忽略，无法替换托管值。Shell 语法可以提供等价的命令级行为，而本地执行器会清除环境中的凭据和陈旧 `DSH_*` 值。参见 [stdin/env Agent Note](../../../.agents/notes/implemented/architecture/2026-06-30-bash-stdin-env-trusted-plugin-api.zh.md)。
+`ShellExecRequest` 携带可选的 `stdoutMaxBytes`、`stdin`、普通 `env` 和托管 `mapleEnv`，供可信进程内插件及此工具的环境注册表使用。模型侧工具不公开 `stdoutMaxBytes`、`stdin` 或 `env`：它使用具名的命令／工作目录／超时／信号／沙箱字段，加上从注册表收集的 `mapleEnv` 来构建请求。额外模型键会被忽略，无法替换托管值。Shell 语法可以提供等价的命令级行为，而本地执行器会清除环境中的凭据和陈旧 `MAPLE_*` 值。参见 [stdin/env Agent Note](../../../.agents/notes/implemented/architecture/2026-06-30-bash-stdin-env-trusted-plugin-api.zh.md)。
 
 ## 权限与升权
 

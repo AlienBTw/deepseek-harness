@@ -510,7 +510,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'graph(): WebBootGraph',
         description: 'Current composed entry graph (stable object between changes).',
         parameters: [],
-        returns: 'the graph served as `window.__DSH_BOOT__`.',
+        returns: 'the graph served as `window.__MAPLE_BOOT__`.',
       },
       {
         signature: 'clientPath(id: string): string | undefined',
@@ -1650,8 +1650,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'shellEnv',
-    summary: 'Registry (`ctx.shellEnv`) for trusted, per-execution `DSH_*` variables.',
-    description: 'Registry (`ctx.shellEnv`) for trusted, per-execution `DSH_*` variables. The namespace is rebuilt for every model shell call: ambient `DSH_*` values are discarded by the executor, then the registry\'s current snapshot is injected. Built-in shell facts remain owned by the registry itself while plugins can register additional, enumerable facts with effect-scoped disposal.',
+    summary: 'Registry (`ctx.shellEnv`) for trusted, per-execution `MAPLE_*` variables.',
+    description: 'Registry (`ctx.shellEnv`) for trusted, per-execution `MAPLE_*` variables. The namespace is rebuilt for every model shell call: ambient `MAPLE_*` values are discarded by the executor, then the registry\'s current snapshot is injected. Built-in shell facts remain owned by the registry itself while plugins can register additional, enumerable facts with effect-scoped disposal.',
     methods: [
       {
         signature: 'register(contributor: BashEnvContributor): () => void',
@@ -1660,8 +1660,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the disposer that unregisters the contribution.',
       },
       {
-        signature: 'collect(execution: ToolExecution): DshEnvironment',
-        description: 'Build the trusted `DSH_*` snapshot for one shell tool execution.',
+        signature: 'collect(execution: ToolExecution): MapleEnvironment',
+        description: 'Build the trusted `MAPLE_*` snapshot for one shell tool execution.',
         parameters: [{ name: 'execution', description: 'the current tool execution.' }],
         returns: 'an immutable environment overlay containing built-ins and current contributions.',
       },
@@ -3003,7 +3003,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BashEnvContributor',
-    declaration: 'export interface BashEnvContributor {\n    name: string;\n    variables: Readonly<Record<DshEnvironmentKey, BashEnvVariable>>;\n    resolve(execution: ToolExecution): Readonly<Partial<Record<DshEnvironmentKey, string>>>;\n}',
+    declaration: 'export interface BashEnvContributor {\n    name: string;\n    variables: Readonly<Record<MapleEnvironmentKey, BashEnvVariable>>;\n    resolve(execution: ToolExecution): Readonly<Partial<Record<MapleEnvironmentKey, string>>>;\n}',
   },
   {
     name: 'BashEnvVariable',
@@ -3011,7 +3011,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BashEnvVariableInfo',
-    declaration: 'export interface BashEnvVariableInfo extends BashEnvVariable {\n    contributor: string;\n    key: DshEnvironmentKey;\n}',
+    declaration: 'export interface BashEnvVariableInfo extends BashEnvVariable {\n    contributor: string;\n    key: MapleEnvironmentKey;\n}',
   },
   {
     name: 'Branded',
@@ -3302,12 +3302,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface DownloadsApi {\n    sessionLog(request: {\n        sessionId: SessionId;\n        includeDescendants?: boolean;\n    }, signal: AbortSignal): Promise<Response>;\n}',
   },
   {
-    name: 'DshEnvironment',
-    declaration: 'export type DshEnvironment = Readonly<Record<DshEnvironmentKey, string>>;',
+    name: 'MapleEnvironment',
+    declaration: 'export type MapleEnvironment = Readonly<Record<MapleEnvironmentKey, string>>;',
   },
   {
-    name: 'DshEnvironmentKey',
-    declaration: 'export type DshEnvironmentKey = `${typeof DSH_ENV_PREFIX}${string}`;',
+    name: 'MapleEnvironmentKey',
+    declaration: 'export type MapleEnvironmentKey = `${typeof MAPLE_ENV_PREFIX}${string}`;',
   },
   {
     name: 'DynamicCordisPackage',
@@ -4343,11 +4343,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ShellExecRequest',
-    declaration: 'export interface ShellExecRequest {\n    command: string;\n    workdir?: string | undefined;\n    timeoutMs?: number | undefined;\n    stdoutMaxBytes?: number | undefined;\n    signal?: AbortSignal | undefined;\n    stdin?: string | undefined;\n    env?: Record<string, string> | undefined;\n    dshEnv?: DshEnvironment | undefined;\n    sandboxPolicy?: SandboxExecutionPolicy | undefined;\n}',
+    declaration: 'export interface ShellExecRequest {\n    command: string;\n    workdir?: string | undefined;\n    timeoutMs?: number | undefined;\n    stdoutMaxBytes?: number | undefined;\n    signal?: AbortSignal | undefined;\n    stdin?: string | undefined;\n    env?: Record<string, string> | undefined;\n    mapleEnv?: MapleEnvironment | undefined;\n    sandboxPolicy?: SandboxExecutionPolicy | undefined;\n}',
   },
   {
     name: 'ShellExecSpec',
-    declaration: 'export interface ShellExecSpec {\n    command: string;\n    workdir: string;\n    timeoutMs: number;\n    stdoutMaxBytes: number;\n    signal?: AbortSignal | undefined;\n    stdin?: string | undefined;\n    env?: Record<string, string> | undefined;\n    dshEnv?: DshEnvironment | undefined;\n    sandboxPolicy: SandboxExecutionPolicy | undefined;\n}',
+    declaration: 'export interface ShellExecSpec {\n    command: string;\n    workdir: string;\n    timeoutMs: number;\n    stdoutMaxBytes: number;\n    signal?: AbortSignal | undefined;\n    stdin?: string | undefined;\n    env?: Record<string, string> | undefined;\n    mapleEnv?: MapleEnvironment | undefined;\n    sandboxPolicy: SandboxExecutionPolicy | undefined;\n}',
   },
   {
     name: 'ShellProcess',

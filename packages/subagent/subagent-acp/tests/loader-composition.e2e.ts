@@ -47,7 +47,7 @@ describe('ACP subagent cwd inheritance through a real cordis.yml', () => {
       libBinScript: driver,
       configPath,
       tsconfigPath: repoTsconfig,
-      env: { DSH_TEST_MOCK_ACP_SERVER: mockServer },
+      env: { MAPLE_TEST_MOCK_ACP_SERVER: mockServer },
       inspect: async (cwd) => {
         // The child reports realpaths; canonicalize the temp workspace to match.
         workspace = realpathSync(cwd)

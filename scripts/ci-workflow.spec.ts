@@ -76,15 +76,15 @@ describe('CI workflow', () => {
     // windows-native: non-blocking native job with failover, runs windows-complete.
     // Its pool is resolved by the Windows-specific switch.
     expect(typeof windowsNative['runs-on']).toBe('string')
-    expect(windowsNative['runs-on']).toContain('DSH_CI_FAILOVER_WINDOWS')
-    expect(windowsNative['runs-on']).not.toContain('DSH_CI_FAILOVER_LINUX')
+    expect(windowsNative['runs-on']).toContain('MAPLE_CI_FAILOVER_WINDOWS')
+    expect(windowsNative['runs-on']).not.toContain('MAPLE_CI_FAILOVER_LINUX')
     expect(windowsNative['runs-on']).toContain('self-hosted')
     expect(windowsNative['runs-on']).toContain('dsh-win-ci')
     expect(windowsNative['runs-on']).toContain('dsh-windows-2025-16core')
     expect(windowsNative.name).toBe('windows node 24 / native complete')
     expect(windowsNative.if).toBe("github.event_name == 'pull_request'")
     expect(windowsNative.env).toMatchObject({
-      DSH_COVERAGE_TEST_TIMEOUT_MS: '30000',
+      MAPLE_COVERAGE_TEST_TIMEOUT_MS: '30000',
     })
     const nativeSteps = windowsNative.steps as unknown[]
     const nativeCommandSteps = nativeSteps.filter((step): step is Record<string, unknown> & { run: string } => (
@@ -107,16 +107,16 @@ describe('CI workflow', () => {
     expect(aggregate.needs).not.toContain('serial-windows')
 
     // Linux failover is a separate switch: the three required Linux workers
-    // and the verdict job resolve their pool through DSH_CI_FAILOVER_LINUX,
+    // and the verdict job resolve their pool through MAPLE_CI_FAILOVER_LINUX,
     // never the Windows switch.
     for (const [jobName, job] of [['node-24', node24], ['node-24-coverage', node24Coverage], ['node-24-consumers', node24Consumers]] as const) {
       expect(typeof job['runs-on']).toBe('string')
-      expect(job['runs-on'], `${jobName} runs-on must use the Linux failover switch`).toContain('DSH_CI_FAILOVER_LINUX')
-      expect(job['runs-on'], `${jobName} runs-on must not use the Windows failover switch`).not.toContain('DSH_CI_FAILOVER_WINDOWS')
+      expect(job['runs-on'], `${jobName} runs-on must use the Linux failover switch`).toContain('MAPLE_CI_FAILOVER_LINUX')
+      expect(job['runs-on'], `${jobName} runs-on must not use the Windows failover switch`).not.toContain('MAPLE_CI_FAILOVER_WINDOWS')
       expect(job['runs-on']).toContain('vm-backup')
     }
-    expect(aggregate['runs-on']).toContain('DSH_CI_FAILOVER_LINUX')
-    expect(aggregate['runs-on']).not.toContain('DSH_CI_FAILOVER_WINDOWS')
+    expect(aggregate['runs-on']).toContain('MAPLE_CI_FAILOVER_LINUX')
+    expect(aggregate['runs-on']).not.toContain('MAPLE_CI_FAILOVER_WINDOWS')
     expect(aggregate['runs-on']).toContain('vm-backup')
   })
 
@@ -268,8 +268,8 @@ describe('E2B e2e workflow', () => {
     expect(e2b).toMatchObject({
       env: {
         E2B_API_KEY: '${{ secrets.E2B_API_KEY_EXTERNAL }}',
-        DSH_E2E_MAX_WORKERS: '1',
-        DSH_EXAMPLE_MODE: 'lib',
+        MAPLE_E2E_MAX_WORKERS: '1',
+        MAPLE_EXAMPLE_MODE: 'lib',
       },
     })
     expect(e2b?.run).toContain('packages/e2b/e2b/tests/composition.e2e.ts')
@@ -401,7 +401,7 @@ describe('Python release workflows', () => {
     expect(JSON.stringify(macosCheck)).toContain('scripts/check-macos-deployment-target.py')
     expect(JSON.stringify(macosCheck)).toContain('$EXE-spawn-helper')
     expect(manylinuxSmoke).toMatchObject({ if: "runner.os == 'Linux'" })
-    expect(JSON.stringify(manylinuxSmoke)).toContain('-e DSH_TELEMETRY_DISABLED')
+    expect(JSON.stringify(manylinuxSmoke)).toContain('-e MAPLE_TELEMETRY_DISABLED')
   })
 
   it('uses the shared macOS deployment-target check in GitLab', () => {

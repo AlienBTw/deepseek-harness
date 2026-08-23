@@ -277,7 +277,7 @@ Keep MCP, Todo, and the Plan Mode package, key, events, and tool names. This dec
 | `@maple/jsonrpc-demo` | `@maple/sdk-jsonrpc-demo` | The example demonstrates the runtime SDK over JSON-RPC. It belongs to the one SDK meaning. |
 | `@maple/frontend` | `@maple/web-frontend` | The application is the web frontend. Keep its physical `apps/web/` folder. |
 
-Keep atomic-write, brand, native-command, timeout utility, directory-picker, `dsh-base`, `dsh-web-app`, app boot, CLI names, and the `headless` package, bundle, and example identity. `headless` is the intended product essence and may later support more than one-shot execution.
+Keep atomic-write, brand, native-command, timeout utility, directory-picker, `maple-base`, `maple-web-app`, app boot, CLI names, and the `headless` package, bundle, and example identity. `headless` is the intended product essence and may later support more than one-shot execution.
 
 ### Client runtime and UI
 

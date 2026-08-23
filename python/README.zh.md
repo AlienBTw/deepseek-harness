@@ -8,8 +8,8 @@
 
 | 目录 | 分发名／模块 | 职责 |
 |---|---|---|
-| [sdk](sdk/README.zh.md) | `deepseek-harness-sdk` / `deepseek_harness` | 高层轮次 API 与低层 JSON-RPC 客户端 |
-| [sdk-runtime](sdk-runtime/README.zh.md) | `deepseek-harness-runtime-bin` / `deepseek_harness_runtime` | 内置运行时二进制与默认 agent（智能体）配置 |
+| [sdk](sdk/README.zh.md) | `maple-harness-sdk` / `maple_harness` | 高层轮次 API 与低层 JSON-RPC 客户端 |
+| [sdk-runtime](sdk-runtime/README.zh.md) | `maple-harness-runtime-bin` / `maple_harness_runtime` | 内置运行时二进制与默认 agent（智能体）配置 |
 
 ## 行为
 

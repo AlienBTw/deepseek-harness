@@ -58,7 +58,7 @@ A deployment that composes no presets answers with an empty roster, and the row,
 
 ## Model Experience
 
-Indirectly, through the preset a later session is composed from; [`dsh-agent-presets`](../../preset/agent-presets/README.md) owns what that composition puts in front of the model.
+Indirectly, through the preset a later session is composed from; [`maple-agent-presets`](../../preset/agent-presets/README.md) owns what that composition puts in front of the model.
 
 #### KV Cache effect
 

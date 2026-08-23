@@ -103,12 +103,12 @@ describe('release families', () => {
     const dsh = releaseFamily('dsh')
     const vendor = releaseFamily('vendor')
     const officialEnvironment = officialClientBuildEnvironment(resolve(import.meta.dirname, '../..'))
-    vi.stubEnv('DSH_CLIENT_COMMIT_HASH', officialEnvironment.DSH_CLIENT_COMMIT_HASH)
+    vi.stubEnv('MAPLE_CLIENT_COMMIT_HASH', officialEnvironment.MAPLE_CLIENT_COMMIT_HASH)
     const official = buildFixture(officialEnvironment)
     const defaultBuild = buildFixture({})
 
     expect(() => { dsh.verifyBuildArtifacts(official) }).not.toThrow()
-    expect(() => { dsh.verifyBuildArtifacts(defaultBuild) }).toThrow(/DSH_CLIENT_TITLE/)
+    expect(() => { dsh.verifyBuildArtifacts(defaultBuild) }).toThrow(/MAPLE_CLIENT_TITLE/)
     expect(() => { dsh.verifyBuildArtifacts(join(defaultBuild, 'missing')) }).toThrow(/record.*missing/)
     expect(() => { vendor.verifyBuildArtifacts(join(defaultBuild, 'missing')) }).not.toThrow()
 

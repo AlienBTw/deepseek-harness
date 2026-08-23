@@ -62,10 +62,10 @@ class DeepSeekHarness:
         self._cwd = cwd
         env = dict(self.config.env)
         if self.config.session_root is not None:
-            env["DSH_SESSION_ROOT"] = self.config.session_root
+            env["MAPLE_SESSION_ROOT"] = self.config.session_root
         if self.config.cordis is not None:
-            env["DSH_CORDIS_CONFIG"] = self.config.cordis
-        env["DSH_CWD"] = cwd
+            env["MAPLE_CORDIS_CONFIG"] = self.config.cordis
+        env["MAPLE_CWD"] = cwd
         if self.config.base_url is not None:
             env["DEEPSEEK_BASE_URL"] = self.config.base_url
         if self.config.api_key is not None:

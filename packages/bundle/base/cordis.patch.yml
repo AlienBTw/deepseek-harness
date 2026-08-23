@@ -1,4 +1,4 @@
-# The dsh-base bundle patch: the shared core of every dsh profile, applied as
+# The maple-base bundle patch: the shared core of every dsh profile, applied as
 # ONE insert over the empty profile root. Later bundle patches and the user's
 # profile cordis.patch.yml address these rows by id, with the last write
 # winning per row.
@@ -72,14 +72,14 @@
     - id: llm-retry
       name: '@maple/llm-retry'
 
-    # User-settings document (`$DSH_HOME/settings.yaml`, hot-reloaded): a
+    # User-settings document (`$MAPLE_HOME/settings.yaml`, hot-reloaded): a
     # `llm-deepseek:` or `llm-pi-ai:` section there overrides the adapter entries
     # below without a restart, and is what the web Models page writes.
     - id: settings
       name: '@maple/settings-file'
 
     # Credential sources: inherited environment over the managed
-    # `$DSH_HOME/.credentials.yaml`, with project and user `.env` fallbacks.
+    # `$MAPLE_HOME/.credentials.yaml`, with project and user `.env` fallbacks.
     # Adapters resolve references per request; the Models page writes only the
     # managed document, which is never materialized into the process environment.
     - id: credentials
@@ -98,7 +98,7 @@
     - id: session-persistence-jsonl
       name: '@maple/session-persistence-jsonl'
       config:
-        root: !!js dshHomePath('sessions')
+        root: !!js mapleHomePath('sessions')
 
     # Durable image bytes live outside the append-only session log. Messages
     # keep content-addressed references that this shared backend resolves for
@@ -126,15 +126,15 @@
     - id: session-projection
       name: '@maple/session-projection'
 
-    # Session telemetry is mounted but disabled by default. DSH_TELEMETRY_MODE
+    # Session telemetry is mounted but disabled by default. MAPLE_TELEMETRY_MODE
     # explicitly opts into FULL or FEEDBACK_ONLY reporting; uploading mirrors
     # session-log records onto OTLP/HTTP logs with no session-telemetry/record redaction
     # rule, so exports are the raw captured copy. The deployment stance, env
     # seams, and follow-ups are pinned in the default-off Agent Note.
-    # DSH_TELEMETRY_OTLP_URL overrides the production endpoint. A non-empty
-    # DSH_TELEMETRY_DISABLED — any value, including '0'/'false' — opts the
+    # MAPLE_TELEMETRY_OTLP_URL overrides the production endpoint. A non-empty
+    # MAPLE_TELEMETRY_DISABLED — any value, including '0'/'false' — opts the
     # process out (the launchers patch the row disabled; config cannot disable
-    # a row). Exports carry the harness home's anonymous user id ($DSH_HOME/.anonymous-user-id,
+    # a row). Exports carry the harness home's anonymous user id ($MAPLE_HOME/.anonymous-user-id,
     # random UUID; delete the file to reset the identity) as the Resource's
     # user.id. The exporter/processor values normally bound the shutdown drain
     # to ~1s against an unreachable collector: exporter.timeoutMillis is both
@@ -148,10 +148,10 @@
     - id: session-telemetry-otel
       name: '@maple/session-telemetry-otel'
       config:
-        mode: !!js process.env.DSH_TELEMETRY_MODE || 'DISABLED'
+        mode: !!js process.env.MAPLE_TELEMETRY_MODE || 'DISABLED'
         shutdownTimeoutMillis: 3000
         exporter:
-          url: !!js process.env.DSH_TELEMETRY_OTLP_URL ?? 'https://harness-telemetry.deepseeksvc.com/v1/logs'
+          url: !!js process.env.MAPLE_TELEMETRY_OTLP_URL ?? 'https://harness-telemetry.deepseeksvc.com/v1/logs'
           compression: gzip
           timeoutMillis: 1000
         processor:
@@ -172,7 +172,7 @@
     - id: sandbox-policy
       name: '@maple/sandbox-policy'
       config:
-        mode: !!js process.env.DSH_PERMISSION_MODE ?? 'workspace-write'
+        mode: !!js process.env.MAPLE_PERMISSION_MODE ?? 'workspace-write'
         workspaceRoot: !!js process.cwd()
 
     - id: bash-sandbox
@@ -188,7 +188,7 @@
     - id: approval
       name: '@maple/user-approval'
       config:
-        policy: !!js "(process.env.DSH_PERMISSION_MODE ?? 'workspace-write') === 'danger-full-access' ? 'never' : 'ask'"
+        policy: !!js "(process.env.MAPLE_PERMISSION_MODE ?? 'workspace-write') === 'danger-full-access' ? 'never' : 'ask'"
 
     - id: permission
       name: '@maple/permission-presets'

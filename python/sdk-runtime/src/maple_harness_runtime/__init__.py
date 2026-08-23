@@ -14,7 +14,7 @@ Two runtime carriers coexist under ``runtime/``, both injected by the repo's
   selected automatically, and excluded from wheel/sdist distributions.
 
 ``runtime/cordis.yml`` IS checked in: it is the default agent configuration
-the client SDK injects via ``$DSH_CORDIS_CONFIG`` for zero-config runs — the
+the client SDK injects via ``$MAPLE_CORDIS_CONFIG`` for zero-config runs — the
 runtime itself always requires an explicit config and has no built-in
 fallback.
 """
@@ -29,7 +29,7 @@ from pathlib import Path
 
 PACKAGE_METADATA_FILENAME = "deepseek-harness-runtime.json"
 
-RUNTIME_MODE_ENV_VAR = "DSH_RUNTIME_MODE"
+RUNTIME_MODE_ENV_VAR = "MAPLE_RUNTIME_MODE"
 
 _PLATFORM_TAGS = {"linux": "linux", "darwin": "macos"}
 _ARCH_TAGS = {"x86_64": "x64", "amd64": "x64", "arm64": "arm64", "aarch64": "arm64"}
@@ -55,7 +55,7 @@ def bundled_package_dir() -> Path:
 def bundled_default_config_path() -> Path:
     """Path of the checked-in default runtime configuration (``runtime/cordis.yml``).
 
-    The client SDK injects this path via ``$DSH_CORDIS_CONFIG`` when the caller
+    The client SDK injects this path via ``$MAPLE_CORDIS_CONFIG`` when the caller
     supplies no config and the launch resolves to the bundled runtime — the
     runtime binary itself always demands an explicit config.
     """
@@ -104,7 +104,7 @@ def resolve_bundled_launch_args(mode: str | None = None) -> tuple[str, ...]:
     """The argv tuple that launches the bundled runtime.
 
     Mode selection: the explicit ``mode`` argument wins, then the
-    ``DSH_RUNTIME_MODE`` environment variable (``exe`` | ``node``), then
+    ``MAPLE_RUNTIME_MODE`` environment variable (``exe`` | ``node``), then
     automatic resolution. Automatic resolution finds the production exe ONLY —
     the dev-only node carrier must be selected explicitly so a production
     deployment can never silently ride on a source build. Returns

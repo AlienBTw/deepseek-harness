@@ -34,11 +34,10 @@
     "lib/index.js",
     "lib/invariant.js",
     "lib/startup.js",
-    "cordis.patch.yml",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
-  "dsh": {
+  "maple": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }

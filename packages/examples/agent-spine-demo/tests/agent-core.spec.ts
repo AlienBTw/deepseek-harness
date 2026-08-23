@@ -63,10 +63,10 @@ async function composePrefix(ctx: Context, cwd: string): Promise<Message[]> {
  * bin smokes; here we assert the composition + config forwarding.
  */
 async function mount(config: agentCore.Config, withBash = false): Promise<Context> {
-  const oldDshHome = process.env.DSH_HOME
-  const oldAgentsHome = process.env.DSH_AGENTS_HOME
-  process.env.DSH_HOME = await mkdtemp(join(tmpdir(), 'dsh-agent-spine-demo-home-'))
-  process.env.DSH_AGENTS_HOME = await mkdtemp(join(tmpdir(), 'dsh-agent-spine-demo-agents-'))
+  const oldDshHome = process.env.MAPLE_HOME
+  const oldAgentsHome = process.env.MAPLE_AGENTS_HOME
+  process.env.MAPLE_HOME = await mkdtemp(join(tmpdir(), 'dsh-agent-spine-demo-home-'))
+  process.env.MAPLE_AGENTS_HOME = await mkdtemp(join(tmpdir(), 'dsh-agent-spine-demo-agents-'))
   const ctx = new Context()
   if (withBash) {
     ctx.provide('shell', {
@@ -84,35 +84,35 @@ async function mount(config: agentCore.Config, withBash = false): Promise<Contex
     return ctx
   } finally {
     if (oldDshHome === undefined) {
-      delete process.env.DSH_HOME
+      delete process.env.MAPLE_HOME
     } else {
-      process.env.DSH_HOME = oldDshHome
+      process.env.MAPLE_HOME = oldDshHome
     }
     if (oldAgentsHome === undefined) {
-      delete process.env.DSH_AGENTS_HOME
+      delete process.env.MAPLE_AGENTS_HOME
     } else {
-      process.env.DSH_AGENTS_HOME = oldAgentsHome
+      process.env.MAPLE_AGENTS_HOME = oldAgentsHome
     }
   }
 }
 
 async function withIsolatedSkillHomes<T>(run: () => Promise<T>): Promise<T> {
-  const oldDshHome = process.env.DSH_HOME
-  const oldAgentsHome = process.env.DSH_AGENTS_HOME
-  process.env.DSH_HOME = await mkdtemp(join(tmpdir(), 'dsh-agent-spine-demo-home-'))
-  process.env.DSH_AGENTS_HOME = await mkdtemp(join(tmpdir(), 'dsh-agent-spine-demo-agents-'))
+  const oldDshHome = process.env.MAPLE_HOME
+  const oldAgentsHome = process.env.MAPLE_AGENTS_HOME
+  process.env.MAPLE_HOME = await mkdtemp(join(tmpdir(), 'dsh-agent-spine-demo-home-'))
+  process.env.MAPLE_AGENTS_HOME = await mkdtemp(join(tmpdir(), 'dsh-agent-spine-demo-agents-'))
   try {
     return await run()
   } finally {
     if (oldDshHome === undefined) {
-      delete process.env.DSH_HOME
+      delete process.env.MAPLE_HOME
     } else {
-      process.env.DSH_HOME = oldDshHome
+      process.env.MAPLE_HOME = oldDshHome
     }
     if (oldAgentsHome === undefined) {
-      delete process.env.DSH_AGENTS_HOME
+      delete process.env.MAPLE_AGENTS_HOME
     } else {
-      process.env.DSH_AGENTS_HOME = oldAgentsHome
+      process.env.MAPLE_AGENTS_HOME = oldAgentsHome
     }
   }
 }
@@ -426,7 +426,7 @@ describe('dsh-agent-spine-demo bundle', () => {
       skills: {
         registry: { collectCacheMaxEntries: 4 },
         filesystem: {
-          dshHome: join(home, '.dsh'),
+          dshHome: join(home, '.maple'),
           agentsHome: join(agentsHome, '.agents'),
           customSkillDirs: [custom],
         },
@@ -461,7 +461,7 @@ describe('dsh-agent-spine-demo bundle', () => {
         workspaceContext: false,
         skills: {
           filesystem: {
-            dshHome: join(home, '.dsh'),
+            dshHome: join(home, '.maple'),
             agentsHome: join(home, '.agents'),
             watchStabilityThresholdMs: 20,
             watchPollIntervalMs: 10,
@@ -610,7 +610,7 @@ describe('dsh-agent-spine-demo bundle', () => {
       name: 'bash',
       arguments: { command: 'true' },
     }
-    expect(ctx.shellEnv.collect(execution)).toMatchObject({ DSH_HOME: home, DSH_SHELL: '1' })
+    expect(ctx.shellEnv.collect(execution)).toMatchObject({ MAPLE_HOME: home, MAPLE_SHELL: '1' })
     await ctx.fiber.dispose()
   })
 

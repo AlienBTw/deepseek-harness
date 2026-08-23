@@ -122,7 +122,7 @@ const bundles = new Map(PLUGINS.map(plugin => [
 ]))
 
 interface FixtureWindow extends Window {
-  __DSH_BOOT__?: { rev: string; entries: WebBootEntry[] }
+  __MAPLE_BOOT__?: { rev: string; entries: WebBootEntry[] }
   __ModuleLoader__?: ClientModuleLoaderTarget
 }
 
@@ -168,7 +168,7 @@ export function installAssembledBootEnv(): void {
     await act(async () => { await unmount?.() })
     unmount = undefined
     cleanup()
-    delete win.__DSH_BOOT__
+    delete win.__MAPLE_BOOT__
     delete win.__ModuleLoader__
     document.body.innerHTML = ''
     document.head.querySelectorAll('style[data-plugin]').forEach((style) => { style.remove() })
@@ -193,8 +193,8 @@ export function mountAssembledApp(search = '?fixture'): void {
   const root = document.createElement('div')
   root.id = 'root'
   document.body.appendChild(root)
-  win.__DSH_BOOT__ = { rev: 'fx', entries: PLUGINS.map(({ bundlePath: _bundlePath, ...plugin }) => plugin) }
-  const [facadeRow] = bootInjections(win.__DSH_BOOT__)
+  win.__MAPLE_BOOT__ = { rev: 'fx', entries: PLUGINS.map(({ bundlePath: _bundlePath, ...plugin }) => plugin) }
+  const [facadeRow] = bootInjections(win.__MAPLE_BOOT__)
   if (facadeRow?.kind !== 'script') throw new Error('missing injected ModuleLoader facade row')
   ;(0, eval)(facadeRow.text)
   // Mirror the blocking Host-injected scripts before the Vite entry calls create().
@@ -234,7 +234,7 @@ export function hasClass(el: Element, name: string): boolean {
 
 /**
  * Whether this run rewrites its golden instead of comparing against it, set by
- * the snapshot gate's `DSH_SNAPSHOT` mode (`record` re-runs the scenarios from
+ * the snapshot gate's `MAPLE_SNAPSHOT` mode (`record` re-runs the scenarios from
  * scratch, `refresh` re-derives the expected text from the existing ones).
  */
-export const REFRESHING_GOLDEN = process.env.DSH_SNAPSHOT === 'record' || process.env.DSH_SNAPSHOT === 'refresh'
+export const REFRESHING_GOLDEN = process.env.MAPLE_SNAPSHOT === 'record' || process.env.MAPLE_SNAPSHOT === 'refresh'

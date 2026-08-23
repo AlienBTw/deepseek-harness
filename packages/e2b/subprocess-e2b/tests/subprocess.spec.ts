@@ -110,7 +110,7 @@ class FakeSandbox {
   sdkKillStops = true
   alive = true
   zombieOnly = false
-  ambient = 'PATH=/ambient/bin\0KEEP=safe\0UNICODE=你好\0NPM_TOKEN=secret\0DSH_STALE=old\0BROKEN\0=bad\0'
+  ambient = 'PATH=/ambient/bin\0KEEP=safe\0UNICODE=你好\0NPM_TOKEN=secret\0MAPLE_STALE=old\0BROKEN\0=bad\0'
   environmentHome = '/home/user'
   environmentWire: string | undefined
   environmentRequest: ((signal: AbortSignal | undefined) => Promise<void>) | undefined
@@ -397,7 +397,7 @@ describe('E2BSubprocessHandle', () => {
         'FOO-BAR': 'hyphen-value',
         '--split-string': 'literal-value',
         DEEPSEEK_API_KEY: 'explicit-secret',
-        DSH_MODE: 'test',
+        MAPLE_MODE: 'test',
         // The seam's tombstone: an explicit undefined removes the ambient entry.
         KEEP: undefined,
       },
@@ -415,13 +415,13 @@ describe('E2BSubprocessHandle', () => {
     expect(controlEnvs).toEqual({
       TERM: 'dumb',
       NPM_TOKEN: '',
-      DSH_STALE: '',
+      MAPLE_STALE: '',
       HOME: controlEnvs?.HOME,
     })
     const command = fake.commandsSeen.find(value => value.includes('exec "$dsh_e2b_env_bin" -i'))!
     expect(command).toContain('"$dsh_e2b_setsid" --wait -- "$dsh_e2b_bash" -c')
     expect(command).not.toContain('DEEPSEEK_API_KEY')
-    expect(command).not.toContain('DSH_MODE')
+    expect(command).not.toContain('MAPLE_MODE')
     expect(command).not.toContain('FOO-BAR')
     expect(command).not.toContain('explicit-secret')
     expect(command).not.toContain('hyphen-value')
@@ -445,7 +445,7 @@ describe('E2BSubprocessHandle', () => {
       '/workspace/.dsh-e2b/processes/one/stderr.log',
     ])
     expect(fake.writtenFileData.get('/workspace/.dsh-e2b/processes/one/environment')).toBe(
-      'PATH=/bin\0UNICODE=你好\0HOME=/home/user\0FOO-BAR=hyphen-value\0--split-string=literal-value\0DEEPSEEK_API_KEY=explicit-secret\0DSH_MODE=test\0',
+      'PATH=/bin\0UNICODE=你好\0HOME=/home/user\0FOO-BAR=hyphen-value\0--split-string=literal-value\0DEEPSEEK_API_KEY=explicit-secret\0MAPLE_MODE=test\0',
     )
 
     let piped = ''

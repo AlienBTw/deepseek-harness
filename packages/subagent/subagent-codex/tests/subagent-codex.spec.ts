@@ -465,7 +465,7 @@ describe('task admission and package contracts', () => {
     const spawnSpecs: SubprocessSpawnSpec[] = []
     vi.spyOn(ctx.subprocess, 'spawn').mockImplementation((spec) => {
       spawnSpecs.push(spec)
-      return spec.env?.DSH_CODEX_INSTANCE === 'safe'
+      return spec.env?.MAPLE_CODEX_INSTANCE === 'safe'
         ? safeChild.handle
         : bypassChild.handle
     })
@@ -479,13 +479,13 @@ describe('task admission and package contracts', () => {
     ctx.on('subagent/provider-removed', providerName => void removed.push(providerName))
     const safeFiber = await ctx.plugin(codex, {
       providerName: 'codex-safe',
-      env: { DSH_CODEX_INSTANCE: 'safe' },
+      env: { MAPLE_CODEX_INSTANCE: 'safe' },
       permissionMode: 'never',
       disposeGraceMs: 11,
     })
     const bypassFiber = await ctx.plugin(codex, {
       providerName: 'codex-bypass',
-      env: { DSH_CODEX_INSTANCE: 'bypass' },
+      env: { MAPLE_CODEX_INSTANCE: 'bypass' },
       permissionMode: 'dangerously-bypass-approvals-and-sandbox',
       disposeGraceMs: 29,
     })
@@ -535,7 +535,7 @@ describe('task admission and package contracts', () => {
       stopReason: 'aborted',
     })
     expect(spawnSpecs.map(spec => ({
-      instance: spec.env?.DSH_CODEX_INSTANCE,
+      instance: spec.env?.MAPLE_CODEX_INSTANCE,
       graceMs: spec.graceMs,
     }))).toEqual([
       { instance: 'safe', graceMs: 11 },

@@ -14,7 +14,7 @@
   "bin": {
     "maple": "lib/bin.js",
     "mph": "lib/bin.js",
-    "dsh": "lib/bin.js"
+    "maple": "lib/bin.js"
   },
   "files": [
     "lib/*.js",

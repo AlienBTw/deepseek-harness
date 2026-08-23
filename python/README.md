@@ -8,8 +8,8 @@ Python packages for driving Maple Harness as a subprocess. The client SDK commun
 
 | Directory | Dist / module | Role |
 |---|---|---|
-| [sdk](sdk/README.md) | `deepseek-harness-sdk` / `deepseek_harness` | High-level turns API and lower-level JSON-RPC client |
-| [sdk-runtime](sdk-runtime/README.md) | `deepseek-harness-runtime-bin` / `deepseek_harness_runtime` | Bundled runtime binaries and default agent configuration |
+| [sdk](sdk/README.md) | `maple-harness-sdk` / `maple_harness` | High-level turns API and lower-level JSON-RPC client |
+| [sdk-runtime](sdk-runtime/README.md) | `maple-harness-runtime-bin` / `maple_harness_runtime` | Bundled runtime binaries and default agent configuration |
 
 ## Behavior
 

@@ -26,7 +26,7 @@ ACP（Agent Client Protocol）自动化服务器应用：默认 agent（智能�
 | `persona` | 无 | 供 `dsh-system-prompt` 使用的部署 persona 模板。 |
 | `toolOrder` | 字典序 | 供 `dsh-system-prompt` 使用的显式面向模型工具顺序。 |
 | `tools` | `{ mode: 'native' }` | Native、Code Mode 或组合式模型工具传输。 |
-| `dshHome` | `$DSH_HOME` 或 `~/.dsh` | bash 与本地 skill（技能）发现共享的 harness 主目录。 |
+| `dshHome` | `$MAPLE_HOME` 或 `~/.maple` | bash 与本地 skill（技能）发现共享的 harness 主目录。 |
 | `sessionTitle` | 主干示例限制 | 持久后备标题限制；标题仍不会进入 ACP wire。 |
 | `persistenceRoot` | `./.sessions` | JSONL 后端根目录，以及派生 `session-query.db` 索引的父目录。 |
 | `packChunks` | `true` | 在存储中打包连续的增量分片事件。 |
@@ -42,7 +42,7 @@ ACP（Agent Client Protocol）自动化服务器应用：默认 agent（智能�
 
 ## Bin
 
-`dsh-acp-demo [--config path-to-cordis.yml]`（短形式 `-c`；默认为 `./cordis.yml`）会加载 gitignore 排除的 `.env`，回放模式除外；`DSH_SNAPSHOT=replay` 选择同级 `cordis.snapshot.yml`；stdin EOF 会在退出前 dispose（资源释放）上下文并刷新会话。Loader 已安装的可选对等依赖（peer dependency）`node-addon-require-builtin` 使纯 Node 下构建后的 bin 可以解析裸插件说明符。诊断使用 stderr，因为 stdout 是 ACP wire。
+`dsh-acp-demo [--config path-to-cordis.yml]`（短形式 `-c`；默认为 `./cordis.yml`）会加载 gitignore 排除的 `.env`，回放模式除外；`MAPLE_SNAPSHOT=replay` 选择同级 `cordis.snapshot.yml`；stdin EOF 会在退出前 dispose（资源释放）上下文并刷新会话。Loader 已安装的可选对等依赖（peer dependency）`node-addon-require-builtin` 使纯 Node 下构建后的 bin 可以解析裸插件说明符。诊断使用 stderr，因为 stdout 是 ACP wire。
 
 ## 模型体验
 

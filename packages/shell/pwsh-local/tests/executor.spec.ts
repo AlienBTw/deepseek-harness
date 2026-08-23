@@ -292,28 +292,28 @@ describe.skipIf(!hasPwsh)('PwshLocalExecutor.run', () => {
     await expect(bash.run(bash.resolve({ command: 'Write-Output ok', workdir: '/nonexistent-dsh' }))).rejects.toThrow(/ENOENT/)
   })
 
-  it('resolve() carries stdin/env/dshEnv onto the spec, and run() threads them to the command', async () => {
+  it('resolve() carries stdin/env/mapleEnv onto the spec, and run() threads them to the command', async () => {
     const { bash } = await setup()
     const spec = bash.resolve({
-      command: '$s = ([Console]::In.ReadToEnd()).TrimEnd(); Write-Output $s; Write-Output "[$env:SEAM_VAR][$env:DSH_SEAM_VAR]"',
+      command: '$s = ([Console]::In.ReadToEnd()).TrimEnd(); Write-Output $s; Write-Output "[$env:SEAM_VAR][$env:MAPLE_SEAM_VAR]"',
       stdin: 'piped\n',
       env: { SEAM_VAR: 'env-ok' },
-      dshEnv: { DSH_SEAM_VAR: 'dsh-ok' },
+      mapleEnv: { MAPLE_SEAM_VAR: 'dsh-ok' },
     })
     // resolve() keeps the optional input/environment fields verbatim.
     expect(spec.stdin).toBe('piped\n')
     expect(spec.env).toEqual({ SEAM_VAR: 'env-ok' })
-    expect(spec.dshEnv).toEqual({ DSH_SEAM_VAR: 'dsh-ok' })
+    expect(spec.mapleEnv).toEqual({ MAPLE_SEAM_VAR: 'dsh-ok' })
     const result = await bash.run(spec)
     expect(lf(result.stdout.text)).toBe('piped\n[env-ok][dsh-ok]\n')
   })
 
-  it('resolve() omits stdin/env/dshEnv when the request supplies none', async () => {
+  it('resolve() omits stdin/env/mapleEnv when the request supplies none', async () => {
     const { bash } = await setup()
     const spec = bash.resolve({ command: 'Write-Output ok' })
     expect('stdin' in spec).toBe(false)
     expect('env' in spec).toBe(false)
-    expect('dshEnv' in spec).toBe(false)
+    expect('mapleEnv' in spec).toBe(false)
   })
 })
 
@@ -334,10 +334,10 @@ describe.skipIf(!hasPwsh)('PwshLocalExecutor.start (background process handles)'
   it('threads stdin and extra env into a background process', async () => {
     const { bash } = await setup()
     const proc = bash.start(bash.resolve({
-      command: '$s = ([Console]::In.ReadToEnd()).TrimEnd(); Write-Output $s; Write-Output "[$env:BG_VAR][$env:DSH_BG_VAR]"',
+      command: '$s = ([Console]::In.ReadToEnd()).TrimEnd(); Write-Output $s; Write-Output "[$env:BG_VAR][$env:MAPLE_BG_VAR]"',
       stdin: 'bg-stdin\n',
       env: { BG_VAR: 'bg-env' },
-      dshEnv: { DSH_BG_VAR: 'bg-dsh-env' },
+      mapleEnv: { MAPLE_BG_VAR: 'bg-dsh-env' },
     }))
     const partialOutput = await readUntil(proc, '[bg-env][bg-dsh-env]')
     await proc.done

@@ -10,13 +10,13 @@
 import type { Readable, Writable } from 'node:stream'
 
 /** Namespace prefix reserved for Maple Harness-managed child environment facts. */
-export const DSH_ENV_PREFIX = 'DSH_' as const
+export const MAPLE_ENV_PREFIX = 'MAPLE_' as const
 
-/** One environment key inside the managed {@link DSH_ENV_PREFIX} namespace. */
-export type DshEnvironmentKey = `${typeof DSH_ENV_PREFIX}${string}`
+/** One environment key inside the managed {@link MAPLE_ENV_PREFIX} namespace. */
+export type MapleEnvironmentKey = `${typeof MAPLE_ENV_PREFIX}${string}`
 
 /** Trusted Maple Harness variables for one child-process execution. */
-export type DshEnvironment = Readonly<Record<DshEnvironmentKey, string>>
+export type MapleEnvironment = Readonly<Record<MapleEnvironmentKey, string>>
 
 /** One captured stream: the (possibly truncated) text plus recovery info. */
 export interface CollectedOutput {
@@ -97,7 +97,7 @@ export interface SubprocessSpawnSpec {
    * Explicit environment entries merged onto the implementation's scrubbed
    * parent base (see `scrubbedParentEnv`), with no namespace validation. A
    * string is a deliberate caller opt-in, so a forwarded credential-shaped
-   * entry or current `DSH_*` fact survives the scrub; `undefined` is a
+   * entry or current `MAPLE_*` fact survives the scrub; `undefined` is a
    * tombstone that removes an ordinary ambient entry from the child.
    */
   env?: NodeJS.ProcessEnv | undefined

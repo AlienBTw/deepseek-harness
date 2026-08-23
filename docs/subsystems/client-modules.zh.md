@@ -2,13 +2,13 @@
 
 [English](client-modules.md) | 中文
 
-Web 插件表：[dsh-client-modules](../../packages/client/modules) 中 client 模块系统的 Node 半，以 `ctx.clientModules`（`ClientModuleRegistry`）形式提供。它扫描宿主 Loader 的 entry，找出声明了 `dsh.client` 的包，组合出 `window.__DSH_BOOT__` entry 图，在 `/plugins/<id>/client.js` 提供各个 bundle，并以启动 manifest（元数据清单）行回应每次 index 注入收集——这是同一个服务的四个面。它是 Web GUI 栈的一项可选能力，不属于 agent loop（智能体循环）主干，并且是 [dsh-host-webserver](../../packages/host/webserver) 的消费方：[web-server.md](web-server.zh.md) 所述的载体提供本服务注册的前缀路由与其回应的 `webserver/index-inject` 事件。同一个包的浏览器半（`ctx.modules`，即拉取并物化这些 bundle 的 lazy CJS 模块表）属于内核机件，记录在[包 README](../../packages/client/modules/README.zh.md)中，不在本页。
+Web 插件表：[dsh-client-modules](../../packages/client/modules) 中 client 模块系统的 Node 半，以 `ctx.clientModules`（`ClientModuleRegistry`）形式提供。它扫描宿主 Loader 的 entry，找出声明了 `dsh.client` 的包，组合出 `window.__MAPLE_BOOT__` entry 图，在 `/plugins/<id>/client.js` 提供各个 bundle，并以启动 manifest（元数据清单）行回应每次 index 注入收集——这是同一个服务的四个面。它是 Web GUI 栈的一项可选能力，不属于 agent loop（智能体循环）主干，并且是 [dsh-host-webserver](../../packages/host/webserver) 的消费方：[web-server.md](web-server.zh.md) 所述的载体提供本服务注册的前缀路由与其回应的 `webserver/index-inject` 事件。同一个包的浏览器半（`ctx.modules`，即拉取并物化这些 bundle 的 lazy CJS 模块表）属于内核机件，记录在[包 README](../../packages/client/modules/README.zh.md)中，不在本页。
 
 源码：[`packages/client/modules/src/client/manifest.ts`](../../packages/client/modules/src/client/manifest.ts)
 
 ## wire
 
-图是 Node 半与浏览器半之间协议层的唯一真源：宿主从扫描到的包组合出 `WebBootEntry` 行，把图发布为一条 `global` 注入行、渲染在后续 script 行之前（`globalThis["__DSH_BOOT__"]`，其中 `<` 已转义，插件可控的字符串因此无法逃出 script 元素），壳则在启动任何东西之前先解析它。没有有效 manifest 的页面无法启动——浏览器侧的解析器在图缺失或畸形时大声抛错。
+图是 Node 半与浏览器半之间协议层的唯一真源：宿主从扫描到的包组合出 `WebBootEntry` 行，把图发布为一条 `global` 注入行、渲染在后续 script 行之前（`globalThis["__MAPLE_BOOT__"]`，其中 `<` 已转义，插件可控的字符串因此无法逃出 script 元素），壳则在启动任何东西之前先解析它。没有有效 manifest 的页面无法启动——浏览器侧的解析器在图缺失或畸形时大声抛错。
 
 ```ts type-equiv
 /**
@@ -37,7 +37,7 @@ interface WebBootEntry {
 ```
 
 ```ts type-equiv
-/** The composed client entry graph the host injects as `window.__DSH_BOOT__`. */
+/** The composed client entry graph the host injects as `window.__MAPLE_BOOT__`. */
 interface WebBootGraph {
   /** Consistency anchor over the whole graph (content + bundle hashes). */
   rev: string
@@ -87,7 +87,7 @@ The web plugin table service: incremental `dsh.client` scan + wire composition +
 ```ts cordis-catalog
 /**
  * Current composed entry graph (stable object between changes).
- * @returns the graph served as `window.__DSH_BOOT__`.
+ * @returns the graph served as `window.__MAPLE_BOOT__`.
  */
 graph(): WebBootGraph
 

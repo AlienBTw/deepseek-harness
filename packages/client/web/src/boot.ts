@@ -56,10 +56,10 @@ export class AppWebEntry {
       // this structural slice reads one optional member without adding a
       // package edge.
       const transport = (globalThis as {
-        __DSH_TRANSPORT__?: { loadBundle?: ClientModuleCreateOptions['loadBundle'] }
-      }).__DSH_TRANSPORT__
+        __MAPLE_TRANSPORT__?: { loadBundle?: ClientModuleCreateOptions['loadBundle'] }
+      }).__MAPLE_TRANSPORT__
       this.modules = moduleLoader.create({
-        boot: win.__DSH_BOOT__,
+        boot: win.__MAPLE_BOOT__,
         staticModules: getStaticModules(),
         ...transport?.loadBundle === undefined ? {} : { loadBundle: transport.loadBundle },
         ...this.seams,
@@ -99,8 +99,8 @@ export class AppWebEntry {
     // against its static deployment answers nothing. A transport without
     // loadBundle leaves bundles on HTTP, prefetch included.
     const transport = (globalThis as {
-      __DSH_TRANSPORT__?: { loadBundle?: unknown }
-    }).__DSH_TRANSPORT__
+      __MAPLE_TRANSPORT__?: { loadBundle?: unknown }
+    }).__MAPLE_TRANSPORT__
     if (transport?.loadBundle !== undefined) return
     await Promise.all(this.manifest.plugins
       .filter(row => row.immediately)

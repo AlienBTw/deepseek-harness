@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-10-slash-catalog-follows-preset-switch.md
-2026-08-10-slash-catalog-follows-preset-switch.md: 4015b2659ff65c676902bac940d493e0f55ffa99
-2026-08-10-slash-catalog-follows-preset-switch.zh.md: b77564f00b2d7de03779339bb4f0d0ba51fd42fa
+2026-08-10-slash-catalog-follows-preset-switch.md: 2f24d4ffc8404bc5943244a591fcf4be61403e6a
+2026-08-10-slash-catalog-follows-preset-switch.zh.md: b81c91fae0f38c8e84e2bf1d6154e25882b4415b

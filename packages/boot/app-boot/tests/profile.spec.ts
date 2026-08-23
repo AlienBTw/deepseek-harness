@@ -37,7 +37,7 @@ function stageInstallation(bundles: Record<string, { patch?: string; deps?: Reco
       name,
       version: '0.0.0',
       dependencies: spec.deps ?? {},
-      ...spec.patch === undefined ? {} : { dsh: { bundle: { patch: './cordis.patch.yml' } } },
+      ...spec.patch === undefined ? {} : { maple: { bundle: { patch: './cordis.patch.yml' } } },
     }))
     if (spec.patch !== undefined) writeFileSync(join(dir, 'cordis.patch.yml'), spec.patch)
   }
@@ -61,13 +61,13 @@ describe('initProfile', () => {
     const dir = resolveProfileDir('tui', home)
     initProfile(dir, ['@maple/base'])
     const manifest = readProfileManifest('t', dir)
-    expect(manifest.dsh?.profile?.bundles).toEqual(['@maple/base'])
+    expect(manifest.maple?.profile?.bundles).toEqual(['@maple/base'])
     expect(readFileSync(join(dir, PROFILE_PATCH_FILENAME), 'utf8')).toContain('[]')
     expect(readFileSync(join(dir, 'pnpm-workspace.yaml'), 'utf8')).toContain('nodeLinker: hoisted')
     // Re-init keeps user edits.
     writeFileSync(join(dir, PROFILE_PATCH_FILENAME), '- id: x\n  config: {}\n')
     initProfile(dir, ['other'])
-    expect(readProfileManifest('t', dir).dsh?.profile?.bundles).toEqual(['@maple/base'])
+    expect(readProfileManifest('t', dir).maple?.profile?.bundles).toEqual(['@maple/base'])
     expect(readFileSync(join(dir, PROFILE_PATCH_FILENAME), 'utf8')).toContain('- id: x')
   })
 })
@@ -75,8 +75,8 @@ describe('initProfile', () => {
 describe('manifest round-trip', () => {
   it('writes and reads back, and fails loud on a broken manifest', () => {
     const dir = tmp()
-    writeProfileManifest(dir, { name: 'p', dsh: { profile: { bundles: ['a'] } } })
-    expect(readProfileManifest('t', dir).dsh?.profile?.bundles).toEqual(['a'])
+    writeProfileManifest(dir, { name: 'p', maple: { profile: { bundles: ['a'] } } })
+    expect(readProfileManifest('t', dir).maple?.profile?.bundles).toEqual(['a'])
     writeFileSync(join(dir, 'package.json'), '[]')
     expect(() => readProfileManifest('t', dir)).toThrow('must hold a JSON object')
     expect(() => readProfileManifest('t', join(dir, 'nope'))).toThrow('failed to read profile manifest')
@@ -109,7 +109,7 @@ describe('resolveBundleDir', () => {
       name: 'sealed-bundle',
       version: '0.0.0',
       exports: { '.': './index.js' },
-      dsh: { bundle: { patch: './cordis.patch.yml' } },
+      maple: { bundle: { patch: './cordis.patch.yml' } },
     }))
     writeFileSync(join(dir, 'index.js'), '')
     writeFileSync(join(dir, 'cordis.patch.yml'), '[]\n')
@@ -157,7 +157,7 @@ describe('loadProfile', () => {
     } catch {
       // Resolution failure is the plain-Node outcome for this empty anchor.
     }
-    expect(readProfileManifest('t', resolveProfileDir('web', home)).dsh?.profile?.bundles)
+    expect(readProfileManifest('t', resolveProfileDir('web', home)).maple?.profile?.bundles)
       .toEqual([...PROFILE_TEMPLATES.web ?? []])
   })
 
@@ -174,7 +174,7 @@ describe('loadProfile', () => {
       '@maple/base', '@maple/web-app', '@maple/headless',
     ])
     loadProfile('t', 'headless', anchor, home)
-    expect(readProfileManifest('t', stock).dsh?.profile?.bundles)
+    expect(readProfileManifest('t', stock).maple?.profile?.bundles)
       .toEqual(['@maple/base', '@maple/headless'])
 
     const customHome = tmp()
@@ -183,7 +183,7 @@ describe('loadProfile', () => {
       '@maple/base', '@maple/web-app', '@maple/headless', 'custom-bundle',
     ])
     loadProfile('t', 'headless', anchor, customHome)
-    expect(readProfileManifest('t', custom).dsh?.profile?.bundles).toEqual([
+    expect(readProfileManifest('t', custom).maple?.profile?.bundles).toEqual([
       '@maple/base', '@maple/web-app', '@maple/headless', 'custom-bundle',
     ])
   })

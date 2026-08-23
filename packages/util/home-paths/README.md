@@ -6,13 +6,13 @@ Shared filesystem path helpers for Maple Harness user data.
 
 ## DSH home
 
-`resolveDshHome()` resolves the single-root Maple Harness home. Precedence, highest first: an explicit configured path, `$DSH_HOME`, then `~/.dsh`. The harness keeps all user data under one root.
+`resolveMapleHome()` resolves the single-root Maple Harness home. Precedence, highest first: an explicit configured path, `$MAPLE_HOME`, then `~/.maple`. The harness keeps all user data under one root.
 
-`dshHomePath(...segments)` joins child segments onto that resolved home with Node's platform path rules. With no segments it returns the home itself.
+`mapleHomePath(...segments)` joins child segments onto that resolved home with Node's platform path rules. With no segments it returns the home itself.
 
-`dshHomeDisplay()` names an active root symbolically for user-facing paths: `~/.dsh` for the default home, `$DSH_HOME` for any configured home. It never leaks an absolute machine path.
+`dshHomeDisplay()` names an active root symbolically for user-facing paths: `~/.maple` for the default home, `$MAPLE_HOME` for any configured home. It never leaks an absolute machine path.
 
-`DSH_HOME_DIR_NAME` owns the default user-data directory name: `.dsh`.
+`MAPLE_HOME_DIR_NAME` owns the default user-data directory name: `.dsh`.
 
 `defaultDshHome()` returns the default Maple Harness home by joining the operating-system home directory with `.dsh`, using Node's platform path rules.
 

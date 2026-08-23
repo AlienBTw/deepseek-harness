@@ -1,6 +1,6 @@
 /**
  * Tool-independent shell environment plugin: owns the `ctx.shellEnv` registry of
- * trusted, per-execution `DSH_*` variables consumed by the model-facing shell
+ * trusted, per-execution `MAPLE_*` variables consumed by the model-facing shell
  * tools (`dsh-tool-bash`, `dsh-tool-pwsh`). Built-in shell facts are owned by
  * the registry itself while plugins can register additional, enumerable facts
  * with effect-scoped disposal.
@@ -10,9 +10,9 @@
 
 import { Service, type Context } from '@maple/cordis'
 import z from '@maple/schemastery'
-import { DSH_ENV_PREFIX } from '@maple/shell'
-import type { DshEnvironment, DshEnvironmentKey } from '@maple/shell'
-import { DSH_HOME_ENV, resolveDshHome } from '@maple/home-paths'
+import { MAPLE_ENV_PREFIX } from '@maple/shell'
+import type { MapleEnvironment, MapleEnvironmentKey } from '@maple/shell'
+import { MAPLE_HOME_ENV, resolveMapleHome } from '@maple/home-paths'
 import type { ToolExecution } from '@maple/tools'
 import type {} from '@maple/session-persistence'
 
@@ -27,7 +27,7 @@ export const inject: string[] = []
 
 /** Plugin config (all optional — the built-in facts resolve without defaults). */
 export interface Config {
-  /** Maple Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Maple Harness home directory exposed as `MAPLE_HOME`; defaults to `$MAPLE_HOME` or `~/.maple`. */
   dshHome?: string
 }
 
@@ -36,7 +36,7 @@ export const Config: z<Config> = z.object({
   dshHome: z.string(),
 })
 
-/** Model-visible metadata for one managed `DSH_*` environment variable. */
+/** Model-visible metadata for one managed `MAPLE_*` environment variable. */
 export interface BashEnvVariable {
   /** Concise description of the environment fact represented by the variable. */
   description: string
@@ -50,37 +50,37 @@ export interface BashEnvVariable {
 export interface BashEnvContributor {
   /** Stable contributor name used in diagnostics and duplicate detection. */
   name: string
-  /** Complete set of `DSH_*` keys this contributor may return. */
-  variables: Readonly<Record<DshEnvironmentKey, BashEnvVariable>>
+  /** Complete set of `MAPLE_*` keys this contributor may return. */
+  variables: Readonly<Record<MapleEnvironmentKey, BashEnvVariable>>
   /**
    * Resolve this contributor's available values for one tool execution.
    * @param execution - the shell tool execution and its optional calling agent.
    * @returns a partial map containing only keys declared in {@link variables}.
    */
-  resolve(execution: ToolExecution): Readonly<Partial<Record<DshEnvironmentKey, string>>>
+  resolve(execution: ToolExecution): Readonly<Partial<Record<MapleEnvironmentKey, string>>>
 }
 
 /** An enumerable declaration returned by {@link ShellEnvRegistry.list}. */
 export interface BashEnvVariableInfo extends BashEnvVariable {
   /** Contributor that owns the variable. */
   contributor: string
-  /** Declared `DSH_*` environment variable name. */
-  key: DshEnvironmentKey
+  /** Declared `MAPLE_*` environment variable name. */
+  key: MapleEnvironmentKey
 }
 
-const DSH_SHELL_KEY = `${DSH_ENV_PREFIX}SHELL` as const
-const DSH_SESSION_ID_KEY = `${DSH_ENV_PREFIX}SESSION_ID` as const
-const DSH_SESSION_JSONL_KEY = `${DSH_ENV_PREFIX}SESSION_JSONL` as const
-const RESERVED_BASH_ENV_KEYS = new Set<DshEnvironmentKey>([
-  DSH_HOME_ENV,
-  DSH_SHELL_KEY,
-  DSH_SESSION_ID_KEY,
+const MAPLE_SHELL_KEY = `${MAPLE_ENV_PREFIX}SHELL` as const
+const MAPLE_SESSION_ID_KEY = `${MAPLE_ENV_PREFIX}SESSION_ID` as const
+const MAPLE_SESSION_JSONL_KEY = `${MAPLE_ENV_PREFIX}SESSION_JSONL` as const
+const RESERVED_BASH_ENV_KEYS = new Set<MapleEnvironmentKey>([
+  MAPLE_HOME_ENV,
+  MAPLE_SHELL_KEY,
+  MAPLE_SESSION_ID_KEY,
 ])
 const BASH_ENV_KEY_SUFFIX = /^[A-Z][A-Z0-9_]*$/
 
 /**
- * Registry (`ctx.shellEnv`) for trusted, per-execution `DSH_*` variables.
- * The namespace is rebuilt for every model shell call: ambient `DSH_*` values
+ * Registry (`ctx.shellEnv`) for trusted, per-execution `MAPLE_*` variables.
+ * The namespace is rebuilt for every model shell call: ambient `MAPLE_*` values
  * are discarded by the executor, then the registry's current snapshot is
  * injected. Built-in shell facts remain owned by the registry itself while
  * plugins can register additional, enumerable facts with effect-scoped
@@ -88,7 +88,7 @@ const BASH_ENV_KEY_SUFFIX = /^[A-Z][A-Z0-9_]*$/
  */
 export class ShellEnvRegistry extends Service {
   private readonly contributors = new Map<string, BashEnvContributor>()
-  private readonly keyOwners = new Map<DshEnvironmentKey, string>()
+  private readonly keyOwners = new Map<MapleEnvironmentKey, string>()
   private readonly dshHome: string
 
   /**
@@ -98,7 +98,7 @@ export class ShellEnvRegistry extends Service {
    */
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'shellEnv')
-    this.dshHome = resolveDshHome(config.dshHome)
+    this.dshHome = resolveMapleHome(config.dshHome)
   }
 
   /**
@@ -116,10 +116,10 @@ export class ShellEnvRegistry extends Service {
         throw new Error(`bash env contributor "${contributor.name}" is already registered`)
       }
 
-      const variables = Object.entries(contributor.variables) as [DshEnvironmentKey, BashEnvVariable][]
+      const variables = Object.entries(contributor.variables) as [MapleEnvironmentKey, BashEnvVariable][]
       for (const [key, variable] of variables) {
-        if (!key.startsWith(DSH_ENV_PREFIX)
-          || !BASH_ENV_KEY_SUFFIX.test(key.slice(DSH_ENV_PREFIX.length))) {
+        if (!key.startsWith(MAPLE_ENV_PREFIX)
+          || !BASH_ENV_KEY_SUFFIX.test(key.slice(MAPLE_ENV_PREFIX.length))) {
           throw new Error(`bash env contributor "${contributor.name}" declared invalid key "${key}"`)
         }
         if (RESERVED_BASH_ENV_KEYS.has(key)) {
@@ -145,23 +145,23 @@ export class ShellEnvRegistry extends Service {
   }
 
   /**
-   * Build the trusted `DSH_*` snapshot for one shell tool execution.
+   * Build the trusted `MAPLE_*` snapshot for one shell tool execution.
    * @param execution - the current tool execution.
    * @returns an immutable environment overlay containing built-ins and current contributions.
    */
-  collect(execution: ToolExecution): DshEnvironment {
-    const values: Record<DshEnvironmentKey, string> = {
-      [DSH_HOME_ENV]: this.dshHome,
-      [DSH_SHELL_KEY]: '1',
+  collect(execution: ToolExecution): MapleEnvironment {
+    const values: Record<MapleEnvironmentKey, string> = {
+      [MAPLE_HOME_ENV]: this.dshHome,
+      [MAPLE_SHELL_KEY]: '1',
     }
     if (execution.agent !== undefined) {
-      values[DSH_SESSION_ID_KEY] = execution.agent.session.header.id
+      values[MAPLE_SESSION_ID_KEY] = execution.agent.session.header.id
     }
 
     for (const contributor of [...this.contributors.values()].sort((left, right) => left.name.localeCompare(right.name))) {
       const resolved = contributor.resolve(execution)
       for (const [rawKey, value] of Object.entries(resolved)) {
-        const key = rawKey as DshEnvironmentKey
+        const key = rawKey as MapleEnvironmentKey
         if (!Object.hasOwn(contributor.variables, key)) {
           throw new Error(`bash env contributor "${contributor.name}" returned undeclared key "${key}"`)
         }
@@ -186,7 +186,7 @@ export class ShellEnvRegistry extends Service {
       .flatMap(contributor => Object.entries(contributor.variables).map(([key, variable]) => ({
         contributor: contributor.name,
         description: variable.description,
-        key: key as DshEnvironmentKey,
+        key: key as MapleEnvironmentKey,
       })))
       .sort((left, right) => left.key.localeCompare(right.key))
   }
@@ -194,7 +194,7 @@ export class ShellEnvRegistry extends Service {
 
 /**
  * Load the shell-env plugin: register the `ctx.shellEnv` service and the
- * shell-agnostic persistence contributor (`DSH_SESSION_JSONL`).
+ * shell-agnostic persistence contributor (`MAPLE_SESSION_JSONL`).
  * @param ctx - Cordis context that owns the service and registrations.
  * @param config - home-directory configuration for the built-in variables.
  */
@@ -203,7 +203,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   registry.register({
     name: 'session-persistence',
     variables: {
-      [DSH_SESSION_JSONL_KEY]: {
+      [MAPLE_SESSION_JSONL_KEY]: {
         description: 'Absolute target path of the current session JSONL when the active persistence backend provides one.',
       },
     },
@@ -211,7 +211,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       const agent = execution.agent
       if (agent === undefined) return {}
       const location = ctx.get('sessionPersistence')?.locate(agent.session.header)
-      return location?.kind === 'jsonl' ? { [DSH_SESSION_JSONL_KEY]: location.path } : {}
+      return location?.kind === 'jsonl' ? { [MAPLE_SESSION_JSONL_KEY]: location.path } : {}
     },
   })
 }

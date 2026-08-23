@@ -35,7 +35,7 @@ import * as toolSkill from '@maple/tool-skill'
 import * as toolJobs from '@maple/tool-jobs'
 import AgentLoop, { type Config as AgentLoopConfig } from '@maple/agent-loop'
 import * as llmRetry from '@maple/llm-retry'
-import { resolveDshHome } from '@maple/home-paths'
+import { resolveMapleHome } from '@maple/home-paths'
 
 export const name = 'agent-spine-demo'
 
@@ -212,10 +212,10 @@ export function pickSpineConfig(config: Omit<Config, 'agents'>): Omit<Config, 'a
 export function apply(ctx: Context, config: Config): void {
   const nestedDshHome = config.skills?.filesystem?.dshHome
   if (config.dshHome !== undefined && nestedDshHome !== undefined
-    && resolveDshHome(config.dshHome) !== resolveDshHome(nestedDshHome)) {
+    && resolveMapleHome(config.dshHome) !== resolveMapleHome(nestedDshHome)) {
     throw new Error('agent-spine-demo: dshHome and skills.filesystem.dshHome must resolve to the same directory')
   }
-  const dshHome = resolveDshHome(config.dshHome ?? nestedDshHome)
+  const dshHome = resolveMapleHome(config.dshHome ?? nestedDshHome)
 
   ctx.plugin(Timer)
   ctx.plugin(LlmRuntime)

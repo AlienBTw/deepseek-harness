@@ -28,7 +28,7 @@ describe.skipIf(!process.env.E2B_API_KEY)('E2B live Loader composition', () => {
     if (apiKey === undefined) throw new Error('E2B_API_KEY disappeared before the PTY environment test')
     const sandbox = await Sandbox.create({
       apiKey,
-      envs: { NPM_TOKEN: 'sentinel-secret', DSH_STALE: 'sentinel-stale', KEEP: 'visible' },
+      envs: { NPM_TOKEN: 'sentinel-secret', MAPLE_STALE: 'sentinel-stale', KEEP: 'visible' },
       timeoutMs: 60_000,
       secure: true,
       lifecycle: { onTimeout: 'kill' },
@@ -105,7 +105,7 @@ describe.skipIf(!process.env.E2B_API_KEY)('E2B live Loader composition', () => {
       })
       const session = await backend.spawn({ sessionId: TerminalSessionId('env'), owner, type: 'shell' })
       const result = await session.startSend({
-        text: "printf 'NPM=<%s> DSH=<%s> KEEP=<%s>\\n' \"$NPM_TOKEN\" \"$DSH_STALE\" \"$KEEP\"",
+        text: "printf 'NPM=<%s> DSH=<%s> KEEP=<%s>\\n' \"$NPM_TOKEN\" \"$MAPLE_STALE\" \"$KEEP\"",
         submit: true,
       }).done
       expect(result.viewport).toContain('NPM=<> DSH=<> KEEP=<visible>')

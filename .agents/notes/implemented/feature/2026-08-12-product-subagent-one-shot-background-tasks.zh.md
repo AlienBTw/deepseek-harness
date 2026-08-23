@@ -45,7 +45,7 @@ product tool call
 
 生产 base 不让两个可选产品提供方进入依赖闭包。选择启用产品集成的 Profile 会安装所需包，并在 host plane 挂载所需的提供方实例。每个完整 preset 让两个产品工具行保持禁用，并把通用 Job 控制工具贡献到自身 agent 作用域；base host 负责共享 Job 注册表。Profile 提供方实例存在后，用户复制一个 preset，再从对应产品行删除 `disabled`；组装期间不会启动产品进程。
 
-独立自定义组装若启用 one-shot 后台执行，就必须同时提供产品提供方与完整通用 Job 能力：由 `dsh-jobs-local` 充当 Job 提供方，由 `dsh-tool-jobs` 充当面向模型的消费方。基于 `dsh-base` 的 Profile 已具备 Job 能力，只需在启用 preset 工具行前新增可选产品提供方。没有 Job 运行时的产品工具仍可在前台执行，但显式后台请求会在现有 Job 预检中失败，不会发布无法收集的 id。
+独立自定义组装若启用 one-shot 后台执行，就必须同时提供产品提供方与完整通用 Job 能力：由 `dsh-jobs-local` 充当 Job 提供方，由 `dsh-tool-jobs` 充当面向模型的消费方。基于 `maple-base` 的 Profile 已具备 Job 能力，只需在启用 preset 工具行前新增可选产品提供方。没有 Job 运行时的产品工具仍可在前台执行，但显式后台请求会在现有 Job 预检中失败，不会发布无法收集的 id。
 
 ACP 产品组装使用相同的固定产品行与通用作业控制工具。其无密钥 schema 快照会为每个已启用产品工具公开 `description`、`prompt` 和可选的 `run_in_background`，而不会调用 Codex、Claude Code 或外部模型。
 

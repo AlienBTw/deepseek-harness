@@ -8,7 +8,7 @@
 |---|---|---|
 | 继承的进程环境 | `process` | 启动 shell、CI 任务或容器传入的东西——本次运行的明确意图 |
 | `<invocation cwd>/.env` | `project-env` | harness 被启动于其中的项目；产品信任它配置自己的 agent（智能体） |
-| `$DSH_HOME/.env` | `user-env` | 用户自己的机器级默认值 |
+| `$MAPLE_HOME/.env` | `user-env` | 用户自己的机器级默认值 |
 
 这些值同样会进入 `process.env`——用户自己的 `--config` 树和第三方库要读它——但那份压平的视图不是 harness 解析任何值的依据。
 

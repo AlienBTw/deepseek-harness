@@ -24,7 +24,7 @@ preset 把决定 `/` 菜单内容的那些行搬走了。Web 组装禁用了宿�
 
 **在客户端自己的 `agentPresets.select` 回调里就地失效。** 改动最小，而且第一轮之后 preset 就锁定，hero 上的 chip 是切换唯一可能的发起处。否决理由是失效逻辑会落在恰好发起 RPC 的那个界面上，而不是提交点：同一个空会话在第二个标签页里仍是过期菜单，将来任何宿主侧的重组也完全没有信号。
 
-**从既有的 `session/event` mux 帧派生客户端事件。** 落账事件本来就会送达每个已订阅的客户端，不需要新增协议类型。因面（face）分离而否决：把 `event.type` 收窄到 `agent-preset/selected` 需要 `SessionEventMap` 增补，而在 Client 程序里加载它只有两条路——引用 `dsh-agent-presets` 工程，那会把宿主的 `ctx.sessions` 合并拖进一个自己也发布同名服务的程序；或者用一次类型断言绕过判别式。
+**从既有的 `session/event` mux 帧派生客户端事件。** 落账事件本来就会送达每个已订阅的客户端，不需要新增协议类型。因面（face）分离而否决：把 `event.type` 收窄到 `agent-preset/selected` 需要 `SessionEventMap` 增补，而在 Client 程序里加载它只有两条路——引用 `maple-agent-presets` 工程，那会把宿主的 `ctx.sessions` 合并拖进一个自己也发布同名服务的程序；或者用一次类型断言绕过判别式。
 
 **复用转发的 `commands/change`。** 它是既有的目录失效事件，但它是注册表级的、不带会话、也与技能无关；客户端会把每个会话的命令都重拉一遍，却依然永远刷不新技能目录。
 

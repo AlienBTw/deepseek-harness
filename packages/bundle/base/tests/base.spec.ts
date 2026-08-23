@@ -11,7 +11,7 @@ import * as yaml from 'js-yaml'
 import { entryListSchema } from '@maple/cordis-plugin-include'
 import { evaluate } from '@maple/cordis-plugin-loader'
 
-describe('dsh-base bundle', () => {
+describe('maple-base bundle', () => {
   it('declares a parseable patch list through the dsh.bundle.patch manifest field', () => {
     const root = fileURLToPath(new URL('..', import.meta.url))
     const manifest = JSON.parse(
@@ -33,7 +33,7 @@ describe('dsh-base bundle', () => {
     expect(rows.length).toBeGreaterThan(50)
     expect(rows.some(row => row.id === 'agent-loop')).toBe(true)
     expect(rows.find(row => row.id === 'session-telemetry-otel')?.config?.['mode']).toEqual({
-      __jsExpr: "process.env.DSH_TELEMETRY_MODE || 'DISABLED'",
+      __jsExpr: "process.env.MAPLE_TELEMETRY_MODE || 'DISABLED'",
     })
     expect(rows.filter(row => row.id === 'subagent-codex')).toHaveLength(0)
     expect(rows.filter(row => row.id === 'subagent-claude-code')).toHaveLength(0)

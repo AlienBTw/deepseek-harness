@@ -84,8 +84,8 @@ export function launchAcpTestAgent(options: AcpTestLaunchOptions): LaunchedAcpTe
     tsconfigPath: agent.tsconfigPath,
     env: {
       ...options.env,
-      DSH_HOME: join(cwd, '.dsh'),
-      DSH_AGENTS_HOME: join(cwd, '.agents'),
+      MAPLE_HOME: join(cwd, '.maple'),
+      MAPLE_AGENTS_HOME: join(cwd, '.agents'),
     },
   })
   const child = spawn(

@@ -22,7 +22,7 @@ import type {} from '@maple/shell-env'
 import type { SandboxExecutionPolicy, SandboxMode } from '@maple/sandbox'
 import { ESCALATION_TARGETS, approveEscalation, canonicalPath, validateEscalationArgs } from '@maple/sandbox'
 import type { SandboxPolicyService } from '@maple/sandbox-policy'
-import { DSH_ENV_PREFIX } from '@maple/shell'
+import { MAPLE_ENV_PREFIX } from '@maple/shell'
 import type { ShellRunResult } from '@maple/shell'
 import { processOutcome } from './background.ts'
 import { parseExitStatus, renderProcessRead, renderResult } from './render.ts'
@@ -74,7 +74,7 @@ function bashDescription(backgroundEnabled: boolean, escalationModes: readonly S
   const base = 'Execute a bash command (`bash -c`) and return its stdout/stderr. '
     + 'Each call runs in a fresh shell: no state (cwd, variables, functions) persists between calls — '
     + 'pass `workdir` instead of using `cd`. Non-zero exits are reported as `[exit code: N]`. '
-    + `Current harness environment facts are exposed through managed \`$${DSH_ENV_PREFIX}*\` variables; inspect them when needed. `
+    + `Current harness environment facts are exposed through managed \`$${MAPLE_ENV_PREFIX}*\` variables; inspect them when needed. `
     + 'Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]` — a policy denial, not a bug in the command; do not retry another way. '
     + 'Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. '
     + background
@@ -338,12 +338,12 @@ export function apply(ctx: Context, config: Config = {}): void {
         ? standingPolicy
         : { ...(standingPolicy as SandboxExecutionPolicy), mode: approvedMode }
       const workdir = resolveWorkdir(args.workdir, exec, standingPolicy?.workspaceRoot)
-      const dshEnv = ctx.shellEnv.collect(exec)
+      const mapleEnv = ctx.shellEnv.collect(exec)
       const request = {
         command: args.command,
         ...workdir !== undefined ? { workdir } : {},
         ...args.timeoutMs !== undefined ? { timeoutMs: args.timeoutMs } : {},
-        dshEnv,
+        mapleEnv,
         ...policy !== undefined ? { sandboxPolicy: policy } : {},
       }
       if (args.run_in_background === true) {

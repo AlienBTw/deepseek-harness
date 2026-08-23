@@ -39,7 +39,7 @@ async function mount(config: acpAgent.Config, withBash = false): Promise<Context
 async function isolatedSkillsConfig(catalogDescriptionMaxLength?: number): Promise<NonNullable<acpAgent.Config['skills']>> {
   const home = await mkdtemp(join(tmpdir(), 'dsh-acp-demo-skills-'))
   return {
-    filesystem: { dshHome: join(home, '.dsh'), agentsHome: join(home, '.agents') },
+    filesystem: { dshHome: join(home, '.maple'), agentsHome: join(home, '.agents') },
     ...catalogDescriptionMaxLength !== undefined ? { tool: { catalogDescriptionMaxLength } } : {},
   }
 }
@@ -60,23 +60,23 @@ async function composePrefix(ctx: Context): Promise<Message[]> {
 }
 
 async function withIsolatedSkillHomes<T>(run: () => Promise<T>): Promise<T> {
-  const oldDshHome = process.env.DSH_HOME
-  const oldAgentsHome = process.env.DSH_AGENTS_HOME
+  const oldDshHome = process.env.MAPLE_HOME
+  const oldAgentsHome = process.env.MAPLE_AGENTS_HOME
   const home = await mkdtemp(join(tmpdir(), 'dsh-acp-demo-default-skills-'))
-  process.env.DSH_HOME = join(home, '.dsh')
-  process.env.DSH_AGENTS_HOME = join(home, '.agents')
+  process.env.MAPLE_HOME = join(home, '.maple')
+  process.env.MAPLE_AGENTS_HOME = join(home, '.agents')
   try {
     return await run()
   } finally {
     if (oldDshHome === undefined) {
-      delete process.env.DSH_HOME
+      delete process.env.MAPLE_HOME
     } else {
-      process.env.DSH_HOME = oldDshHome
+      process.env.MAPLE_HOME = oldDshHome
     }
     if (oldAgentsHome === undefined) {
-      delete process.env.DSH_AGENTS_HOME
+      delete process.env.MAPLE_AGENTS_HOME
     } else {
-      process.env.DSH_AGENTS_HOME = oldAgentsHome
+      process.env.MAPLE_AGENTS_HOME = oldAgentsHome
     }
   }
 }

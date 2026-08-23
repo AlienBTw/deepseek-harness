@@ -17,7 +17,7 @@ const PLATFORM_SOURCE = 'packages/client/web/src/platform.ts'
 const PARSER_PRELOAD_SOURCE = 'packages/client/modules/src/index.ts'
 const STATIC_PRESET_SOURCE = 'packages/client/tsdown.client.ts'
 const CORDIS = '@maple/cordis'
-const DSH_PREFIX = '@maple/'
+const MAPLE_PREFIX = '@maple/'
 const CLIENT_WEB = '@maple/client-web'
 
 /** One workspace package's browser-module declaration. */
@@ -715,7 +715,7 @@ async function readStaticLinkedRoster(root: string): Promise<Set<string>> {
     const loaded = await import(pathToFileURL(resolve(root, configPath)).href) as { default?: unknown }
     if (typeof loaded.default !== 'function') continue
     const configs = (loaded.default as (input: { env: Record<string, string> }) => unknown)({
-      env: { DSH_BUILD_FACE: 'client' },
+      env: { MAPLE_BUILD_FACE: 'client' },
     })
     if (!Array.isArray(configs) || !predicate(configs)) continue
     const manifest = JSON.parse(
@@ -866,7 +866,7 @@ function describeOrigins(origins: ReadonlySet<string>): string {
 }
 
 function isInternalDsh(name: string): boolean {
-  return name === CORDIS || name.startsWith(DSH_PREFIX)
+  return name === CORDIS || name.startsWith(MAPLE_PREFIX)
 }
 
 function isBareSpecifier(specifier: string): boolean {

@@ -163,7 +163,7 @@ jobs:
   serial-windows:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: serial / windows (self-hosted standby)
-    runs-on: [self-hosted, dsh-win-ci, windows]
+    runs-on: [self-hosted, maple-win-ci, windows]
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
@@ -237,27 +237,27 @@ jobs:
             workload: typecheck
           - platform: windows
             cores: '4'
-            runner: dsh-windows-2025-4core
+            runner: maple-windows-2025-4core
             workload: production-site
           - platform: windows
             cores: '8'
-            runner: dsh-windows-2025-8core
+            runner: maple-windows-2025-8core
             workload: production-site
           - platform: windows
             cores: '16'
-            runner: dsh-windows-2025-16core
+            runner: maple-windows-2025-16core
             workload: production-site
           - platform: windows
             cores: '32'
-            runner: dsh-windows-2025-32core
+            runner: maple-windows-2025-32core
             workload: production-site
           - platform: windows
             cores: '64'
-            runner: dsh-windows-2025-64core
+            runner: maple-windows-2025-64core
             workload: production-site
           - platform: windows
             cores: '96'
-            runner: dsh-windows-2025-96core
+            runner: maple-windows-2025-96core
             workload: production-site
     steps:
       - uses: actions/checkout@v6
@@ -328,27 +328,27 @@ jobs:
             workers: '32'
           - platform: windows
             cores: '4'
-            runner: dsh-windows-2025-4core
+            runner: maple-windows-2025-4core
             workers: '2'
           - platform: windows
             cores: '8'
-            runner: dsh-windows-2025-8core
+            runner: maple-windows-2025-8core
             workers: '2'
           - platform: windows
             cores: '16'
-            runner: dsh-windows-2025-16core
+            runner: maple-windows-2025-16core
             workers: '2'
           - platform: windows
             cores: '32'
-            runner: dsh-windows-2025-32core
+            runner: maple-windows-2025-32core
             workers: '2'
           - platform: windows
             cores: '64'
-            runner: dsh-windows-2025-64core
+            runner: maple-windows-2025-64core
             workers: '2'
           - platform: windows
             cores: '96'
-            runner: dsh-windows-2025-96core
+            runner: maple-windows-2025-96core
             workers: '2'
     steps:
       - uses: actions/checkout@v6

@@ -58,7 +58,7 @@ preset 自行发布描述，长度不限，而网格让每一行卡片等高—�
 
 ## 模型体验
 
-Indirectly, through the preset a later session is composed from; [`dsh-agent-presets`](../../preset/agent-presets/README.zh.md) owns what that composition puts in front of the model.
+Indirectly, through the preset a later session is composed from; [`maple-agent-presets`](../../preset/agent-presets/README.zh.md) owns what that composition puts in front of the model.
 
 #### KV Cache effect
 

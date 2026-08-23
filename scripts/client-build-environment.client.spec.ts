@@ -15,7 +15,7 @@ import {
 import { clientBundle } from '../packages/client/tsdown.client.ts'
 
 const root = resolve(import.meta.dirname, '..')
-const PROBE_NAME = 'DSH_CLIENT_BUILD_TEST'
+const PROBE_NAME = 'MAPLE_CLIENT_BUILD_TEST'
 const COMMIT_HASH = '0123456789abcdef0123456789abcdef01234567'
 const PROBE_KEY = `process.env.${PROBE_NAME}`
 const originalProbe = process.env[PROBE_NAME]
@@ -54,65 +54,65 @@ function buildFixture(environment: Record<string, string>): string {
 describe('client build environment', () => {
   it('requires an exact public environment for a named artifact profile', () => {
     const expected = {
-      DSH_CLIENT_BUILD_PROFILE: 'official',
-      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'Maple Harness',
+      MAPLE_CLIENT_BUILD_PROFILE: 'official',
+      MAPLE_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      MAPLE_CLIENT_TITLE: 'Maple Harness',
     } as const
 
     expect(() => { assertClientBuildEnvironment({ PATH: '/bin', ...expected }, expected) }).not.toThrow()
-    expect(() => { assertClientBuildEnvironment({}, expected) }).toThrow(/DSH_CLIENT_TITLE/)
-    expect(() => { assertClientBuildEnvironment({ DSH_CLIENT_TITLE: 'Other' }, expected) }).toThrow(/DSH_CLIENT_TITLE/)
+    expect(() => { assertClientBuildEnvironment({}, expected) }).toThrow(/MAPLE_CLIENT_TITLE/)
+    expect(() => { assertClientBuildEnvironment({ MAPLE_CLIENT_TITLE: 'Other' }, expected) }).toThrow(/MAPLE_CLIENT_TITLE/)
     expect(() => {
-      assertClientBuildEnvironment({ ...expected, DSH_CLIENT_UNDECLARED: 'value' }, expected)
-    }).toThrow(/DSH_CLIENT_UNDECLARED/)
+      assertClientBuildEnvironment({ ...expected, MAPLE_CLIENT_UNDECLARED: 'value' }, expected)
+    }).toThrow(/MAPLE_CLIENT_UNDECLARED/)
   })
 
   it('inherits public values by default and isolates an explicit official profile', () => {
     const parent = {
       PATH: '/bin',
-      DSH_BUILD_CLIENT_PROFILE: 'official',
-      DSH_CLIENT_BUILD_PROFILE: 'local',
-      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'Local title',
-      DSH_CLIENT_EXTRA: 'local-extra',
+      MAPLE_BUILD_CLIENT_PROFILE: 'official',
+      MAPLE_CLIENT_BUILD_PROFILE: 'local',
+      MAPLE_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      MAPLE_CLIENT_TITLE: 'Local title',
+      MAPLE_CLIENT_EXTRA: 'local-extra',
     }
 
-    expect(resolveClientBuildEnvironment({ DSH_CLIENT_TITLE: 'Local title' })).toEqual({
-      DSH_CLIENT_TITLE: 'Local title',
+    expect(resolveClientBuildEnvironment({ MAPLE_CLIENT_TITLE: 'Local title' })).toEqual({
+      MAPLE_CLIENT_TITLE: 'Local title',
     })
     expect(resolveClientBuildEnvironment(parent)).toEqual({
-      DSH_CLIENT_BUILD_PROFILE: 'official',
-      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'Maple Harness',
+      MAPLE_CLIENT_BUILD_PROFILE: 'official',
+      MAPLE_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      MAPLE_CLIENT_TITLE: 'Maple Harness',
     })
     expect(() => {
-      resolveClientBuildEnvironment({ DSH_BUILD_CLIENT_PROFILE: 'official' })
-    }).toThrow(/DSH_CLIENT_COMMIT_HASH/)
+      resolveClientBuildEnvironment({ MAPLE_BUILD_CLIENT_PROFILE: 'official' })
+    }).toThrow(/MAPLE_CLIENT_COMMIT_HASH/)
     expect(() => { resolveClientBuildEnvironment({}, 'unknown') }).toThrow(/unknown client build profile/)
     expect(clientBuildProcessEnvironment(parent, {
-      DSH_CLIENT_BUILD_PROFILE: 'official',
-      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'Maple Harness',
+      MAPLE_CLIENT_BUILD_PROFILE: 'official',
+      MAPLE_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      MAPLE_CLIENT_TITLE: 'Maple Harness',
     })).toEqual({
       PATH: '/bin',
-      DSH_CLIENT_BUILD_PROFILE: 'official',
-      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'Maple Harness',
+      MAPLE_CLIENT_BUILD_PROFILE: 'official',
+      MAPLE_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      MAPLE_CLIENT_TITLE: 'Maple Harness',
     })
-    expect(repositoryCommitHash('/unused', { DSH_CLIENT_COMMIT_HASH: COMMIT_HASH })).toBe(COMMIT_HASH.slice(0, 7))
+    expect(repositoryCommitHash('/unused', { MAPLE_CLIENT_COMMIT_HASH: COMMIT_HASH })).toBe(COMMIT_HASH.slice(0, 7))
   })
 
   it('defines only public client values over a non-enumerable fallback', () => {
     expect(clientBuildEnvironmentDefines({
       PATH: '/bin',
-      DSH_TEST_API_KEY: 'secret',
-      DSH_CLIENT_VARIANT: 'quoted "value"',
-      DSH_CLIENT_EMPTY: '',
-      DSH_CLIENT_UNSET: undefined,
+      MAPLE_TEST_API_KEY: 'secret',
+      MAPLE_CLIENT_VARIANT: 'quoted "value"',
+      MAPLE_CLIENT_EMPTY: '',
+      MAPLE_CLIENT_UNSET: undefined,
     })).toEqual({
       'process.env': '{}',
-      'process.env.DSH_CLIENT_EMPTY': '""',
-      'process.env.DSH_CLIENT_VARIANT': '"quoted \\"value\\""',
+      'process.env.MAPLE_CLIENT_EMPTY': '""',
+      'process.env.MAPLE_CLIENT_VARIANT': '"quoted \\"value\\""',
     })
   })
 
@@ -122,7 +122,7 @@ describe('client build environment', () => {
     const configs = clientBundle('@maple/client-ui-sidebar', [
       'lib/types/index.js',
       'lib/types/invariant.js',
-    ])({ env: { DSH_BUILD_FACE: 'client' } })
+    ])({ env: { MAPLE_BUILD_FACE: 'client' } })
     if (!Array.isArray(configs)) throw new TypeError('client bundle config must be an array')
     const dynamic = configs.find(config => config.name === '@maple/client-ui-sidebar/client')
     expect(dynamic?.define).toMatchObject({
@@ -148,15 +148,15 @@ describe('client build environment', () => {
 
   it('binds the recorded environment to a complete set of client artifacts', () => {
     const officialEnvironment = {
-      DSH_CLIENT_BUILD_PROFILE: 'official',
-      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      DSH_CLIENT_TITLE: 'Maple Harness',
+      MAPLE_CLIENT_BUILD_PROFILE: 'official',
+      MAPLE_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      MAPLE_CLIENT_TITLE: 'Maple Harness',
     }
     const official = buildFixture(officialEnvironment)
     const defaultBuild = buildFixture({})
 
     expect(readClientBuildRecord(official, officialEnvironment).environment).toEqual(officialEnvironment)
-    expect(() => { readClientBuildRecord(defaultBuild, officialEnvironment) }).toThrow(/DSH_CLIENT_/)
+    expect(() => { readClientBuildRecord(defaultBuild, officialEnvironment) }).toThrow(/MAPLE_CLIENT_/)
     expect(() => { readClientBuildRecord(join(defaultBuild, 'missing')) }).toThrow(/record.*missing/)
 
     write(join(official, 'apps/web/dist/index.html'), '<main>changed</main>')
@@ -170,7 +170,7 @@ describe('client build environment', () => {
       if (typeof document !== 'object' || document === null || Array.isArray(document)) {
         throw new TypeError(`${path} must contain a workflow object`)
       }
-      expect(JSON.stringify(document), path).not.toContain('DSH_CLIENT_')
+      expect(JSON.stringify(document), path).not.toContain('MAPLE_CLIENT_')
     }
   })
 })

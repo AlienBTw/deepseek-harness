@@ -1,12 +1,12 @@
 /**
- * File-backed credentials provider over `$DSH_HOME/.credentials.yaml`, layered
+ * File-backed credentials provider over `$MAPLE_HOME/.credentials.yaml`, layered
  * against the environment by how much each layer is trusted:
  *
  * ```text
  * inherited process environment      (read-only, wins)
- * > $DSH_HOME/.credentials.yaml      (provider-managed, writable)
+ * > $MAPLE_HOME/.credentials.yaml      (provider-managed, writable)
  * > <invocation cwd>/.env            (read-only fallback)
- * > $DSH_HOME/.env                   (read-only fallback)
+ * > $MAPLE_HOME/.env                   (read-only fallback)
  * ```
  *
  * The inherited environment wins because `DEEPSEEK_API_KEY=… dsh`, a CI
@@ -42,7 +42,7 @@ import { mkdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { Document, isMap, isScalar, parseDocument, type YAMLError } from 'yaml'
 import { withFileLock, writeFileAtomic } from '@maple/atomic-write'
-import { canonicalizeWatchPath, resolveDshHome } from '@maple/home-paths'
+import { canonicalizeWatchPath, resolveMapleHome } from '@maple/home-paths'
 import { launchEnvironmentOf } from '@maple/launch-environment'
 import { CredentialProvider, credentialRef, parseCredentialKey } from '@maple/credentials'
 import type {
@@ -64,7 +64,7 @@ export const CREDENTIALS_FILENAME = '.credentials.yaml'
 export interface Config {
   /** Credentials document path; defaults to `.credentials.yaml` under the harness home. */
   path?: string
-  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Harness home used when `path` is omitted; defaults to `$MAPLE_HOME` or `~/.maple`. */
   dshHome?: string
   /** Watch the document and hot-publish external edits; defaults to true. */
   watch?: boolean
@@ -87,7 +87,7 @@ interface ResolvedSpec {
  */
 export function resolveSpec(config: Config): ResolvedSpec {
   return {
-    filename: resolve(config.path ?? join(resolveDshHome(config.dshHome), CREDENTIALS_FILENAME)),
+    filename: resolve(config.path ?? join(resolveMapleHome(config.dshHome), CREDENTIALS_FILENAME)),
     watch: config.watch ?? true,
     debounceMs: config.debounceMs ?? 100,
   }
@@ -509,7 +509,7 @@ function sameJsonValue(left: unknown, right: unknown): boolean {
     && sameJsonValue((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]))
 }
 
-/** File-backed credentials provider (`$DSH_HOME/.credentials.yaml`). */
+/** File-backed credentials provider (`$MAPLE_HOME/.credentials.yaml`). */
 export class LocalCredentialProvider extends CredentialProvider {
   /* jscpd:ignore-start -- deliberate config-surface and lifecycle symmetry with
      settings-file (prefer symmetry for parallel values); extracting the shared

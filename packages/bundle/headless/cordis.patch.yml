@@ -1,4 +1,4 @@
-# The dsh-headless bundle patch: one-shot task mode directly over dsh-base.
+# The maple-headless bundle patch: one-shot task mode directly over maple-base.
 # It mounts no Host, HTTP server, Web runtime, or browser plugin. An ordinary
 # provider plugin injects `cmdlineArgs`, parses the task positional
 # (`dsh --profile headless "<task>"`) and this app's --help, then the direct
@@ -17,7 +17,7 @@
 - id: tools
   config:
     # Keep the same temporary process-wide Code Mode opt-in as the Web surface.
-    mode: !!js process.env.DSH_TOOLS_MODE
+    mode: !!js process.env.MAPLE_TOOLS_MODE
 
 - insert:
     # Code Mode is a core execution capability, not a Web component.

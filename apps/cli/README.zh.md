@@ -8,7 +8,7 @@
 
 | 命令 | 用途 |
 |---|---|
-| `dsh --profile <name>` | 启动位于 `$DSH_HOME/profiles/<name>` 的指定 profile。 |
+| `dsh --profile <name>` | 启动位于 `$MAPLE_HOME/profiles/<name>` 的指定 profile。 |
 | `dsh --profile headless "job"` | 运行一个全新的持久化会话，打印最终答案并退出。 |
 | `dsh web` | `--profile web` 的别名。 |
 | `dsh plugin --profile <name> <pnpm args>` | 通过在 profile 目录中转发给 pnpm 来管理该 profile 的插件。 |
@@ -35,7 +35,7 @@ profile 目录包含一个 `package.json`，其中记录树外插件依赖，以
 
 配置树以空根为起点，依次叠加以下配置层：
 - `dsh.profile.bundles` 中各组合包的 patch
-- profile 自身的 `cordis.patch.yml`，然后是 home 级的 `$DSH_HOME/cordis.patch.yml`
+- profile 自身的 `cordis.patch.yml`，然后是 home 级的 `$MAPLE_HOME/cordis.patch.yml`
 - `--patch` 指定的覆盖层
 
 `dsh.profile.bundles` 中列出的组合包先从 dsh 安装目录解析（`@maple/base`、`@maple/web-app`、`@maple/headless`），再从 profile 自身的 `node_modules` 解析；pnpm 会将树外插件安装到该目录。

@@ -14,14 +14,14 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, extname, join, resolve } from 'node:path'
 import { Document, parseDocument } from 'yaml'
 import { withFileLock, writeFileAtomic } from '@maple/atomic-write'
-import { canonicalizeWatchPath, resolveDshHome } from '@maple/home-paths'
+import { canonicalizeWatchPath, resolveMapleHome } from '@maple/home-paths'
 import { SettingsProvider, deepEqualJson, type SettingsNamespace } from '@maple/settings'
 
 /** Plugin config: file location and hot-reload behavior. */
 export interface Config {
   /** Settings document path; defaults to `settings.yaml` under the harness home. */
   path?: string
-  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Harness home used when `path` is omitted; defaults to `$MAPLE_HOME` or `~/.maple`. */
   dshHome?: string
   /** Watch the document and hot-publish external edits; defaults to true. */
   watch?: boolean
@@ -53,7 +53,7 @@ interface ResolvedSpec {
  * @returns the resolved file location, format, and watch behavior.
  */
 export function resolveSpec(config: Config): ResolvedSpec {
-  const filename = resolve(config.path ?? join(resolveDshHome(config.dshHome), 'settings.yaml'))
+  const filename = resolve(config.path ?? join(resolveMapleHome(config.dshHome), 'settings.yaml'))
   const format = FORMATS[extname(filename)]
   if (format === undefined) {
     throw new Error(`settings-file: extension "${extname(filename)}" is not supported (use .yaml, .yml, or .json)`)

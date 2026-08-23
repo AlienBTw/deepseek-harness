@@ -11,7 +11,7 @@ afterEach(() => {
 
 describe('DocumentTitle', () => {
   it('projects a durable title and restores the product title', () => {
-    vi.stubEnv('DSH_CLIENT_TITLE', 'Maple Harness')
+    vi.stubEnv('MAPLE_CLIENT_TITLE', 'Maple Harness')
     document.title = 'stale title'
     const mounted = render(<DocumentTitle />)
     expect(document.title).toBe('Maple Harness')
@@ -26,8 +26,8 @@ describe('DocumentTitle', () => {
   })
 
   it('uses the generic title when the build provides no title', () => {
-    vi.stubEnv('DSH_CLIENT_TITLE', '')
-    delete process.env.DSH_CLIENT_TITLE
+    vi.stubEnv('MAPLE_CLIENT_TITLE', '')
+    delete process.env.MAPLE_CLIENT_TITLE
     const mounted = render(<DocumentTitle title="First title" />)
     expect(document.title).toBe('First title — DSH Local Build')
     mounted.unmount()

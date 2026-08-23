@@ -65,7 +65,7 @@ export function apply(ctx: Context, config: Config): void {
     return
   }
   // The wait is the loud failure: an entry still pending on `codeRuntime` is
-  // what `dsh-agent-presets` reports as an unusable row, naming this id.
+  // what `maple-agent-presets` reports as an unusable row, naming this id.
   ctx.inject(['codeRuntime'], (runtimeCtx: Context) => {
     runtimeCtx.tools.presentAs(config.mode)
   })

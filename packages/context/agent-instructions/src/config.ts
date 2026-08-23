@@ -6,7 +6,7 @@
 
 import { relative } from 'node:path'
 import z from '@maple/schemastery'
-import { resolveDshHome } from '@maple/home-paths'
+import { resolveMapleHome } from '@maple/home-paths'
 
 const DEFAULT_PROJECT_ROOT_MARKERS = ['.git'] as const
 const DEFAULT_INSTRUCTION_FILE_CANDIDATES = ['AGENTS.md', 'CLAUDE.md'] as const
@@ -16,7 +16,7 @@ const RESERVED_PATH_SEGMENTS = new Set(['', '.', '..'])
 
 /** User-facing workspace instruction loader configuration. */
 export interface Config {
-  /** Harness home containing the fixed user-global `AGENTS.md`; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Harness home containing the fixed user-global `AGENTS.md`; defaults to `$MAPLE_HOME` or `~/.maple`. */
   dshHome?: string
   /** Directory entries that identify the project root while walking upward from the session cwd. */
   projectRootMarkers?: string[]
@@ -103,7 +103,7 @@ export function resolveDiscoveryConfig(
   config: Pick<Config, 'dshHome' | 'projectRootMarkers' | 'instructionFileCandidates' | 'localInstructionFileCandidates'>,
 ): ResolvedDiscoveryConfig {
   return {
-    dshHome: resolveDshHome(config.dshHome),
+    dshHome: resolveMapleHome(config.dshHome),
     projectRootMarkers: config.projectRootMarkers ?? [...DEFAULT_PROJECT_ROOT_MARKERS],
     instructionFileCandidates: resolveInstructionFileCandidates(
       config.instructionFileCandidates,

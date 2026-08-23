@@ -22,7 +22,7 @@ Lifetime and failure behavior:
 
 ## Alternatives considered
 
-**Why not embed the frontend dist and speak to a headless host over IPC?** Bundling the dist makes the shell own API routing, plugin serving, and trust fencing that `@deepseek-ai/dsh-web-app` already owns, and every harness capability would need a parallel path into the webview. Serving through the real composition keeps one surface with one owner.
+**Why not embed the frontend dist and speak to a headless host over IPC?** Bundling the dist makes the shell own API routing, plugin serving, and trust fencing that `@deepseek-ai/maple-web-app` already owns, and every harness capability would need a parallel path into the webview. Serving through the real composition keeps one surface with one owner.
 
 **Why not make Tauri dialogs the directory-picker backend?** The seam already composes backends behind `ctx.directoryPicker`; a third backend would duplicate the Win32 koffi implementation for no capability gain, and the koffi chooser works unchanged under a spawned host.
 

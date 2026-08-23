@@ -427,11 +427,11 @@ class HarnessClient:
         if self.config.bridge_bin is not None:
             return (self.config.bridge_bin,)
         try:
-            from deepseek_harness_runtime import resolve_bundled_launch_args
+            from maple_harness_runtime import resolve_bundled_launch_args
         except ImportError as exc:
             raise FileNotFoundError(
                 "Unable to locate the bundled Maple Harness SDK runtime. "
-                "Install deepseek-harness-runtime-bin or set HarnessConfig.runtime_bin."
+                "Install maple-harness-runtime-bin or set HarnessConfig.runtime_bin."
             ) from exc
         return resolve_bundled_launch_args()
 
@@ -446,12 +446,12 @@ class HarnessClient:
             and self.config.runtime_bin is None
             and self.config.bridge_bin is None
         )
-        if not uses_bundled_runtime or env.get("DSH_CORDIS_CONFIG"):
+        if not uses_bundled_runtime or env.get("MAPLE_CORDIS_CONFIG"):
             return
         # _default_launch_args already imported the package or raised its install error.
-        from deepseek_harness_runtime import bundled_default_config_path
+        from maple_harness_runtime import bundled_default_config_path
 
-        env["DSH_CORDIS_CONFIG"] = str(bundled_default_config_path())
+        env["MAPLE_CORDIS_CONFIG"] = str(bundled_default_config_path())
 
     def _unsubscribe_notifications(self, subscription_id: str) -> None:
         with self._lock:

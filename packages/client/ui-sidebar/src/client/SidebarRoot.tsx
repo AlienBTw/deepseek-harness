@@ -144,8 +144,8 @@ export function SidebarRoot({
                   fallback: (
                     <>
                       <span className={css.fallbackBrandName}>DSH Local Build</span>
-                      {process.env.DSH_CLIENT_COMMIT_HASH
-                        ? <span className={css.buildRevision}>{process.env.DSH_CLIENT_COMMIT_HASH}</span>
+                      {process.env.MAPLE_CLIENT_COMMIT_HASH
+                        ? <span className={css.buildRevision}>{process.env.MAPLE_CLIENT_COMMIT_HASH}</span>
                         : null}
                     </>
                   ),

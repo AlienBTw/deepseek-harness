@@ -1,6 +1,6 @@
 /**
  * @maple/headless — one-shot direct Agent driver. The bundle patch
- * rides over dsh-base without Host, HTTP, or browser plugins; this runner
+ * rides over maple-base without Host, HTTP, or browser plugins; this runner
  * creates one Agent through the core registry, drives the task to quiescence,
  * flushes its Session, prints the final assistant text, and exits.
  *

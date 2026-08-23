@@ -6,7 +6,7 @@ Maple 桌面外壳：在 harness 自己的本地服务器之上提供一个原�
 
 ## 工作方式
 
-`src-tauri/src/main.rs` 启动 `dsh web --no-open --port 0`（操作系统选定的端口，不打开浏览器），监视子进程的 stdout，等待 `@deepseek-ai/dsh-web-app` 在绑定后打印的就绪行 `dsh web: http://127.0.0.1:<port>`，然后把窗口从内置启动页导航到该 URL。浏览器表面拥有的每一项能力——RPC 网关、插件名册、原生目录选择器——都仍由 harness 组合持有；外壳只添加窗口与生命周期。
+`src-tauri/src/main.rs` 启动 `dsh web --no-open --port 0`（操作系统选定的端口，不打开浏览器），监视子进程的 stdout，等待 `@deepseek-ai/maple-web-app` 在绑定后打印的就绪行 `dsh web: http://127.0.0.1:<port>`，然后把窗口从内置启动页导航到该 URL。浏览器表面拥有的每一项能力——RPC 网关、插件名册、原生目录选择器——都仍由 harness 组合持有；外壳只添加窗口与生命周期。
 
 加载的页面得不到任何 Tauri IPC：UI 只通过自己的 `/api` 源与 harness 通信。
 

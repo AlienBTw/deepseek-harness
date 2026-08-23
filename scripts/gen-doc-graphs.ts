@@ -404,7 +404,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Managed bash environment registry',
     mode: 'core',
     consumers: ['tool-bash', 'tool-pwsh'],
-    note: 'Plugins declare effect-scoped DSH_* facts; each shell tool collects one trusted snapshot per execution and its executor rebuilds the namespace.',
+    note: 'Plugins declare effect-scoped MAPLE_* facts; each shell tool collects one trusted snapshot per execution and its executor rebuilds the namespace.',
   },
   {
     key: 'terminals',
@@ -545,7 +545,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Client plugin graph host',
     mode: 'core',
     consumers: ['hmr'],
-    note: 'Composes the __DSH_BOOT__ entry graph from an incremental dsh.client scan, serves plugin bundles, and notifies rebuilt/graph-changed subscribers.',
+    note: 'Composes the __MAPLE_BOOT__ entry graph from an incremental dsh.client scan, serves plugin bundles, and notifies rebuilt/graph-changed subscribers.',
   },
   {
     key: 'workflowEngine',
@@ -730,7 +730,7 @@ const APP_EXAMPLES = [
     title: 'DSH Base Composition',
     label: 'packages/bundle/base/cordis.patch.yml',
     config: 'packages/bundle/base/cordis.patch.yml',
-    summary: 'The dsh-base bundle patch every profile applies first; mode bundles (dsh-web-app, dsh-headless) and the user\'s profile layer patch over it.',
+    summary: 'The maple-base bundle patch every profile applies first; mode bundles (maple-web-app, maple-headless) and the user\'s profile layer patch over it.',
   },
   {
     id: 'headless',
