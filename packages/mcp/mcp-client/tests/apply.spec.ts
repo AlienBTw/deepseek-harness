@@ -3,10 +3,10 @@
  * Isolated file so vi.mock of the MCP SDK doesn't pollute other test suites.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime from '@deepseek-ai/dsh-tools'
-import type { Config } from '@deepseek-ai/dsh-mcp-client'
+import { Context } from '@maple/cordis'
+import SystemPrompt from '@maple/system-prompt'
+import ToolRuntime from '@maple/tools'
+import type { Config } from '@maple/mcp-client'
 
 // ---- Mock MCP SDK ----
 
@@ -54,7 +54,7 @@ vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
 
 // vi.mock is hoisted above static imports, so the module under test sees the
 // mocked SDK even through a static import.
-import { apply, name, inject, Config as ConfigSchema } from '@deepseek-ai/dsh-mcp-client/src/index.ts'
+import { apply, name, inject, Config as ConfigSchema } from '@maple/mcp-client/src/index.ts'
 
 // ---- Helpers ----
 

@@ -1,4 +1,4 @@
-# `@deepseek-ai/dsh-llm-mock-server`
+# `@maple/llm-mock-server`
 
 English | [中文](README.zh.md)
 

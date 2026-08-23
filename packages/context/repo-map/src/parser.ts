@@ -25,9 +25,19 @@ function hashContent(str: string): string {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)
 }
 
+/**
+ * Content-hash-tag cache for one file: a re-read with identical bytes
+ * replays the stored tags and skips grammar extraction entirely.
+ */
 export class TagCache {
   private cache = new Map<string, { hash: string; tags: Tag[] }>()
 
+  /**
+   * The tags stored for this path, when its content is unchanged.
+   * @param rel_fname - the cache key.
+   * @param content - current file content, hashed against the stored entry.
+   * @returns the cached tags, or `null` on miss or content change.
+   */
   get(rel_fname: string, content: string): Tag[] | null {
     const entry = this.cache.get(rel_fname)
     if (!entry) return null
@@ -35,15 +45,23 @@ export class TagCache {
     return entry.tags
   }
 
+  /**
+   * Store one file's tags under its content hash.
+   * @param rel_fname - the cache key.
+   * @param content - the exact content the tags were extracted from.
+   * @param tags - the extracted tags.
+   */
   set(rel_fname: string, content: string, tags: Tag[]): void {
     this.cache.set(rel_fname, { hash: hashContent(content), tags })
   }
 
+  /** Drop every entry (grammar reloads, tests). */
   clear(): void {
     this.cache.clear()
   }
 }
 
+/** Process-wide tag cache shared by every {@link getTags} call. */
 export const globalTagCache = new TagCache()
 
 let wasmInitPromise: Promise<void> | null = null
@@ -62,6 +80,11 @@ function ensureParserInit(): Promise<void> {
   return wasmInitPromise
 }
 
+/**
+ * Load (and memoize) the Tree-Sitter grammar WASM for one language.
+ * @param lang - a language key this build ships a grammar for.
+ * @returns the loaded pi-ai language handle.
+ */
 export async function loadGrammar(lang: SupportedLang): Promise<Language> {
   const cached = grammarCache.get(lang)
   if (cached) return cached
@@ -75,10 +98,17 @@ export async function loadGrammar(lang: SupportedLang): Promise<Language> {
   return language
 }
 
+/**
+ * Extract def/ref symbol tags from one file, memoized by content hash.
+ * @param rel_fname - path relative to the repository root; picks the grammar.
+ * @param fname - absolute or resolvable path used to read content when absent.
+ * @param content - file source; read from disk when omitted.
+ * @returns the extracted tags, empty for unsupported languages and unreadable files.
+ */
 export async function getTags(
   rel_fname: string,
   fname?: string,
-  content?: string
+  content?: string,
 ): Promise<Tag[]> {
   const effectiveFname = fname ?? rel_fname
   let source = content

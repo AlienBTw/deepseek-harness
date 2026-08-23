@@ -11,7 +11,7 @@ import {
   escapeMermaidLabel as escLabel,
   graphNodeId as nodeId,
   type PackageGraphNode,
-} from './package-graph.ts'
+} from './pkg-graph.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const OUT = 'docs/module-graph.md'
@@ -81,7 +81,7 @@ function render(pkgs: Pkg[]): string {
     '',
     '# Module dependency graph',
     '',
-    'Inter-package dependencies among the `@deepseek-ai/dsh-*` harness packages, derived from each package\'s `peerDependencies` (the canonical runtime-dependency signal) and grouped by the `packages/<group>/<pkg>` hierarchy. An edge `a --> b` means package `a` depends on package `b`. Names have the `@deepseek-ai/dsh-` prefix stripped.',
+    'Inter-package dependencies among the `@maple/*` harness packages, derived from each package\'s `peerDependencies` (the canonical runtime-dependency signal) and grouped by the `packages/<group>/<pkg>` hierarchy. An edge `a --> b` means package `a` depends on package `b`. Names have the `@maple/` prefix stripped.',
     '',
     '```mermaid',
     'flowchart TD',

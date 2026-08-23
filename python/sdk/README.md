@@ -1,9 +1,9 @@
-# DeepSeek Harness Python SDK
+# Maple Harness Python SDK
 
 English | [中文](https://github.com/deepseek-ai/deepseek-harness/blob/master/python/sdk/README.zh.md)
 
-Python subprocess SDK for driving DeepSeek Harness over JSON-RPC stdio. The
-runtime inherits normal DeepSeek Harness environment variables such as
+Python subprocess SDK for driving Maple Harness over JSON-RPC stdio. The
+runtime inherits normal Maple Harness environment variables such as
 `DEEPSEEK_BASE_URL` and `DEEPSEEK_API_KEY`, so callers can use real model
 endpoints directly or point those variables at a local proxy.
 
@@ -24,7 +24,7 @@ with DeepSeekHarness() as harness:
 
 `DeepSeekHarness` keeps its lazily started runtime subprocess for reuse across calls. Use it as a context manager, as above, or call `close()` explicitly when finished.
 
-By default, the SDK launches the bundled single-file `dsh-jsonrpc-agent` executable from the `deepseek-harness-runtime-bin` package and injects that package's default configuration (the stdio JSON-RPC server, agent core, preloaded DeepSeek adapter, JSONL session persistence with an explicitly composed semantic checkpoint policy, local bash) via `DSH_CORDIS_CONFIG`. To run a plugin composition of your own, keep the `@deepseek-ai/dsh-sdk-jsonrpc-server` entry in the config and pass the Cordis config path.
+By default, the SDK launches the bundled single-file `dsh-jsonrpc-agent` executable from the `deepseek-harness-runtime-bin` package and injects that package's default configuration (the stdio JSON-RPC server, agent core, preloaded DeepSeek adapter, JSONL session persistence with an explicitly composed semantic checkpoint policy, local bash) via `DSH_CORDIS_CONFIG`. To run a plugin composition of your own, keep the `@maple/sdk-jsonrpc-server` entry in the config and pass the Cordis config path.
 
 ```py
 from deepseek_harness import DeepSeekHarness

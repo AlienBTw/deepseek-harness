@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-session-telemetry
+# @maple/session-telemetry
 
 [English](README.md) | 中文
 

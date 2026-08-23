@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-ui-attachment
+# @maple/client-ui-attachment
 
 English | [中文](README.zh.md)
 

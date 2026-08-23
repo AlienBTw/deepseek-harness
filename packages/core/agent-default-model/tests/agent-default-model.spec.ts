@@ -1,11 +1,11 @@
 /** Default Agent model settings layered over a real settings provider. */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
+import { Context } from '@maple/cordis'
 import AgentDefaultModelConfig, { AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE } from '../src/index.ts'
-import { SettingsProvider } from '@deepseek-ai/dsh-settings'
-import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
-import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { SettingsProvider } from '@maple/settings'
+import type { SettingsNamespace } from '@maple/settings'
+import { ReasoningEffortId } from '@maple/llm'
 
 /** The smallest real provider: one in-memory document, always writable. */
 class MemorySettings extends SettingsProvider {

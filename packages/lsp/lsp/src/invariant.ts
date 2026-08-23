@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-lsp`.
- * @module @deepseek-ai/dsh-lsp/invariant
+ * Package-owned invariant companion for `@maple/lsp`.
+ * @module @maple/lsp/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-lsp'
+const PACKAGE_NAME = '@maple/lsp'
 
 /** Cordis companion plugin name. */
 export const name = 'lsp-invariant'

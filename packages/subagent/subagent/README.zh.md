@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subagent
+# @maple/subagent
 
 [English](README.md) | 中文
 

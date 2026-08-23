@@ -1,13 +1,13 @@
 {
-  "name": "@deepseek-ai/dsh-sandbox-windows-acl",
-  "description": "Windows ACL write-restriction sandbox backend (restricted-token spawn with capability-SID write allowlist) for the DeepSeek Harness sandbox seam",
+  "name": "@maple/sandbox-windows-acl",
+  "description": "Windows ACL write-restriction sandbox backend (restricted-token spawn with capability-SID write allowlist) for the Maple Harness sandbox seam",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/sandbox/sandbox-windows-acl"
   },
   "type": "module",
@@ -38,16 +38,16 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/invariants": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "dependencies": {
     "koffi": "^3.1.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-pwsh-local": "workspace:^",
-    "@deepseek-ai/dsh-sandbox-local": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/invariants": "workspace:^",
+    "@maple/pwsh-local": "workspace:^",
+    "@maple/sandbox-local": "workspace:^",
+    "@maple/cordis": "workspace:^"
   }
 }

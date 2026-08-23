@@ -9,19 +9,19 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import Loader from '@deepseek-ai/cordis-plugin-loader'
-import { createUserMessage, CallId } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
-import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
-import type { PostToolDecision, ToolExecution, ToolExecutionToken } from '@deepseek-ai/dsh-tools'
-import { SpillLocator, SpillStore } from '@deepseek-ai/dsh-spill'
-import type { SaveTextSpill, SpillRef } from '@deepseek-ai/dsh-spill'
-import * as SpillPolicy from '@deepseek-ai/dsh-spill-policy'
-import { WorkerThreadCodeRuntime } from '@deepseek-ai/dsh-code-runtime-worker-thread'
+import { Context } from '@maple/cordis'
+import Loader from '@maple/cordis-plugin-loader'
+import { createUserMessage, CallId } from '@maple/llm'
+import type { ContentBlock } from '@maple/llm'
+import { SessionId } from '@maple/session'
+import SystemPrompt from '@maple/system-prompt'
+import ToolRuntime, { defineContentToolFixture } from '@maple/tools'
+import type { ToolDefinition } from '@maple/tools'
+import type { PostToolDecision, ToolExecution, ToolExecutionToken } from '@maple/tools'
+import { SpillLocator, SpillStore } from '@maple/spill'
+import type { SaveTextSpill, SpillRef } from '@maple/spill'
+import * as SpillPolicy from '@maple/spill-policy'
+import { WorkerThreadCodeRuntime } from '@maple/code-runtime-worker-thread'
 
 const testToolSignal = new AbortController().signal
 

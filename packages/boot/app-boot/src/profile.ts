@@ -19,7 +19,7 @@
  * flat fallback directory `$DSH_HOME/profiles/node_modules` (one symlink per
  * package the installation's app and bundles depend on) makes every in-box
  * plugin Node-resolvable from any profile through the ordinary parent-walk.
- * @module @deepseek-ai/dsh-app-boot/profile
+ * @module @maple/app-boot/profile
  */
 
 import { createRequire } from 'node:module'
@@ -27,9 +27,9 @@ import {
   existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync,
 } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
-import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
-import { applyEntryPatches, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
-import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
+import type { EntryOptions } from '@maple/cordis-plugin-loader'
+import { applyEntryPatches, type PatchOptions } from '@maple/cordis-plugin-include'
+import { resolveDshHome } from '@maple/home-paths'
 import { loadOverlayPatches } from './index.ts'
 
 /** Directory under the Harness home holding every profile. */
@@ -112,17 +112,17 @@ export function resolveProfileDir(name: string, home: string = resolveDshHome())
 
 /** The shipped profile templates auto-initialized on first use, by name. */
 export const PROFILE_TEMPLATES: Record<string, readonly string[]> = {
-  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
-  headless: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless'],
+  web: ['@maple/base', '@maple/web-app'],
+  headless: ['@maple/base', '@maple/headless'],
 }
 
 /** Installation-owned bundle tuples normalized to the shipped template. */
 const INSTALLATION_OWNED_PROFILE_TUPLES: Record<string, readonly string[]> = {
-  headless: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-headless'],
+  headless: ['@maple/base', '@maple/web-app', '@maple/headless'],
 }
 
 /** The bundle list a `dsh plugin` init uses for a name with no shipped template. */
-export const DEFAULT_PROFILE_BUNDLES: readonly string[] = ['@deepseek-ai/dsh-base']
+export const DEFAULT_PROFILE_BUNDLES: readonly string[] = ['@maple/base']
 
 const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this dsh profile, applied after every bundle layer:
 # a top-level YAML array of loader patch entries (id-targeted config
@@ -295,20 +295,40 @@ function sameBundles(left: readonly string[], right: readonly string[]): boolean
  * while preserving every other manifest field. Any other list is user-owned.
  */
 function normalizeShippedProfile(name: string, dir: string, manifest: ProfileManifest): ProfileManifest {
-  const installationOwned = INSTALLATION_OWNED_PROFILE_TUPLES[name]
   const current = PROFILE_TEMPLATES[name]
   const bundles = manifest.dsh?.profile?.bundles
-  if (installationOwned === undefined || current === undefined || bundles === undefined
-    || !sameBundles(bundles, installationOwned)) return manifest
-  const normalized: ProfileManifest = {
-    ...manifest,
-    dsh: {
-      ...manifest.dsh,
-      profile: { ...manifest.dsh?.profile, bundles: [...current] },
-    },
+  if (bundles === undefined) return manifest
+
+  const installationOwned = INSTALLATION_OWNED_PROFILE_TUPLES[name]
+  const matchesTuple = installationOwned !== undefined && sameBundles(bundles, installationOwned)
+  const rescoped = bundles.map(b => (b.startsWith('@maple/') ? b.replace(/^@deepseek-ai\/dsh-/, '@maple/') : b))
+  const hasRescoped = !sameBundles(bundles, rescoped)
+
+  if (current !== undefined && (matchesTuple || (hasRescoped && sameBundles(rescoped, current)))) {
+    const normalized: ProfileManifest = {
+      ...manifest,
+      dsh: {
+        ...manifest.dsh,
+        profile: { ...manifest.dsh?.profile, bundles: [...current] },
+      },
+    }
+    writeProfileManifest(dir, normalized)
+    return normalized
   }
-  writeProfileManifest(dir, normalized)
-  return normalized
+
+  if (hasRescoped) {
+    const normalized: ProfileManifest = {
+      ...manifest,
+      dsh: {
+        ...manifest.dsh,
+        profile: { ...manifest.dsh?.profile, bundles: [...rescoped] },
+      },
+    }
+    writeProfileManifest(dir, normalized)
+    return normalized
+  }
+
+  return manifest
 }
 
 /**
@@ -332,7 +352,7 @@ function packageDirFromAnchor(anchor: string, packageName: string): string | und
 /**
  * Resolve one bundle package's directory: installation anchor first, then the
  * profile directory. The installation-first order is the contract that
- * `@deepseek-ai/dsh-base` (and every other in-box bundle) always comes from
+ * `@maple/base` (and every other in-box bundle) always comes from
  * the same installation as the running dsh, never from a profile-local copy.
  * Resolution does not require the package to export `./package.json`.
  * @param binName - the diagnostic prefix on the thrown error.
@@ -344,9 +364,14 @@ function packageDirFromAnchor(anchor: string, packageName: string): string | und
 export function resolveBundleDir(
   binName: string, packageName: string, installAnchor: string, profileDir: string,
 ): string {
-  for (const anchor of [installAnchor, join(profileDir, 'package.json')]) {
-    const dir = packageDirFromAnchor(anchor, packageName)
-    if (dir !== undefined) return dir
+  const names = packageName.startsWith('@maple/')
+    ? [packageName, packageName.replace(/^@deepseek-ai\/dsh-/, '@maple/')]
+    : [packageName]
+  for (const name of names) {
+    for (const anchor of [installAnchor, join(profileDir, 'package.json')]) {
+      const dir = packageDirFromAnchor(anchor, name)
+      if (dir !== undefined) return dir
+    }
   }
   throw new Error(
     `${binName}: cannot resolve profile bundle ${JSON.stringify(packageName)} from the dsh installation or ${profileDir}; `

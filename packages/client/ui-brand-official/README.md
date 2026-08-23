@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-ui-brand-official
+# @maple/client-ui-brand-official
 
 English | [中文](README.zh.md)
 

@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-session-projection-cache`.
- * @module @deepseek-ai/dsh-session-projection-cache/invariant
+ * Package-owned invariant companion for `@maple/session-projection-cache`.
+ * @module @maple/session-projection-cache/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-session-projection-cache'
+const PACKAGE_NAME = '@maple/session-projection-cache'
 
 /** Cordis companion plugin name. */
 export const name = 'session-projection-cache-invariant'

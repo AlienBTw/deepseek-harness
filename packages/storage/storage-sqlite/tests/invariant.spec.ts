@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
+import { Context } from '@maple/cordis'
+import InvariantRegistry from '@maple/invariants'
 import * as StorageSqliteInvariant from '../src/invariant.ts'
 
 describe('invariant companion', () => {

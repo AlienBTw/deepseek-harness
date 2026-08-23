@@ -28,6 +28,11 @@ export type SupportedLang =
   | 'swift'
 
 /** Map a file extension to a supported language (or null if unsupported). */
+/**
+ * Map one file path to its Tree-Sitter language key.
+ * @param rel_fname - the file path whose extension decides the language.
+ * @returns the language key, or `null` when no shipped grammar matches.
+ */
 export function langForFile(rel_fname: string): SupportedLang | null {
   const lower = rel_fname.toLowerCase()
   if (lower.endsWith('.tsx')) return 'tsx'
@@ -402,7 +407,11 @@ export const SWIFT_QUERY = `
   [(simple_identifier) (navigation_expression)] @name.reference.call) @reference.call
 `
 
-/** Get the query source for a language. */
+/**
+ * Get the query source for a language.
+ * @param lang - a language key this build ships queries for.
+ * @returns the Tree-Sitter query source extracting def and ref tags.
+ */
 export function queryForLang(lang: SupportedLang): string {
   switch (lang) {
     case 'typescript':

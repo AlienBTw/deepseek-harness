@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import InvariantService, { InvariantError } from '@deepseek-ai/dsh-invariants'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import { Context } from '@maple/cordis'
+import InvariantService, { InvariantError } from '@maple/invariants'
+import SessionStore, { SessionId } from '@maple/session'
 import * as TeamInvariant from '../src/invariant.ts'
 import { TeamId, TeamTaskId } from '../src/types.ts'
 
@@ -38,7 +38,7 @@ describe('Agent Teams stream invariant', () => {
       })
     }).toThrow(expect.objectContaining<Partial<InvariantError>>({
       code: 'INVARIANT',
-      packageName: '@deepseek-ai/dsh-experimental-agent-team',
+      packageName: '@maple/experimental-agent-team',
     }))
     expect(invalid.events).toEqual([])
   })
@@ -63,7 +63,7 @@ describe('Agent Teams stream invariant', () => {
       })
     }).toThrow(expect.objectContaining<Partial<InvariantError>>({
       code: 'INVARIANT',
-      packageName: '@deepseek-ai/dsh-experimental-agent-team',
+      packageName: '@maple/experimental-agent-team',
     }))
     expect(session.events).toEqual([])
   })

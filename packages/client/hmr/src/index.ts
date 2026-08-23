@@ -10,11 +10,11 @@
  */
 import { statSync } from 'node:fs'
 import type { ServerResponse } from 'node:http'
-import type { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
+import type { Context } from '@maple/cordis'
+import z from '@maple/schemastery'
 // Empty type imports carry the clientModuleHost/webServer Context merges.
-import type {} from '@deepseek-ai/dsh-client-modules'
-import type {} from '@deepseek-ai/dsh-host-webserver'
+import type {} from '@maple/client-modules'
+import type {} from '@maple/host-webserver'
 import type { PluginsEventFrame } from './events.ts'
 import { EVENTS_ENDPOINT } from './events.ts'
 

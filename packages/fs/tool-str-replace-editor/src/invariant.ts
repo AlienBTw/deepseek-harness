@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-tool-str-replace-editor`.
- * @module @deepseek-ai/dsh-tool-str-replace-editor/invariant
+ * Package-owned invariant companion for `@maple/tool-str-replace-editor`.
+ * @module @maple/tool-str-replace-editor/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tool-str-replace-editor'
+const PACKAGE_NAME = '@maple/tool-str-replace-editor'
 
 /** Cordis companion plugin name. */
 export const name = 'tool-str-replace-editor-invariant'

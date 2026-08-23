@@ -3,16 +3,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import Loader from '@deepseek-ai/cordis-plugin-loader'
-import Include from '@deepseek-ai/cordis-plugin-include'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import AgentLoop from '@deepseek-ai/dsh-agent-loop'
-import LlmRuntime, { createUserMessage, LlmAdapter, LlmError, resolveRetryPolicy  } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, ResolvedRetryPolicy, StreamChunk } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime from '@deepseek-ai/dsh-tools'
+import { Context } from '@maple/cordis'
+import Loader from '@maple/cordis-plugin-loader'
+import Include from '@maple/cordis-plugin-include'
+import AgentRegistry from '@maple/agent'
+import AgentLoop from '@maple/agent-loop'
+import LlmRuntime, { createUserMessage, LlmAdapter, LlmError, resolveRetryPolicy  } from '@maple/llm'
+import type { GenerateOptions, ResolvedRetryPolicy, StreamChunk } from '@maple/llm'
+import SessionStore, { SessionId } from '@maple/session'
+import SystemPrompt from '@maple/system-prompt'
+import ToolRuntime from '@maple/tools'
 import * as retry from '../src/index.ts'
 
 let root: string | undefined
@@ -58,13 +58,13 @@ async function loadYaml(lines: readonly string[]): Promise<Context> {
   await context.plugin(Loader)
   context.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-llm', LlmRuntime],
-    ['@deepseek-ai/dsh-session', SessionStore],
-    ['@deepseek-ai/dsh-system-prompt', SystemPrompt],
-    ['@deepseek-ai/dsh-tools', ToolRuntime],
-    ['@deepseek-ai/dsh-agent', AgentRegistry],
-    ['@deepseek-ai/dsh-llm-retry', retry],
-    ['@deepseek-ai/dsh-agent-loop', AgentLoop],
+    ['@maple/llm', LlmRuntime],
+    ['@maple/session', SessionStore],
+    ['@maple/system-prompt', SystemPrompt],
+    ['@maple/tools', ToolRuntime],
+    ['@maple/agent', AgentRegistry],
+    ['@maple/llm-retry', retry],
+    ['@maple/agent-loop', AgentLoop],
   ])
   context.loader.internal = {
     version: 'v2',
@@ -87,13 +87,13 @@ describe('real Loader composition', () => {
   // to trip the default 5s budget on cold caches.
   it('loads provider-supplied policy and records recovery through the shipping loop', { timeout: 60_000 }, async () => {
     const loaded = await loadYaml([
-      "- name: '@deepseek-ai/dsh-llm'",
-      "- name: '@deepseek-ai/dsh-session'",
-      "- name: '@deepseek-ai/dsh-system-prompt'",
-      "- name: '@deepseek-ai/dsh-tools'",
-      "- name: '@deepseek-ai/dsh-agent'",
-      "- name: '@deepseek-ai/dsh-llm-retry'",
-      "- name: '@deepseek-ai/dsh-agent-loop'",
+      "- name: '@maple/llm'",
+      "- name: '@maple/session'",
+      "- name: '@maple/system-prompt'",
+      "- name: '@maple/tools'",
+      "- name: '@maple/agent'",
+      "- name: '@maple/llm-retry'",
+      "- name: '@maple/agent-loop'",
     ])
 
     const unloaded = [...loaded.loader.entries()]

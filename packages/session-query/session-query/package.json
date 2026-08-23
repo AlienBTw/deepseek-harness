@@ -1,5 +1,5 @@
 {
-  "name": "@deepseek-ai/dsh-session-query",
+  "name": "@maple/session-query",
   "description": "Combined session query service contract with concrete reads, traces, and filters",
   "version": "0.1.1-rc.2",
   "publishConfig": {
@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/session-query/session-query"
   },
   "type": "module",
@@ -32,26 +32,26 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-brand": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-session-title": "workspace:^",
-    "@deepseek-ai/dsh-session-persistence": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/brand": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/session-title": "workspace:^",
+    "@maple/session-persistence": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "peerDependenciesMeta": {
-    "@deepseek-ai/dsh-session-persistence": {
+    "@maple/session-persistence": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-brand": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-session-title": "workspace:^",
-    "@deepseek-ai/dsh-session-persistence": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/brand": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/session-title": "workspace:^",
+    "@maple/session-persistence": "workspace:^",
+    "@maple/cordis": "workspace:^"
   }
 }

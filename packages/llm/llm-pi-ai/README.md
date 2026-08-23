@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-llm-pi-ai
+# @maple/llm-pi-ai
 
 English | [中文](README.zh.md)
 
@@ -12,7 +12,7 @@ Configure credentials, the model catalog, and deployment-specific transport sett
 
 ```yaml
 - id: llm
-  name: '@deepseek-ai/dsh-llm-pi-ai'
+  name: '@maple/llm-pi-ai'
   config:
     providers:
       # Catalog route: endpoint, protocol, and models all come from pi-ai.
@@ -85,6 +85,8 @@ A profile's `models` list *replaces* the route's installed catalog rather than e
 
 `modelOverrides` reshapes individual installed-catalog models without that cost: each key is a catalog model id, each value the same fields a `models` entry takes with the id living in the key, and the rest of the catalog keeps serving untouched — "correct one model, keep the other thirty-seven" as a three-line edit. An override becomes that catalog entry's configuration, so capacities, efforts, and compat resolve through the same path with the same diagnostics and the same request-default semantics as a `models` entry. Overrides are only meaningful on a catalog route serving its catalog: one set beside a `models` list (which already replaces the catalog), on a hand-declared route (whose models are fully spelled in `models`), or naming a model the catalog does not describe is refused rather than skipped, because a silently unchanged model is a typo someone would otherwise hunt for.
 
+The `ollama` route ships three identity-only bootstrap entries (`llama3.2`, `qwen2.5-coder`, `deepseek-r1`) so an unconfigured profile resolves without declaring models. They deliberately carry no context window or output cap — those are facts of what was pulled locally and how it is served — so they take the route's configurable capacity defaults until model discovery fills real values from the running server (see Endpoint interrogation).
+
 ### Per-model reasoning efforts
 
 `reasoningEfforts` declares a model's selectable thinking levels: each key is a level selectors offer, its value the spelling dispatch sends on the wire, so `high: high` passes the canonical name through while `max: ultra` renames it for a gateway with its own vocabulary. Keys come from pi-ai's level set (`off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`); a level not declared is not offered. Omitting the field keeps the installed catalog entry's capability (a hand-declared model has none and does not reason); `false` declares a non-reasoning model, which is how a profile strips reasoning from a catalog model its gateway cannot serve; an empty declaration is refused rather than guessing between those two meanings.
@@ -137,7 +139,9 @@ A draft carries the credential the user typed, if any; a route that already stor
 
 Interrogation reads `openai-completions` and `openai-responses`, whose `GET /models` shape with bearer auth is the one a gateway, a self-hosted server, and the official endpoints all agree on. Azure is excluded despite its OpenAI lineage — it authenticates with an `api-key` header and requires an `api-version` query — and Codex uses OAuth; every other protocol answers `DISCOVERY_UNSUPPORTED` so the surface falls back to hand-entry instead of an authentication failure being reported as a provider with no models. The `baseURL` is treated as a prefix rather than a URL to resolve against, so a deployment path such as `https://gateway.example/openai/v1` keeps its segments.
 
-Most listings disclose an id and nothing else; `context_window`/`context_length` and `max_output_tokens`/`max_tokens` are read when a gateway supplies them, entries without a usable id are skipped rather than failing the whole listing, and everything else the adopting surface still owes. The reply is read under a four-megabyte ceiling enforced on the bytes actually received — the endpoint is a URL the user typed, so a declared length is checked first but never trusted as the bound. An unreachable endpoint, a refused credential, a non-JSON body, and a body with no `data` array all fail with `DISCOVERY_FAILED` and a message naming the endpoint and, for a 401 or 403 alone, the credential. Cancellation during the body read surfaces as `ABORTED`, like a cancellation before the request went out.
+The local `ollama` provider joins the interrogable set with two native shapes. Its models depend on what was pulled on the host machine, so it is exempt from the catalog short-circuit and defaults to `http://127.0.0.1:11434/v1`. Interrogation probes `GET /models` first, then the native `GET /api/tags` listing; the native shape is requested only for this provider, so an OpenAI-compatible gateway never receives sibling-path requests carrying its credentials. `/api/tags` discloses identities but no capacity facts, so each discovered id is asked directly through `POST /api/show`: the reply's architecture-prefixed `*.context_length` value becomes that model's context window, and a failed or unreadable show call leaves the model unnamed-capacity rather than failing a listing that already succeeded. No capacity is invented anywhere in this path; a model the server cannot describe stays undescribed until the server can.
+
+Most listings disclose an id and nothing else; `context_window`/`context_length` and `max_output_tokens`/`max_tokens` are read when a gateway supplies them, entries without a usable id are skipped rather than failing the whole listing, and everything else the adopting surface still owes. The reply is read under a four-megabyte ceiling enforced on the bytes actually received — the endpoint is a URL the user typed, so a declared length is checked first but never trusted as the bound. An unreachable endpoint, a refused credential, a non-JSON body, and a body with neither a `data` nor a readable `models` array all fail with `DISCOVERY_FAILED` and a message naming the endpoint and, for a 401 or 403 alone, the credential. Cancellation during the body read surfaces as `ABORTED`, like a cancellation before the request went out.
 
 ## Provider/model routing and replay
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import LlmRuntime, { CallId, LlmAdapter } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
-import * as LlmInvariant from '@deepseek-ai/dsh-llm/invariant'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
+import { Context } from '@maple/cordis'
+import LlmRuntime, { CallId, LlmAdapter } from '@maple/llm'
+import type { GenerateOptions, StreamChunk } from '@maple/llm'
+import * as LlmInvariant from '@maple/llm/invariant'
+import InvariantRegistry from '@maple/invariants'
 
 async function setup(): Promise<Context> {
   const ctx = new Context()

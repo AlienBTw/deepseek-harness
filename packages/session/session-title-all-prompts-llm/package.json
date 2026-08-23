@@ -1,13 +1,13 @@
 {
-  "name": "@deepseek-ai/dsh-session-title-all-prompts-llm",
-  "description": "All-user-messages LLM provider plugin for DeepSeek Harness session titles",
+  "name": "@maple/session-title-all-prompts-llm",
+  "description": "All-user-messages LLM provider plugin for Maple Harness session titles",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/session/session-title-all-prompts-llm"
   },
   "type": "module",
@@ -27,22 +27,22 @@
   "files": ["lib/index.js", "lib/invariant.js", "lib/types/**/*.d.ts"],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-session-title": "workspace:^",
-    "@deepseek-ai/dsh-session-title-llm": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/session-title": "workspace:^",
+    "@maple/session-title-llm": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "workspace:^"
+    "@maple/schemastery": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-session-title": "workspace:^",
-    "@deepseek-ai/dsh-session-title-llm": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/session-title": "workspace:^",
+    "@maple/session-title-llm": "workspace:^",
+    "@maple/cordis": "workspace:^"
   }
 }

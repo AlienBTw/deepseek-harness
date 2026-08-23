@@ -1,13 +1,13 @@
 {
-  "name": "@deepseek-ai/dsh-llm-deepseek",
-  "description": "DeepSeek chat-completions adapter for the DeepSeek Harness LLM seam",
+  "name": "@maple/llm-deepseek",
+  "description": "DeepSeek chat-completions adapter for the Maple Harness LLM seam",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/llm/llm-deepseek"
   },
   "type": "module",
@@ -32,35 +32,35 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-attachment": "workspace:^",
-    "@deepseek-ai/dsh-atomic-write": "workspace:^",
-    "@deepseek-ai/dsh-brand": "workspace:^",
-    "@deepseek-ai/dsh-credentials": "workspace:^",
-    "@deepseek-ai/dsh-launch-environment": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-home-paths": "workspace:^",
-    "@deepseek-ai/dsh-settings": "workspace:^",
-    "@deepseek-ai/dsh-timeout": "workspace:^",
-    "@deepseek-ai/dsh-anonymous-user-id": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/attachment": "workspace:^",
+    "@maple/atomic-write": "workspace:^",
+    "@maple/brand": "workspace:^",
+    "@maple/credentials": "workspace:^",
+    "@maple/launch-environment": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/home-paths": "workspace:^",
+    "@maple/settings": "workspace:^",
+    "@maple/timeout": "workspace:^",
+    "@maple/anonymous-user-id": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "dependencies": {
     "eventsource-parser": "^3.1.0",
-    "@deepseek-ai/schemastery": "workspace:^"
+    "@maple/schemastery": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-attachment": "workspace:^",
-    "@deepseek-ai/dsh-atomic-write": "workspace:^",
-    "@deepseek-ai/dsh-brand": "workspace:^",
-    "@deepseek-ai/dsh-credentials": "workspace:^",
-    "@deepseek-ai/dsh-launch-environment": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-home-paths": "workspace:^",
-    "@deepseek-ai/dsh-settings": "workspace:^",
-    "@deepseek-ai/dsh-timeout": "workspace:^",
-    "@deepseek-ai/dsh-anonymous-user-id": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/attachment": "workspace:^",
+    "@maple/atomic-write": "workspace:^",
+    "@maple/brand": "workspace:^",
+    "@maple/credentials": "workspace:^",
+    "@maple/launch-environment": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/home-paths": "workspace:^",
+    "@maple/settings": "workspace:^",
+    "@maple/timeout": "workspace:^",
+    "@maple/anonymous-user-id": "workspace:^",
+    "@maple/cordis": "workspace:^"
   }
 }

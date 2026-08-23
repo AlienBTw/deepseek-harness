@@ -1,13 +1,13 @@
 {
-  "name": "@deepseek-ai/dsh-tool-skill",
-  "description": "Model-facing skill loading tool for the DeepSeek Harness",
+  "name": "@maple/tool-skill",
+  "description": "Model-facing skill loading tool for the Maple Harness",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/skill/tool-skill"
   },
   "type": "module",
@@ -32,25 +32,25 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-skill": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/agent": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/skill": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "workspace:^"
+    "@maple/schemastery": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-scope": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-skill": "workspace:^",
-    "@deepseek-ai/dsh-skill-filesystem": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/agent": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/scope": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/skill": "workspace:^",
+    "@maple/skill-filesystem": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/cordis": "workspace:^"
   }
 }

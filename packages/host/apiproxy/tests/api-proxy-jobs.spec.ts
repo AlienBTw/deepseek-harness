@@ -8,17 +8,17 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import type { Session } from '@deepseek-ai/dsh-session'
-import UserQuestionService from '@deepseek-ai/dsh-user-questions'
-import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
-import type { JobOutcome } from '@deepseek-ai/dsh-jobs'
-import type { MuxFrame, RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
-import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import { createApiProxy } from '@deepseek-ai/dsh-host-apiproxy'
+import { Context } from '@maple/cordis'
+import AgentRegistry, { Inbox } from '@maple/agent'
+import type { Agent } from '@maple/agent'
+import SessionStore, { SessionId } from '@maple/session'
+import type { Session } from '@maple/session'
+import UserQuestionService from '@maple/user-questions'
+import LocalJobRegistry from '@maple/jobs-local'
+import type { JobOutcome } from '@maple/jobs'
+import type { MuxFrame, RpcRequest } from '@maple/host-apiproxy/api'
+import { RpcId } from '@maple/host-apiproxy/api/rpc'
+import { createApiProxy } from '@maple/host-apiproxy'
 
 type JobFrame = Extract<MuxFrame, { type: 'session/jobs' }>
 

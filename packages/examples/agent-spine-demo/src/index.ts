@@ -5,37 +5,37 @@
  * deployments still choose the LLM adapter, bash executor, and presentation.
  * The plugin intentionally exposes named exports only because Loader default
  * unwrapping would discard its `Config` schema (see docs/postmortem/0001).
- * @module @deepseek-ai/dsh-agent-spine-demo
+ * @module @maple/agent-spine-demo
  */
 
-import type { Context } from '@deepseek-ai/cordis'
-import Timer from '@deepseek-ai/cordis-plugin-timer'
-import z from '@deepseek-ai/schemastery'
-import LlmRuntime from '@deepseek-ai/dsh-llm'
-import SessionStore from '@deepseek-ai/dsh-session'
-import SessionTitleService, { type Config as SessionTitleConfig } from '@deepseek-ai/dsh-session-title'
-import SystemPrompt, { type Config as SystemPromptConfig } from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime, { type Config as ToolsConfig } from '@deepseek-ai/dsh-tools'
-import SkillRegistry, { type Config as SkillRegistryConfig } from '@deepseek-ai/dsh-skill'
-import * as SkillFileSystem from '@deepseek-ai/dsh-skill-filesystem'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import GoalService, { type Config as GoalDomainConfig } from '@deepseek-ai/dsh-goal'
-import * as goalSession from '@deepseek-ai/dsh-goal-round-driver'
-import * as toolGoal from '@deepseek-ai/dsh-tool-goal'
-import LocalJobRegistry, { type Config as JobsConfig } from '@deepseek-ai/dsh-jobs-local'
-import InvariantRegistry, { type Config as InvariantConfig } from '@deepseek-ai/dsh-invariants'
-import * as sessionInvariant from '@deepseek-ai/dsh-session/invariant'
-import * as agentInvariant from '@deepseek-ai/dsh-agent/invariant'
-import * as scopeInvariant from '@deepseek-ai/dsh-scope/invariant'
-import * as agentLoopInvariant from '@deepseek-ai/dsh-agent-loop/invariant'
-import * as toolBash from '@deepseek-ai/dsh-tool-bash'
-import * as bashEnv from '@deepseek-ai/dsh-shell-env'
-import * as workspaceContext from '@deepseek-ai/dsh-agent-instructions'
-import * as toolSkill from '@deepseek-ai/dsh-tool-skill'
-import * as toolJobs from '@deepseek-ai/dsh-tool-jobs'
-import AgentLoop, { type Config as AgentLoopConfig } from '@deepseek-ai/dsh-agent-loop'
-import * as llmRetry from '@deepseek-ai/dsh-llm-retry'
-import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
+import type { Context } from '@maple/cordis'
+import Timer from '@maple/cordis-plugin-timer'
+import z from '@maple/schemastery'
+import LlmRuntime from '@maple/llm'
+import SessionStore from '@maple/session'
+import SessionTitleService, { type Config as SessionTitleConfig } from '@maple/session-title'
+import SystemPrompt, { type Config as SystemPromptConfig } from '@maple/system-prompt'
+import ToolRuntime, { type Config as ToolsConfig } from '@maple/tools'
+import SkillRegistry, { type Config as SkillRegistryConfig } from '@maple/skill'
+import * as SkillFileSystem from '@maple/skill-filesystem'
+import AgentRegistry from '@maple/agent'
+import GoalService, { type Config as GoalDomainConfig } from '@maple/goal'
+import * as goalSession from '@maple/goal-round-driver'
+import * as toolGoal from '@maple/tool-goal'
+import LocalJobRegistry, { type Config as JobsConfig } from '@maple/jobs-local'
+import InvariantRegistry, { type Config as InvariantConfig } from '@maple/invariants'
+import * as sessionInvariant from '@maple/session/invariant'
+import * as agentInvariant from '@maple/agent/invariant'
+import * as scopeInvariant from '@maple/scope/invariant'
+import * as agentLoopInvariant from '@maple/agent-loop/invariant'
+import * as toolBash from '@maple/tool-bash'
+import * as bashEnv from '@maple/shell-env'
+import * as workspaceContext from '@maple/agent-instructions'
+import * as toolSkill from '@maple/tool-skill'
+import * as toolJobs from '@maple/tool-jobs'
+import AgentLoop, { type Config as AgentLoopConfig } from '@maple/agent-loop'
+import * as llmRetry from '@maple/llm-retry'
+import { resolveDshHome } from '@maple/home-paths'
 
 export const name = 'agent-spine-demo'
 
@@ -104,7 +104,7 @@ export interface Config {
   toolOrder?: SystemPromptConfig['toolOrder']
   /** The tool registry's config — its presentation `mode` (see dsh-tools' `Config`). */
   tools?: ToolsConfig
-  /** DeepSeek Harness home directory shared by shell context and local skill discovery. */
+  /** Maple Harness home directory shared by shell context and local skill discovery. */
   dshHome?: string
   /** Deterministic fallback and accepted-title limits; omission uses the bundle's example policy. */
   sessionTitle?: SessionTitleConfig

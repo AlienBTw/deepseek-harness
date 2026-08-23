@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import { WorkerThreadCodeRuntime } from '@deepseek-ai/dsh-code-runtime-worker-thread'
-import type { Config } from '@deepseek-ai/dsh-code-runtime-worker-thread'
-import type { CodeBindingFunction, CodeBindingNamespace, CodeRunResult } from '@deepseek-ai/dsh-code-runtime'
+import { Context } from '@maple/cordis'
+import { WorkerThreadCodeRuntime } from '@maple/code-runtime-worker-thread'
+import type { Config } from '@maple/code-runtime-worker-thread'
+import type { CodeBindingFunction, CodeBindingNamespace, CodeRunResult } from '@maple/code-runtime'
 
 /**
  * Integration suite over REAL worker threads (no mocks — workers are cheap

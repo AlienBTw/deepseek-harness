@@ -11,11 +11,11 @@
 
 `Requires:` 行列出插件通过 `inject` 注入的服务键：其 `cordis.yml` 树还必须加载这些服务的提供者。范围限定为 harness 层级（`packages/`）；配置树还可能加载的 vendored cordis 插件（`hmr`、控制台日志记录器等）固定为上游源代码（参见 [vendoring policy](../vendor/README.md)），未收录于此目录。
 
-<a id="deepseek-aidsh-acp"></a>
+<a id="mapleacp"></a>
 
-## `@deepseek-ai/dsh-acp`
+## `@maple/acp`
 
-需要：`agents`
+???`agents`
 
 ```ts config-catalog
 /** Plugin config: the provider/model selection used for each ACP-created agent. */
@@ -29,13 +29,13 @@ export interface AcpConfig {
 }
 ```
 
-依赖：`Stream`（`@agentclientprotocol/sdk`）
+Depends on: `Stream` (`@agentclientprotocol/sdk`)
 
-来源：[`packages/acp/acp/src/index.ts:71`](../packages/acp/acp/src/index.ts)
+???[`packages/acp/acp/src/index.ts:71`](../packages/acp/acp/src/index.ts)
 
-<a id="deepseek-aidsh-acp-demo"></a>
+<a id="mapleacp-demo"></a>
 
-## `@deepseek-ai/dsh-acp-demo`
+## `@maple/acp-demo`
 
 ```ts config-catalog
 /**
@@ -59,7 +59,7 @@ export interface Config {
   toolOrder?: string[]
   /** Tool-registry config — its presentation `mode` (forwarded through agent-spine-demo; see dsh-tools). */
   tools?: ToolsConfig
-  /** DeepSeek Harness home directory exposed to bash and used for local skill discovery. */
+  /** Maple Harness home directory exposed to bash and used for local skill discovery. */
   dshHome?: string
   /** Fallback session-title limits forwarded through agent-spine-demo. */
   sessionTitle?: NonNullable<agentCore.Config['sessionTitle']>
@@ -84,13 +84,13 @@ export interface Config {
 }
 ```
 
-依赖：[`agentCore`](../packages/examples/agent-spine-demo/src/index.ts) · [`JsonlCompression`](../packages/session/session-persistence-jsonl/src/index.ts) · [`ToolsConfig`](#deepseek-aidsh-tools)
+Depends on: [`agentCore`](../packages/examples/agent-spine-demo/src/index.ts) · [`JsonlCompression`](../packages/session/session-persistence-jsonl/src/index.ts) · [`ToolsConfig`](#mapletools)
 
-来源：[`packages/examples/acp-demo/src/index.ts:39`](../packages/examples/acp-demo/src/index.ts)
+???[`packages/examples/acp-demo/src/index.ts:39`](../packages/examples/acp-demo/src/index.ts)
 
-<a id="deepseek-aidsh-agent-default-model"></a>
+<a id="mapleagent-default-model"></a>
 
-## `@deepseek-ai/dsh-agent-default-model`
+## `@maple/agent-default-model`
 
 ```ts config-catalog
 /** Composition entry for the default model selection. */
@@ -102,11 +102,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/core/agent-default-model/src/index.ts:41`](../packages/core/agent-default-model/src/index.ts)
+???[`packages/core/agent-default-model/src/index.ts:41`](../packages/core/agent-default-model/src/index.ts)
 
-<a id="deepseek-aidsh-agent-instructions"></a>
+<a id="mapleagent-instructions"></a>
 
-## `@deepseek-ai/dsh-agent-instructions`
+## `@maple/agent-instructions`
 
 ```ts config-catalog
 /** User-facing workspace instruction loader configuration. */
@@ -132,13 +132,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/context/agent-instructions/src/config.ts:18`](../packages/context/agent-instructions/src/config.ts)
+???[`packages/context/agent-instructions/src/config.ts:18`](../packages/context/agent-instructions/src/config.ts)
 
-<a id="deepseek-aidsh-agent-loop"></a>
+<a id="mapleagent-loop"></a>
 
-## `@deepseek-ai/dsh-agent-loop`
+## `@maple/agent-loop`
 
-需要：`agents` · `sessions` · `llm` · `tools` · `systemPrompt`
+???`agents` · `sessions` · `llm` · `tools` · `systemPrompt`
 
 ```ts config-catalog
 /** Agent-loop plugin configuration. */
@@ -162,15 +162,15 @@ export interface Config {
 }
 ```
 
-依赖：[`AgentOptions`](subsystems/core.zh.md) · [`SessionId`](subsystems/core.zh.md)
+Depends on: [`AgentOptions`](subsystems/core.zh.md) · [`SessionId`](subsystems/core.zh.md)
 
-来源：[`packages/core/agent-loop/src/index.ts:255`](../packages/core/agent-loop/src/index.ts)
+???[`packages/core/agent-loop/src/index.ts:255`](../packages/core/agent-loop/src/index.ts)
 
-<a id="deepseek-aidsh-agent-presets"></a>
+<a id="mapleagent-presets"></a>
 
-## `@deepseek-ai/dsh-agent-presets`
+## `@maple/agent-presets`
 
-需要：`loader`
+???`loader`
 
 ```ts config-catalog
 /** Plugin config: which preset is the default, and where presets live. */
@@ -202,11 +202,11 @@ export interface PresetRoot {
 export type PresetTrust = 'system' | 'user'
 ```
 
-来源：[`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/agent-presets/src/preset.ts)
+???[`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/agent-presets/src/preset.ts)
 
-<a id="deepseek-aidsh-agent-spine-demo"></a>
+<a id="mapleagent-spine-demo"></a>
 
-## `@deepseek-ai/dsh-agent-spine-demo`
+## `@maple/agent-spine-demo`
 
 ```ts config-catalog
 /**
@@ -247,7 +247,7 @@ export interface Config {
   toolOrder?: SystemPromptConfig['toolOrder']
   /** The tool registry's config — its presentation `mode` (see dsh-tools' `Config`). */
   tools?: ToolsConfig
-  /** DeepSeek Harness home directory shared by shell context and local skill discovery. */
+  /** Maple Harness home directory shared by shell context and local skill discovery. */
   dshHome?: string
   /** Deterministic fallback and accepted-title limits; omission uses the bundle's example policy. */
   sessionTitle?: SessionTitleConfig
@@ -292,15 +292,15 @@ export interface GoalConfig {
 }
 ```
 
-依赖：[`AgentLoopConfig`](#deepseek-aidsh-agent-loop) · [`GoalDomainConfig`](#deepseek-aidsh-goal) · [`InvariantConfig`](#deepseek-aidsh-invariants) · [`JobsConfig`](#deepseek-aidsh-jobs-local) · [`SessionTitleConfig`](#deepseek-aidsh-session-title) · [`SkillFileSystem`](../packages/skill/skill-filesystem/src/index.ts) · [`SkillRegistryConfig`](#deepseek-aidsh-skill) · [`SystemPromptConfig`](#deepseek-aidsh-system-prompt) · [`toolBash`](../packages/shell/tool-bash/src/index.ts) · [`toolGoal`](../packages/goal/tool-goal/src/index.ts) · [`toolJobs`](../packages/jobs/tool-jobs/src/index.ts) · [`ToolsConfig`](#deepseek-aidsh-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.ts) · [`workspaceContext`](../packages/context/agent-instructions/src/index.ts)
+Depends on: [`AgentLoopConfig`](#mapleagent-loop) · [`GoalDomainConfig`](#maplegoal) · [`InvariantConfig`](#mapleinvariants) · [`JobsConfig`](#maplejobs-local) · [`SessionTitleConfig`](#maplesession-title) · [`SkillFileSystem`](../packages/skill/skill-filesystem/src/index.ts) · [`SkillRegistryConfig`](#mapleskill) · [`SystemPromptConfig`](#maplesystem-prompt) · [`toolBash`](../packages/shell/tool-bash/src/index.ts) · [`toolGoal`](../packages/goal/tool-goal/src/index.ts) · [`toolJobs`](../packages/jobs/tool-jobs/src/index.ts) · [`ToolsConfig`](#mapletools) · [`toolSkill`](../packages/skill/tool-skill/src/index.ts) · [`workspaceContext`](../packages/context/agent-instructions/src/index.ts)
 
-来源：[`packages/examples/agent-spine-demo/src/index.ts:92`](../packages/examples/agent-spine-demo/src/index.ts)
+???[`packages/examples/agent-spine-demo/src/index.ts:92`](../packages/examples/agent-spine-demo/src/index.ts)
 
-<a id="deepseek-aidsh-agent-tool-presentation"></a>
+<a id="mapleagent-tool-presentation"></a>
 
-## `@deepseek-ai/dsh-agent-tool-presentation`
+## `@maple/agent-tool-presentation`
 
-需要：`tools`
+???`tools`
 
 ```ts config-catalog
 /** Plugin config. */
@@ -316,13 +316,13 @@ export interface Config {
 }
 ```
 
-依赖：[`ToolPresentationMode`](subsystems/tools.zh.md)
+Depends on: [`ToolPresentationMode`](subsystems/tools.zh.md)
 
-来源：[`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
+???[`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
 
-<a id="deepseek-aidsh-attachment-local"></a>
+<a id="mapleattachment-local"></a>
 
-## `@deepseek-ai/dsh-attachment-local`
+## `@maple/attachment-local`
 
 ```ts config-catalog
 /** Local attachment backend configuration. */
@@ -348,13 +348,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/attachment/attachment-local/src/index.ts:51`](../packages/attachment/attachment-local/src/index.ts)
+???[`packages/attachment/attachment-local/src/index.ts:51`](../packages/attachment/attachment-local/src/index.ts)
 
-<a id="deepseek-aidsh-bash-local"></a>
+<a id="maplebash-local"></a>
 
-## `@deepseek-ai/dsh-bash-local`
+## `@maple/bash-local`
 
-需要：`subprocess`
+???`subprocess`
 
 ```ts config-catalog
 /** Plugin config (all optional — `static Config` supplies the defaults). */
@@ -374,34 +374,34 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/bash-local/src/index.ts:41`](../packages/shell/bash-local/src/index.ts)
+???[`packages/shell/bash-local/src/index.ts:41`](../packages/shell/bash-local/src/index.ts)
 
-<a id="deepseek-aidsh-bash-sandbox"></a>
+<a id="maplebash-sandbox"></a>
 
-## `@deepseek-ai/dsh-bash-sandbox`
+## `@maple/bash-sandbox`
 
-需要：`subprocess` · `sandbox` · `sandboxPolicy`
+???`subprocess` · `sandbox` · `sandboxPolicy`
 
 ```ts config-catalog
 /**
  * Plugin config: the local executor's knobs, verbatim. The sandbox policy —
  * the default mode and fallback `workspace-write` root — is NOT here: it lives
- * on `ctx.sandboxPolicy` (`@deepseek-ai/dsh-sandbox-policy`), which resolves
+ * on `ctx.sandboxPolicy` (`@maple/sandbox-policy`), which resolves
  * each calling session's mode and cwd for every enforcing capability. The runner
  * choice is likewise the `ctx.sandbox` provider's config, not this executor's.
  */
 export type Config = LocalConfig
 ```
 
-依赖：[`LocalConfig`](#deepseek-aidsh-bash-local)
+Depends on: [`LocalConfig`](#maplebash-local)
 
-来源：[`packages/shell/bash-sandbox/src/index.ts:35`](../packages/shell/bash-sandbox/src/index.ts)
+???[`packages/shell/bash-sandbox/src/index.ts:35`](../packages/shell/bash-sandbox/src/index.ts)
 
-<a id="deepseek-aidsh-client-connection"></a>
+<a id="mapleclient-connection"></a>
 
-## `@deepseek-ai/dsh-client-connection`
+## `@maple/client-connection`
 
-需要：`webServer`
+???`webServer`
 
 ```ts config-catalog
 /** Plugin config: the deployment's non-loopback serving authorities. */
@@ -420,13 +420,13 @@ export interface ConnectionConfig {
 }
 ```
 
-来源：[`packages/client/connection/src/index.ts:50`](../packages/client/connection/src/index.ts)
+???[`packages/client/connection/src/index.ts:50`](../packages/client/connection/src/index.ts)
 
-<a id="deepseek-aidsh-client-hmr"></a>
+<a id="mapleclient-hmr"></a>
 
-## `@deepseek-ai/dsh-client-hmr`
+## `@maple/client-hmr`
 
-需要：`clientModules` · `webServer`
+???`clientModules` · `webServer`
 
 ```ts config-catalog
 /** Plugin config, validated by the same-named schemastery schema. */
@@ -436,11 +436,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/client/hmr/src/index.ts:31`](../packages/client/hmr/src/index.ts)
+???[`packages/client/hmr/src/index.ts:31`](../packages/client/hmr/src/index.ts)
 
-<a id="deepseek-aidsh-code-runtime-worker-thread"></a>
+<a id="maplecode-runtime-worker-thread"></a>
 
-## `@deepseek-ai/dsh-code-runtime-worker-thread`
+## `@maple/code-runtime-worker-thread`
 
 ```ts config-catalog
 /** Plugin config: every execution cap, changeable from `cordis.yml` (no hardcoded tunables). */
@@ -473,13 +473,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/code-runtime/code-runtime-worker-thread/src/index.ts:25`](../packages/code-runtime/code-runtime-worker-thread/src/index.ts)
+???[`packages/code-runtime/code-runtime-worker-thread/src/index.ts:25`](../packages/code-runtime/code-runtime-worker-thread/src/index.ts)
 
-<a id="deepseek-aidsh-compaction-basic"></a>
+<a id="maplecompaction-basic"></a>
 
-## `@deepseek-ai/dsh-compaction-basic`
+## `@maple/compaction-basic`
 
-需要：`llm` · `tokenMeter` · `sessions`
+???`llm` · `tokenMeter` · `sessions`
 
 ```ts config-catalog
 /** Basic compaction configuration with an optional exact-target policy table. */
@@ -519,13 +519,13 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 }
 ```
 
-来源：[`packages/compaction/compaction-basic/src/types.ts:38`](../packages/compaction/compaction-basic/src/types.ts)
+???[`packages/compaction/compaction-basic/src/types.ts:38`](../packages/compaction/compaction-basic/src/types.ts)
 
-<a id="deepseek-aidsh-compaction-tool-result-pruner"></a>
+<a id="maplecompaction-tool-result-pruner"></a>
 
-## `@deepseek-ai/dsh-compaction-tool-result-pruner`
+## `@maple/compaction-tool-result-pruner`
 
-需要：`tokenMeter`
+???`tokenMeter`
 
 ```ts config-catalog
 /** Character-budget policy for deterministic tool-result pruning. */
@@ -539,13 +539,35 @@ export interface ToolResultPruneConfig {
 }
 ```
 
-来源：[`packages/compaction/compaction-tool-result-pruner/src/types.ts:4`](../packages/compaction/compaction-tool-result-pruner/src/types.ts)
+???[`packages/compaction/compaction-tool-result-pruner/src/types.ts:4`](../packages/compaction/compaction-tool-result-pruner/src/types.ts)
 
-<a id="deepseek-aidsh-cordis-host-runner"></a>
+<a id="maplecontext-repo-map"></a>
 
-## `@deepseek-ai/dsh-cordis-host-runner`
+## `@maple/context-repo-map`
 
-需要：`tools`
+???`agents`
+
+```ts config-catalog
+/**
+ * The plugin's configuration schema.
+ */
+export interface Config {
+  /** Maximum token budget for the repo-map outline. Default: 2000. */
+  maxTokens?: number
+  /** Maximum files scanned in the workspace. Default: 5000. */
+  maxFiles?: number
+  /** File extensions to include in scanning. */
+  includeExtensions?: string[]
+}
+```
+
+???[`packages/context/repo-map/src/index.ts:25`](../packages/context/repo-map/src/index.ts)
+
+<a id="maplecordis-host-runner"></a>
+
+## `@maple/cordis-host-runner`
+
+???`tools`
 
 ```ts config-catalog
 /** Runner configuration. */
@@ -555,11 +577,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/extensions/cordis-host-runner/src/index.ts:88`](../packages/extensions/cordis-host-runner/src/index.ts)
+???[`packages/extensions/cordis-host-runner/src/index.ts:88`](../packages/extensions/cordis-host-runner/src/index.ts)
 
-<a id="deepseek-aidsh-credentials-local"></a>
+<a id="maplecredentials-local"></a>
 
-## `@deepseek-ai/dsh-credentials-local`
+## `@maple/credentials-local`
 
 ```ts config-catalog
 /** Plugin config: file location and hot-reload behavior. */
@@ -575,11 +597,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/credentials/credentials-local/src/index.ts:64`](../packages/credentials/credentials-local/src/index.ts)
+???[`packages/credentials/credentials-local/src/index.ts:64`](../packages/credentials/credentials-local/src/index.ts)
 
-<a id="deepseek-aidsh-e2b"></a>
+<a id="maplee2b"></a>
 
-## `@deepseek-ai/dsh-e2b`
+## `@maple/e2b`
 
 ```ts config-catalog
 /** Configuration for the shared E2B sandbox owner. */
@@ -593,13 +615,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/e2b/e2b/src/index.ts:43`](../packages/e2b/e2b/src/index.ts)
+???[`packages/e2b/e2b/src/index.ts:43`](../packages/e2b/e2b/src/index.ts)
 
-<a id="deepseek-aidsh-experimental-agent-team"></a>
+<a id="mapleexperimental-agent-team"></a>
 
-## `@deepseek-ai/dsh-experimental-agent-team`
+## `@maple/experimental-agent-team`
 
-需要：`agents` · `sessions` · `sessionPersistence` · `subagents`
+???`agents` · `sessions` · `sessionPersistence` · `subagents`
 
 ```ts config-catalog
 /** Team-service deployment limits. */
@@ -617,13 +639,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/experimental/agent-team/src/types.ts:125`](../packages/experimental/agent-team/src/types.ts)
+???[`packages/experimental/agent-team/src/types.ts:125`](../packages/experimental/agent-team/src/types.ts)
 
-<a id="deepseek-aidsh-experimental-tool-agent-team"></a>
+<a id="mapleexperimental-tool-agent-team"></a>
 
-## `@deepseek-ai/dsh-experimental-tool-agent-team`
+## `@maple/experimental-tool-agent-team`
 
-需要：`agents` · `agentTeams` · `tools` · `systemPrompt`
+???`agents` · `agentTeams` · `tools` · `systemPrompt`
 
 ```ts config-catalog
 /** Tool routing configuration. */
@@ -635,13 +657,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts:17`](../packages/experimental/tool-agent-team/src/index.ts)
+???[`packages/experimental/tool-agent-team/src/index.ts:17`](../packages/experimental/tool-agent-team/src/index.ts)
 
-<a id="deepseek-aidsh-file-reference-local"></a>
+<a id="maplefile-reference-local"></a>
 
-## `@deepseek-ai/dsh-file-reference-local`
+## `@maple/file-reference-local`
 
-需要：`agents`
+???`agents`
 
 ```ts config-catalog
 /** Local file-reference discovery configuration. */
@@ -655,11 +677,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/context/file-reference-local/src/index.ts:35`](../packages/context/file-reference-local/src/index.ts)
+???[`packages/context/file-reference-local/src/index.ts:35`](../packages/context/file-reference-local/src/index.ts)
 
-<a id="deepseek-aidsh-fs-local"></a>
+<a id="maplefs-local"></a>
 
-## `@deepseek-ai/dsh-fs-local`
+## `@maple/fs-local`
 
 ```ts config-catalog
 /** Configuration for the local filesystem backend. */
@@ -674,13 +696,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/fs/fs-local/src/index.ts:41`](../packages/fs/fs-local/src/index.ts)
+???[`packages/fs/fs-local/src/index.ts:41`](../packages/fs/fs-local/src/index.ts)
 
-<a id="deepseek-aidsh-fs-sandbox"></a>
+<a id="maplefs-sandbox"></a>
 
-## `@deepseek-ai/dsh-fs-sandbox`
+## `@maple/fs-sandbox`
 
-需要：`sandboxPolicy`
+???`sandboxPolicy`
 
 ```ts config-catalog
 /**
@@ -692,15 +714,15 @@ export interface Config {
 export type Config = LocalConfig
 ```
 
-依赖：[`LocalConfig`](#deepseek-aidsh-fs-local)
+Depends on: [`LocalConfig`](#maplefs-local)
 
-来源：[`packages/fs/fs-sandbox/src/index.ts:49`](../packages/fs/fs-sandbox/src/index.ts)
+???[`packages/fs/fs-sandbox/src/index.ts:49`](../packages/fs/fs-sandbox/src/index.ts)
 
-<a id="deepseek-aidsh-goal"></a>
+<a id="maplegoal"></a>
 
-## `@deepseek-ai/dsh-goal`
+## `@maple/goal`
 
-需要：`agents`
+???`agents`
 
 ```ts config-catalog
 /** Deployment defaults for goal creation. */
@@ -710,13 +732,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/goal/goal/src/index.ts:116`](../packages/goal/goal/src/index.ts)
+???[`packages/goal/goal/src/index.ts:116`](../packages/goal/goal/src/index.ts)
 
-<a id="deepseek-aidsh-headless"></a>
+<a id="mapleheadless"></a>
 
-## `@deepseek-ai/dsh-headless`
+## `@maple/headless`
 
-需要：`agentDefaultModel` · `agents` · `sessions`
+???`agentDefaultModel` · `agents` · `sessions`
 
 ```ts config-catalog
 /** Plugin config: the task resolved from this app's injected provider service. */
@@ -726,13 +748,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/bundle/headless/src/index.ts:31`](../packages/bundle/headless/src/index.ts)
+???[`packages/bundle/headless/src/index.ts:31`](../packages/bundle/headless/src/index.ts)
 
-<a id="deepseek-aidsh-hooks-claude-code"></a>
+<a id="maplehooks-claude-code"></a>
 
-## `@deepseek-ai/dsh-hooks-claude-code`
+## `@maple/hooks-claude-code`
 
-需要：`shell`
+???`shell`
 
 ```ts config-catalog
 /** Plugin config: where the CC hook config lives + substitution roots. */
@@ -764,13 +786,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/hooks/hooks-claude-code/src/index.ts:45`](../packages/hooks/hooks-claude-code/src/index.ts)
+???[`packages/hooks/hooks-claude-code/src/index.ts:45`](../packages/hooks/hooks-claude-code/src/index.ts)
 
-<a id="deepseek-aidsh-hooks-codex"></a>
+<a id="maplehooks-codex"></a>
 
-## `@deepseek-ai/dsh-hooks-codex`
+## `@maple/hooks-codex`
 
-需要：`shell`
+???`shell`
 
 ```ts config-catalog
 /** Plugin config: where the Codex hooks.json lives + the model name for payloads. */
@@ -791,13 +813,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/hooks/hooks-codex/src/index.ts:44`](../packages/hooks/hooks-codex/src/index.ts)
+???[`packages/hooks/hooks-codex/src/index.ts:44`](../packages/hooks/hooks-codex/src/index.ts)
 
-<a id="deepseek-aidsh-host-apiproxy"></a>
+<a id="maplehost-apiproxy"></a>
 
-## `@deepseek-ai/dsh-host-apiproxy`
+## `@maple/host-apiproxy`
 
-需要：`agentDefaultModel` · `agents` · `attachments` · `directoryPicker` · `llm` · `sessions` · `subagents` · `sessionQuery` · `tools` · `userQuestions` · `workspaceRegistry`
+???`agentDefaultModel` · `agents` · `attachments` · `directoryPicker` · `llm` · `sessions` · `subagents` · `sessionQuery` · `tools` · `userQuestions` · `workspaceRegistry`
 
 ```ts config-catalog
 /** Gateway plugin configuration. */
@@ -825,11 +847,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/host/apiproxy/src/index.ts:41`](../packages/host/apiproxy/src/index.ts)
+???[`packages/host/apiproxy/src/index.ts:41`](../packages/host/apiproxy/src/index.ts)
 
-<a id="deepseek-aidsh-host-directory-picker-browse"></a>
+<a id="maplehost-directory-picker-browse"></a>
 
-## `@deepseek-ai/dsh-host-directory-picker-browse`
+## `@maple/host-directory-picker-browse`
 
 ```ts config-catalog
 /** Validated plugin configuration. */
@@ -839,13 +861,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/host/directory-picker-browse/src/index.ts:181`](../packages/host/directory-picker-browse/src/index.ts)
+???[`packages/host/directory-picker-browse/src/index.ts:181`](../packages/host/directory-picker-browse/src/index.ts)
 
-<a id="deepseek-aidsh-host-frontend-static"></a>
+<a id="maplehost-frontend-static"></a>
 
-## `@deepseek-ai/dsh-host-frontend-static`
+## `@maple/host-frontend-static`
 
-需要：`webServer`
+???`webServer`
 
 ```ts config-catalog
 /** Plugin config: the dist anchor. */
@@ -855,11 +877,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.ts)
+???[`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.ts)
 
-<a id="deepseek-aidsh-host-webserver"></a>
+<a id="maplehost-webserver"></a>
 
-## `@deepseek-ai/dsh-host-webserver`
+## `@maple/host-webserver`
 
 ```ts config-catalog
 /** Gateway config: the listen address. */
@@ -871,11 +893,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/host/webserver/src/index.ts:59`](../packages/host/webserver/src/index.ts)
+???[`packages/host/webserver/src/index.ts:59`](../packages/host/webserver/src/index.ts)
 
-<a id="deepseek-aidsh-invariants"></a>
+<a id="mapleinvariants"></a>
 
-## `@deepseek-ai/dsh-invariants`
+## `@maple/invariants`
 
 ```ts config-catalog
 /** Runtime invariant selection configured on the service plugin. */
@@ -889,11 +911,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/runtime-diagnostics/invariants/src/index.ts:15`](../packages/runtime-diagnostics/invariants/src/index.ts)
+???[`packages/runtime-diagnostics/invariants/src/index.ts:15`](../packages/runtime-diagnostics/invariants/src/index.ts)
 
-<a id="deepseek-aidsh-jobs-local"></a>
+<a id="maplejobs-local"></a>
 
-## `@deepseek-ai/dsh-jobs-local`
+## `@maple/jobs-local`
 
 ```ts config-catalog
 /** Configuration for the process-local job registry. */
@@ -906,13 +928,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/jobs/jobs-local/src/index.ts:31`](../packages/jobs/jobs-local/src/index.ts)
+???[`packages/jobs/jobs-local/src/index.ts:31`](../packages/jobs/jobs-local/src/index.ts)
 
-<a id="deepseek-aidsh-llm-deepseek"></a>
+<a id="maplellm-deepseek"></a>
 
-## `@deepseek-ai/dsh-llm-deepseek`
+## `@maple/llm-deepseek`
 
-需要：`llm`
+???`llm`
 
 ```ts config-catalog
 /**
@@ -987,15 +1009,15 @@ export interface DeepSeekCatalogModel {
 }
 ```
 
-依赖：[`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
+Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-来源：[`packages/llm/llm-deepseek/src/index.ts:106`](../packages/llm/llm-deepseek/src/index.ts)
+???[`packages/llm/llm-deepseek/src/index.ts:106`](../packages/llm/llm-deepseek/src/index.ts)
 
-<a id="deepseek-aidsh-llm-pi-ai"></a>
+<a id="maplellm-pi-ai"></a>
 
-## `@deepseek-ai/dsh-llm-pi-ai`
+## `@maple/llm-pi-ai`
 
-需要：`llm`
+???`llm`
 
 ```ts config-catalog
 /** Plugin configuration: the provider routes this instance owns. */
@@ -1241,15 +1263,15 @@ export type PiAiReasoningEfforts = Partial<Record<ModelThinkingLevel, string | n
 export type PiAiThinkingFormat = NonNullable<OpenAICompletionsCompat['thinkingFormat']>
 ```
 
-依赖：`Api`（`@earendil-works/pi-ai`）· `CacheRetention`（`@earendil-works/pi-ai`）· `Model`（`@earendil-works/pi-ai`）· `ModelThinkingLevel`（`@earendil-works/pi-ai`）· `OpenAICompletionsCompat`（`@earendil-works/pi-ai`）· [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets`（`@earendil-works/pi-ai`）· `Transport`（`@earendil-works/pi-ai`)
+Depends on: `Api` (`@earendil-works/pi-ai`) · `CacheRetention` (`@earendil-works/pi-ai`) · `Model` (`@earendil-works/pi-ai`) · `ModelThinkingLevel` (`@earendil-works/pi-ai`) · `OpenAICompletionsCompat` (`@earendil-works/pi-ai`) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets` (`@earendil-works/pi-ai`) · `Transport` (`@earendil-works/pi-ai`)
 
-来源：[`packages/llm/llm-pi-ai/src/config.ts:213`](../packages/llm/llm-pi-ai/src/config.ts)
+???[`packages/llm/llm-pi-ai/src/config.ts:213`](../packages/llm/llm-pi-ai/src/config.ts)
 
-<a id="deepseek-aidsh-llm-replay"></a>
+<a id="maplellm-replay"></a>
 
-## `@deepseek-ai/dsh-llm-replay`
+## `@maple/llm-replay`
 
-需要：`llm`
+???`llm`
 
 ```ts config-catalog
 /** Plugin config: the {@link ReplayConfig} inputs, each defaulting to its `DSH_SNAPSHOT_*` env var in `apply`. */
@@ -1309,28 +1331,28 @@ export interface ReplayModelConfig {
 }
 ```
 
-依赖：[`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
+Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-来源：[`packages/test-support/llm-replay/src/index.ts:809`](../packages/test-support/llm-replay/src/index.ts)
+???[`packages/test-support/llm-replay/src/index.ts:809`](../packages/test-support/llm-replay/src/index.ts)
 
-<a id="deepseek-aidsh-llm-retry"></a>
+<a id="maplellm-retry"></a>
 
-## `@deepseek-ai/dsh-llm-retry`
+## `@maple/llm-retry`
 
-需要：`agents`
+???`agents`
 
 ```ts config-catalog
 /** This policy executor has no config; providers own `retryPolicy`. */
 export type Config = Readonly<Record<string, never>>
 ```
 
-来源：[`packages/llm/llm-retry/src/index.ts:24`](../packages/llm/llm-retry/src/index.ts)
+???[`packages/llm/llm-retry/src/index.ts:24`](../packages/llm/llm-retry/src/index.ts)
 
-<a id="deepseek-aidsh-lsp-stdio"></a>
+<a id="maplelsp-stdio"></a>
 
-## `@deepseek-ai/dsh-lsp-stdio`
+## `@maple/lsp-stdio`
 
-需要：`fs` · `lsp` · `subprocess`
+???`fs` · `lsp` · `subprocess`
 
 ```ts config-catalog
 /** Plugin configuration: provider id → local language-server configuration. */
@@ -1366,13 +1388,13 @@ export interface LspLocalServerConfig {
 }
 ```
 
-来源：[`packages/lsp/lsp-stdio/src/index.ts:82`](../packages/lsp/lsp-stdio/src/index.ts)
+???[`packages/lsp/lsp-stdio/src/index.ts:82`](../packages/lsp/lsp-stdio/src/index.ts)
 
-<a id="deepseek-aidsh-mcp-client"></a>
+<a id="maplemcp-client"></a>
 
-## `@deepseek-ai/dsh-mcp-client`
+## `@maple/mcp-client`
 
-需要：`tools`
+???`tools`
 
 ```ts config-catalog
 /** Configuration for one stdio or Streamable HTTP MCP server. */
@@ -1439,13 +1461,13 @@ export interface ReconnectConfig {
 }
 ```
 
-来源：[`packages/mcp/mcp-client/src/index.ts:98`](../packages/mcp/mcp-client/src/index.ts)
+???[`packages/mcp/mcp-client/src/index.ts:98`](../packages/mcp/mcp-client/src/index.ts)
 
-<a id="deepseek-aidsh-message-feedback"></a>
+<a id="maplemessage-feedback"></a>
 
-## `@deepseek-ai/dsh-message-feedback`
+## `@maple/message-feedback`
 
-需要：`storageDomain` · `sessionPersistence` · `sessions`
+???`storageDomain` · `sessionPersistence` · `sessions`
 
 ```ts config-catalog
 /** Required deployment policy for optional notes. */
@@ -1455,13 +1477,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/feedback/message-feedback/src/index.ts:49`](../packages/feedback/message-feedback/src/index.ts)
+???[`packages/feedback/message-feedback/src/index.ts:49`](../packages/feedback/message-feedback/src/index.ts)
 
-<a id="deepseek-aidsh-permission-presets"></a>
+<a id="maplepermission-presets"></a>
 
-## `@deepseek-ai/dsh-permission-presets`
+## `@maple/permission-presets`
 
-需要：`shell` · `approval` · `sessions`
+???`shell` · `approval` · `sessions`
 
 ```ts config-catalog
 /** The {@link PermissionPresetService} config: preset table and composition default. */
@@ -1492,15 +1514,15 @@ export interface PresetSpec {
 }
 ```
 
-依赖：[`ApprovalPolicy`](subsystems/approval.zh.md) · [`SandboxMode`](subsystems/sandbox.zh.md)
+Depends on: [`ApprovalPolicy`](subsystems/approval.zh.md) · [`SandboxMode`](subsystems/sandbox.zh.md)
 
-来源：[`packages/interaction/permission-presets/src/index.ts:156`](../packages/interaction/permission-presets/src/index.ts)
+???[`packages/interaction/permission-presets/src/index.ts:156`](../packages/interaction/permission-presets/src/index.ts)
 
-<a id="deepseek-aidsh-persona"></a>
+<a id="maplepersona"></a>
 
-## `@deepseek-ai/dsh-persona`
+## `@maple/persona`
 
-需要：`systemPrompt`
+???`systemPrompt`
 
 ```ts config-catalog
 /** Plugin config: the persona text this composition contributes. */
@@ -1518,13 +1540,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/preset/persona/src/index.ts:34`](../packages/preset/persona/src/index.ts)
+???[`packages/preset/persona/src/index.ts:34`](../packages/preset/persona/src/index.ts)
 
-<a id="deepseek-aidsh-plan-mode"></a>
+<a id="mapleplan-mode"></a>
 
-## `@deepseek-ai/dsh-plan-mode`
+## `@maple/plan-mode`
 
-需要：`tools` · `systemPrompt`
+???`tools` · `systemPrompt`
 
 ```ts config-catalog
 /** Deployment-owned plan guidance. */
@@ -1534,13 +1556,13 @@ export interface PlanModeConfig {
 }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:70`](../packages/plan/plan-mode/src/index.ts)
+???[`packages/plan/plan-mode/src/index.ts:70`](../packages/plan/plan-mode/src/index.ts)
 
-<a id="deepseek-aidsh-pwsh-local"></a>
+<a id="maplepwsh-local"></a>
 
-## `@deepseek-ai/dsh-pwsh-local`
+## `@maple/pwsh-local`
 
-需要：`subprocess`
+???`subprocess`
 
 ```ts config-catalog
 /** Plugin config (all optional — `static Config` supplies the defaults). */
@@ -1567,19 +1589,19 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/pwsh-local/src/index.ts:58`](../packages/shell/pwsh-local/src/index.ts)
+???[`packages/shell/pwsh-local/src/index.ts:58`](../packages/shell/pwsh-local/src/index.ts)
 
-<a id="deepseek-aidsh-pwsh-sandbox"></a>
+<a id="maplepwsh-sandbox"></a>
 
-## `@deepseek-ai/dsh-pwsh-sandbox`
+## `@maple/pwsh-sandbox`
 
-需要：`subprocess` · `sandbox` · `sandboxPolicy`
+???`subprocess` · `sandbox` · `sandboxPolicy`
 
 ```ts config-catalog
 /**
  * Plugin config: the local executor's knobs, verbatim. The sandbox policy —
  * the default mode and fallback `workspace-write` root — is NOT here: it lives
- * on `ctx.sandboxPolicy` (`@deepseek-ai/dsh-sandbox-policy`), which resolves
+ * on `ctx.sandboxPolicy` (`@maple/sandbox-policy`), which resolves
  * each calling session's mode and cwd for every enforcing capability. The
  * runner choice is likewise the `ctx.sandbox` provider's config, not this
  * executor's.
@@ -1587,13 +1609,13 @@ export interface Config {
 export type Config = LocalConfig
 ```
 
-依赖：[`LocalConfig`](#deepseek-aidsh-pwsh-local)
+Depends on: [`LocalConfig`](#maplepwsh-local)
 
-来源：[`packages/shell/pwsh-sandbox/src/index.ts:40`](../packages/shell/pwsh-sandbox/src/index.ts)
+???[`packages/shell/pwsh-sandbox/src/index.ts:40`](../packages/shell/pwsh-sandbox/src/index.ts)
 
-<a id="deepseek-aidsh-repeat-tool-reminder"></a>
+<a id="maplerepeat-tool-reminder"></a>
 
-## `@deepseek-ai/dsh-repeat-tool-reminder`
+## `@maple/repeat-tool-reminder`
 
 ```ts config-catalog
 /**
@@ -1623,11 +1645,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/guard/repeat-tool-reminder/src/index.ts:28`](../packages/guard/repeat-tool-reminder/src/index.ts)
+???[`packages/guard/repeat-tool-reminder/src/index.ts:28`](../packages/guard/repeat-tool-reminder/src/index.ts)
 
-<a id="deepseek-aidsh-sandbox-local"></a>
+<a id="maplesandbox-local"></a>
 
-## `@deepseek-ai/dsh-sandbox-local`
+## `@maple/sandbox-local`
 
 ```ts config-catalog
 /** Plugin config. All optional — `static Config` supplies the defaults. */
@@ -1655,11 +1677,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/sandbox/sandbox-local/src/index.ts:44`](../packages/sandbox/sandbox-local/src/index.ts)
+???[`packages/sandbox/sandbox-local/src/index.ts:44`](../packages/sandbox/sandbox-local/src/index.ts)
 
-<a id="deepseek-aidsh-sandbox-policy"></a>
+<a id="maplesandbox-policy"></a>
 
-## `@deepseek-ai/dsh-sandbox-policy`
+## `@maple/sandbox-policy`
 
 ```ts config-catalog
 /**
@@ -1680,15 +1702,15 @@ export interface Config {
 }
 ```
 
-依赖：[`SandboxMode`](subsystems/sandbox.zh.md)
+Depends on: [`SandboxMode`](subsystems/sandbox.zh.md)
 
-来源：[`packages/sandbox/sandbox-policy/src/index.ts:67`](../packages/sandbox/sandbox-policy/src/index.ts)
+???[`packages/sandbox/sandbox-policy/src/index.ts:67`](../packages/sandbox/sandbox-policy/src/index.ts)
 
-<a id="deepseek-aidsh-sdk-jsonrpc-server"></a>
+<a id="maplesdk-jsonrpc-server"></a>
 
-## `@deepseek-ai/dsh-sdk-jsonrpc-server`
+## `@maple/sdk-jsonrpc-server`
 
-需要：`agents`
+???`agents`
 
 ```ts config-catalog
 /** JSON-RPC deployment config plus runtime-only test hooks. */
@@ -1704,15 +1726,15 @@ export interface JsonRpcConfig {
 }
 ```
 
-依赖：`Readable`（`node:stream`）· `Writable`（`node:stream`）
+Depends on: `Readable` (`node:stream`) · `Writable` (`node:stream`)
 
-来源：[`packages/sdk/server/src/index.ts:29`](../packages/sdk/server/src/index.ts)
+???[`packages/sdk/server/src/index.ts:25`](../packages/sdk/server/src/index.ts)
 
-<a id="deepseek-aidsh-session-persistence-jsonl"></a>
+<a id="maplesession-persistence-jsonl"></a>
 
-## `@deepseek-ai/dsh-session-persistence-jsonl`
+## `@maple/session-persistence-jsonl`
 
-需要：`sessions`
+???`sessions`
 
 ```ts config-catalog
 /** Plugin config: where the JSONL backend keeps its session logs, and the packed-row write switch. */
@@ -1745,13 +1767,13 @@ export interface Config {
 export type JsonlCompression = 'zstd' | 'none'
 ```
 
-来源：[`packages/session/session-persistence-jsonl/src/index.ts:60`](../packages/session/session-persistence-jsonl/src/index.ts)
+???[`packages/session/session-persistence-jsonl/src/index.ts:60`](../packages/session/session-persistence-jsonl/src/index.ts)
 
-<a id="deepseek-aidsh-session-persistence-sqlite"></a>
+<a id="maplesession-persistence-sqlite"></a>
 
-## `@deepseek-ai/dsh-session-persistence-sqlite`
+## `@maple/session-persistence-sqlite`
 
-需要：`sessions`
+???`sessions`
 
 ```ts config-catalog
 /** Plugin configuration. */
@@ -1772,13 +1794,13 @@ export interface Config {
 export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ```
 
-来源：[`packages/session/session-persistence-sqlite/src/index.ts:36`](../packages/session/session-persistence-sqlite/src/index.ts)
+???[`packages/session/session-persistence-sqlite/src/index.ts:36`](../packages/session/session-persistence-sqlite/src/index.ts)
 
-<a id="deepseek-aidsh-session-projection-cache"></a>
+<a id="maplesession-projection-cache"></a>
 
-## `@deepseek-ai/dsh-session-projection-cache`
+## `@maple/session-projection-cache`
 
-需要：`storageDomain` · `sessionProjections` · `sessionPersistence` · `sessions`
+???`storageDomain` · `sessionProjections` · `sessionPersistence` · `sessions`
 
 ```ts config-catalog
 /**
@@ -1795,13 +1817,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/session/session-projection-cache/src/index.ts:42`](../packages/session/session-projection-cache/src/index.ts)
+???[`packages/session/session-projection-cache/src/index.ts:42`](../packages/session/session-projection-cache/src/index.ts)
 
-<a id="deepseek-aidsh-session-query-sqlite"></a>
+<a id="maplesession-query-sqlite"></a>
 
-## `@deepseek-ai/dsh-session-query-sqlite`
+## `@maple/session-query-sqlite`
 
-需要：`sessions`
+???`sessions`
 
 ```ts config-catalog
 /** Combined session-query configuration backed by SQLite full-text search. */
@@ -1839,15 +1861,15 @@ export type OpenAt = 'startup' | 'first-search' | 'never'
 export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ```
 
-依赖：[`SessionQueryConfig`](../packages/session-query/session-query/src/index.ts)
+Depends on: [`SessionQueryConfig`](../packages/session-query/session-query/src/index.ts)
 
-来源：[`packages/session-query/session-query-sqlite/src/index.ts:89`](../packages/session-query/session-query-sqlite/src/index.ts)
+???[`packages/session-query/session-query-sqlite/src/index.ts:89`](../packages/session-query/session-query-sqlite/src/index.ts)
 
-<a id="deepseek-aidsh-session-reference"></a>
+<a id="maplesession-reference"></a>
 
-## `@deepseek-ai/dsh-session-reference`
+## `@maple/session-reference`
 
-需要：`sessionQuery`
+???`sessionQuery`
 
 ```ts config-catalog
 /** Session-reference service configuration. */
@@ -1861,13 +1883,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/context/session-reference/src/config.ts:11`](../packages/context/session-reference/src/config.ts)
+???[`packages/context/session-reference/src/config.ts:11`](../packages/context/session-reference/src/config.ts)
 
-<a id="deepseek-aidsh-session-telemetry-otel"></a>
+<a id="maplesession-telemetry-otel"></a>
 
-## `@deepseek-ai/dsh-session-telemetry-otel`
+## `@maple/session-telemetry-otel`
 
-需要：`sessions`
+???`sessions`
 
 ```ts config-catalog
 /**
@@ -1905,15 +1927,15 @@ export enum SessionTelemetryMode {
 }
 ```
 
-依赖：`BatchLogRecordProcessorOptions`（`@opentelemetry/sdk-logs`）· `OTLPExporterNodeConfigBase`（`@opentelemetry/otlp-exporter-base`）
+Depends on: `BatchLogRecordProcessorOptions` (`@opentelemetry/sdk-logs`) · `OTLPExporterNodeConfigBase` (`@opentelemetry/otlp-exporter-base`)
 
-来源：[`packages/session/session-telemetry-otel/src/index.ts:91`](../packages/session/session-telemetry-otel/src/index.ts)
+???[`packages/session/session-telemetry-otel/src/index.ts:91`](../packages/session/session-telemetry-otel/src/index.ts)
 
-<a id="deepseek-aidsh-session-title"></a>
+<a id="maplesession-title"></a>
 
-## `@deepseek-ai/dsh-session-title`
+## `@maple/session-title`
 
-需要：`sessions`
+???`sessions`
 
 ```ts config-catalog
 /** Required deterministic fallback and accepted-title limits. */
@@ -1927,41 +1949,41 @@ export interface Config {
 }
 ```
 
-来源：[`packages/session/session-title/src/index.ts:79`](../packages/session/session-title/src/index.ts)
+???[`packages/session/session-title/src/index.ts:79`](../packages/session/session-title/src/index.ts)
 
-<a id="deepseek-aidsh-session-title-all-prompts-llm"></a>
+<a id="maplesession-title-all-prompts-llm"></a>
 
-## `@deepseek-ai/dsh-session-title-all-prompts-llm`
+## `@maple/session-title-all-prompts-llm`
 
-需要：`sessionTitle` · `llm` · `sessions`
-
-```ts config-catalog
-/** Required LLM policy; this plugin adds no defaults. */
-export type Config = SessionTitleLlmConfig
-```
-
-依赖：[`SessionTitleLlmConfig`](../packages/session/session-title-llm/src/index.ts)
-
-来源：[`packages/session/session-title-all-prompts-llm/src/index.ts:15`](../packages/session/session-title-all-prompts-llm/src/index.ts)
-
-<a id="deepseek-aidsh-session-title-first-prompt-llm"></a>
-
-## `@deepseek-ai/dsh-session-title-first-prompt-llm`
-
-需要：`sessionTitle` · `llm` · `sessions`
+???`sessionTitle` · `llm` · `sessions`
 
 ```ts config-catalog
 /** Required LLM policy; this plugin adds no defaults. */
 export type Config = SessionTitleLlmConfig
 ```
 
-依赖：[`SessionTitleLlmConfig`](../packages/session/session-title-llm/src/index.ts)
+Depends on: [`SessionTitleLlmConfig`](../packages/session/session-title-llm/src/index.ts)
 
-来源：[`packages/session/session-title-first-prompt-llm/src/index.ts:15`](../packages/session/session-title-first-prompt-llm/src/index.ts)
+???[`packages/session/session-title-all-prompts-llm/src/index.ts:15`](../packages/session/session-title-all-prompts-llm/src/index.ts)
 
-<a id="deepseek-aidsh-settings-file"></a>
+<a id="maplesession-title-first-prompt-llm"></a>
 
-## `@deepseek-ai/dsh-settings-file`
+## `@maple/session-title-first-prompt-llm`
+
+???`sessionTitle` · `llm` · `sessions`
+
+```ts config-catalog
+/** Required LLM policy; this plugin adds no defaults. */
+export type Config = SessionTitleLlmConfig
+```
+
+Depends on: [`SessionTitleLlmConfig`](../packages/session/session-title-llm/src/index.ts)
+
+???[`packages/session/session-title-first-prompt-llm/src/index.ts:15`](../packages/session/session-title-first-prompt-llm/src/index.ts)
+
+<a id="maplesettings-file"></a>
+
+## `@maple/settings-file`
 
 ```ts config-catalog
 /** Plugin config: file location and hot-reload behavior. */
@@ -1977,25 +1999,25 @@ export interface Config {
 }
 ```
 
-来源：[`packages/settings/settings-file/src/index.ts:21`](../packages/settings/settings-file/src/index.ts)
+???[`packages/settings/settings-file/src/index.ts:21`](../packages/settings/settings-file/src/index.ts)
 
-<a id="deepseek-aidsh-shell-env"></a>
+<a id="mapleshell-env"></a>
 
-## `@deepseek-ai/dsh-shell-env`
+## `@maple/shell-env`
 
 ```ts config-catalog
 /** Plugin config (all optional — the built-in facts resolve without defaults). */
 export interface Config {
-  /** DeepSeek Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Maple Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.dsh`. */
   dshHome?: string
 }
 ```
 
-来源：[`packages/shell/shell-env/src/index.ts:29`](../packages/shell/shell-env/src/index.ts)
+???[`packages/shell/shell-env/src/index.ts:29`](../packages/shell/shell-env/src/index.ts)
 
-<a id="deepseek-aidsh-skill"></a>
+<a id="mapleskill"></a>
 
-## `@deepseek-ai/dsh-skill`
+## `@maple/skill`
 
 ```ts config-catalog
 /** Skill registry configuration. */
@@ -2005,13 +2027,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/skill/skill/src/index.ts:279`](../packages/skill/skill/src/index.ts)
+???[`packages/skill/skill/src/index.ts:279`](../packages/skill/skill/src/index.ts)
 
-<a id="deepseek-aidsh-skill-filesystem"></a>
+<a id="mapleskill-filesystem"></a>
 
-## `@deepseek-ai/dsh-skill-filesystem`
+## `@maple/skill-filesystem`
 
-需要：`skills`
+???`skills`
 
 ```ts config-catalog
 /** Local filesystem skill provider configuration. */
@@ -2020,7 +2042,7 @@ export interface Config {
   providerName?: string
   /** Whether project and user roots are included around custom roots. */
   includeDefaultRoots?: boolean
-  /** DeepSeek Harness config root. Defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Maple Harness config root. Defaults to `$DSH_HOME` or `~/.dsh`. */
   dshHome?: string
   /** Shared agent config root. Defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string
@@ -2043,11 +2065,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/skill/skill-filesystem/src/index.ts:49`](../packages/skill/skill-filesystem/src/index.ts)
+???[`packages/skill/skill-filesystem/src/index.ts:49`](../packages/skill/skill-filesystem/src/index.ts)
 
-<a id="deepseek-aidsh-spill-local"></a>
+<a id="maplespill-local"></a>
 
-## `@deepseek-ai/dsh-spill-local`
+## `@maple/spill-local`
 
 ```ts config-catalog
 /** Plugin config (all optional — `static Config` supplies the defaults). */
@@ -2061,13 +2083,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/spill/spill-local/src/index.ts:22`](../packages/spill/spill-local/src/index.ts)
+???[`packages/spill/spill-local/src/index.ts:22`](../packages/spill/spill-local/src/index.ts)
 
-<a id="deepseek-aidsh-spill-policy"></a>
+<a id="maplespill-policy"></a>
 
-## `@deepseek-ai/dsh-spill-policy`
+## `@maple/spill-policy`
 
-需要：`tools`
+???`tools`
 
 ```ts config-catalog
 /** Plugin config. */
@@ -2081,13 +2103,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/spill/spill-policy/src/index.ts:60`](../packages/spill/spill-policy/src/index.ts)
+???[`packages/spill/spill-policy/src/index.ts:60`](../packages/spill/spill-policy/src/index.ts)
 
-<a id="deepseek-aidsh-storage-domain"></a>
+<a id="maplestorage-domain"></a>
 
-## `@deepseek-ai/dsh-storage-domain`
+## `@maple/storage-domain`
 
-需要：`storage`
+???`storage`
 
 ```ts config-catalog
 /**
@@ -2104,13 +2126,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/storage/storage-domain/src/index.ts:52`](../packages/storage/storage-domain/src/index.ts)
+???[`packages/storage/storage-domain/src/index.ts:52`](../packages/storage/storage-domain/src/index.ts)
 
-<a id="deepseek-aidsh-storage-json"></a>
+<a id="maplestorage-json"></a>
 
-## `@deepseek-ai/dsh-storage-json`
+## `@maple/storage-json`
 
-需要：`storage`
+???`storage`
 
 ```ts config-catalog
 /**
@@ -2125,13 +2147,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/storage/storage-json/src/index.ts:27`](../packages/storage/storage-json/src/index.ts)
+???[`packages/storage/storage-json/src/index.ts:27`](../packages/storage/storage-json/src/index.ts)
 
-<a id="deepseek-aidsh-storage-sqlite"></a>
+<a id="maplestorage-sqlite"></a>
 
-## `@deepseek-ai/dsh-storage-sqlite`
+## `@maple/storage-sqlite`
 
-需要：`storage`
+???`storage`
 
 ```ts config-catalog
 /** Plugin configuration. */
@@ -2165,13 +2187,13 @@ export interface Config {
 export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ```
 
-来源：[`packages/storage/storage-sqlite/src/index.ts:24`](../packages/storage/storage-sqlite/src/index.ts)
+???[`packages/storage/storage-sqlite/src/index.ts:24`](../packages/storage/storage-sqlite/src/index.ts)
 
-<a id="deepseek-aidsh-subagent-acp"></a>
+<a id="maplesubagent-acp"></a>
 
-## `@deepseek-ai/dsh-subagent-acp`
+## `@maple/subagent-acp`
 
-需要：`subagents` · `subprocess`
+???`subagents` · `subprocess`
 
 ```ts config-catalog
 /** Config: how to spawn and drive the child ACP agent process. */
@@ -2218,13 +2240,13 @@ export interface Config {
 export type PermissionPolicy = 'allow' | 'reject'
 ```
 
-来源：[`packages/subagent/subagent-acp/src/index.ts:27`](../packages/subagent/subagent-acp/src/index.ts)
+???[`packages/subagent/subagent-acp/src/index.ts:27`](../packages/subagent/subagent-acp/src/index.ts)
 
-<a id="deepseek-aidsh-subagent-claude-code"></a>
+<a id="maplesubagent-claude-code"></a>
 
-## `@deepseek-ai/dsh-subagent-claude-code`
+## `@maple/subagent-claude-code`
 
-需要：`subagents` · `subprocess`
+???`subagents` · `subprocess`
 
 ```ts config-catalog
 /** Deployment-owned permission, environment, and process-release settings. */
@@ -2251,13 +2273,13 @@ export interface Config {
 export type ClaudeCodePermissionMode = typeof CLAUDE_CODE_PERMISSION_MODES[number]
 ```
 
-来源：[`packages/subagent/subagent-claude-code/src/index.ts:38`](../packages/subagent/subagent-claude-code/src/index.ts)
+???[`packages/subagent/subagent-claude-code/src/index.ts:38`](../packages/subagent/subagent-claude-code/src/index.ts)
 
-<a id="deepseek-aidsh-subagent-codex"></a>
+<a id="maplesubagent-codex"></a>
 
-## `@deepseek-ai/dsh-subagent-codex`
+## `@maple/subagent-codex`
 
-需要：`subagents` · `subprocess`
+???`subagents` · `subprocess`
 
 ```ts config-catalog
 /** Deployment-owned permission, environment, and process-release settings. */
@@ -2282,13 +2304,13 @@ export type CodexPermissionMode =
   | 'dangerously-bypass-approvals-and-sandbox'
 ```
 
-来源：[`packages/subagent/subagent-codex/src/index.ts:36`](../packages/subagent/subagent-codex/src/index.ts)
+???[`packages/subagent/subagent-codex/src/index.ts:36`](../packages/subagent/subagent-codex/src/index.ts)
 
-<a id="deepseek-aidsh-subagent-dsh-sdk"></a>
+<a id="maplesubagent-dsh-sdk"></a>
 
-## `@deepseek-ai/dsh-subagent-dsh-sdk`
+## `@maple/subagent-dsh-sdk`
 
-需要：`subagents`
+???`subagents`
 
 ```ts config-catalog
 /** Config: how to spawn and drive the child SDK runtime process. */
@@ -2335,13 +2357,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/subagent/subagent-dsh-sdk/src/index.ts:29`](../packages/subagent/subagent-dsh-sdk/src/index.ts)
+???[`packages/subagent/subagent-dsh-sdk/src/index.ts:29`](../packages/subagent/subagent-dsh-sdk/src/index.ts)
 
-<a id="deepseek-aidsh-subagent-fork-in-process"></a>
+<a id="maplesubagent-fork-in-process"></a>
 
-## `@deepseek-ai/dsh-subagent-fork-in-process`
+## `@maple/subagent-fork-in-process`
 
-需要：`subagents`
+???`subagents`
 
 ```ts config-catalog
 /** Config: the registry name to register the provider under. */
@@ -2351,13 +2373,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/subagent/subagent-fork-in-process/src/index.ts:31`](../packages/subagent/subagent-fork-in-process/src/index.ts)
+???[`packages/subagent/subagent-fork-in-process/src/index.ts:31`](../packages/subagent/subagent-fork-in-process/src/index.ts)
 
-<a id="deepseek-aidsh-subagent-spawn-in-process"></a>
+<a id="maplesubagent-spawn-in-process"></a>
 
-## `@deepseek-ai/dsh-subagent-spawn-in-process`
+## `@maple/subagent-spawn-in-process`
 
-需要：`subagents`
+???`subagents`
 
 ```ts config-catalog
 /** Config: the registry name to register the provider under. */
@@ -2367,13 +2389,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/subagent/subagent-spawn-in-process/src/index.ts:25`](../packages/subagent/subagent-spawn-in-process/src/index.ts)
+???[`packages/subagent/subagent-spawn-in-process/src/index.ts:25`](../packages/subagent/subagent-spawn-in-process/src/index.ts)
 
-<a id="deepseek-aidsh-subprocess-e2b"></a>
+<a id="maplesubprocess-e2b"></a>
 
-## `@deepseek-ai/dsh-subprocess-e2b`
+## `@maple/subprocess-e2b`
 
-需要：`e2b`
+???`e2b`
 
 ```ts config-catalog
 /** Configuration for the E2B subprocess adapter. */
@@ -2383,16 +2405,16 @@ export interface Config {
 }
 ```
 
-来源：[`packages/e2b/subprocess-e2b/src/index.ts:25`](../packages/e2b/subprocess-e2b/src/index.ts)
+???[`packages/e2b/subprocess-e2b/src/index.ts:25`](../packages/e2b/subprocess-e2b/src/index.ts)
 
-<a id="deepseek-aidsh-system-prompt"></a>
+<a id="maplesystem-prompt"></a>
 
-## `@deepseek-ai/dsh-system-prompt`
+## `@maple/system-prompt`
 
 ```ts config-catalog
 /** Plugin config: the deployment-authored fragment of the system prompt (see {@link Config.persona} for its contract). */
 export interface Config {
-  /** Include the fixed DeepSeek Harness identity before the deployment persona (default true). */
+  /** Include the fixed Maple Harness identity before the deployment persona (default true). */
   includeHarnessIdentity?: boolean
   /** Include dynamic runtime-context snapshots in model history (default true). */
   includeRuntimeContext?: boolean
@@ -2410,13 +2432,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/core/system-prompt/src/index.ts:186`](../packages/core/system-prompt/src/index.ts)
+???[`packages/core/system-prompt/src/index.ts:186`](../packages/core/system-prompt/src/index.ts)
 
-<a id="deepseek-aidsh-terminal-bash"></a>
+<a id="mapleterminal-bash"></a>
 
-## `@deepseek-ai/dsh-terminal-bash`
+## `@maple/terminal-bash`
 
-需要：`terminals` · `sandboxPolicy` · `subprocess`
+???`terminals` · `sandboxPolicy` · `subprocess`
 
 ```ts config-catalog
 /** Public plugin configuration. */
@@ -2460,13 +2482,13 @@ export interface Config {
 export type ShellDialect = 'bash' | 'pwsh'
 ```
 
-来源：[`packages/terminal/terminal-bash/src/config.ts:10`](../packages/terminal/terminal-bash/src/config.ts)
+???[`packages/terminal/terminal-bash/src/config.ts:10`](../packages/terminal/terminal-bash/src/config.ts)
 
-<a id="deepseek-aidsh-time-context"></a>
+<a id="mapletime-context"></a>
 
-## `@deepseek-ai/dsh-time-context`
+## `@maple/time-context`
 
-需要：`agents`
+???`agents`
 
 ```ts config-catalog
 /** Request-preparation clock formatting and append scheduling. Invalid values fail plugin load. */
@@ -2478,13 +2500,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/context/time-context/src/index.ts:27`](../packages/context/time-context/src/index.ts)
+???[`packages/context/time-context/src/index.ts:27`](../packages/context/time-context/src/index.ts)
 
-<a id="deepseek-aidsh-tmux-context"></a>
+<a id="mapletmux-context"></a>
 
-## `@deepseek-ai/dsh-tmux-context`
+## `@maple/tmux-context`
 
-需要：`agents`
+???`agents`
 
 ```ts config-catalog
 /** Per-turn tmux-location scheduling. Invalid values fail plugin load. */
@@ -2494,24 +2516,24 @@ export interface Config {
 }
 ```
 
-来源：[`packages/context/tmux-context/src/index.ts:34`](../packages/context/tmux-context/src/index.ts)
+???[`packages/context/tmux-context/src/index.ts:34`](../packages/context/tmux-context/src/index.ts)
 
-<a id="deepseek-aidsh-token-meter"></a>
+<a id="mapletoken-meter"></a>
 
-## `@deepseek-ai/dsh-token-meter`
+## `@maple/token-meter`
 
 ```ts config-catalog
 /** Token-meter plugin configuration; the fixed estimator has no settings. */
 export type TokenMeterConfig = Record<string, never>
 ```
 
-来源：[`packages/llm/token-meter/src/types.ts:12`](../packages/llm/token-meter/src/types.ts)
+???[`packages/llm/token-meter/src/types.ts:12`](../packages/llm/token-meter/src/types.ts)
 
-<a id="deepseek-aidsh-tool-bash"></a>
+<a id="mapletool-bash"></a>
 
-## `@deepseek-ai/dsh-tool-bash`
+## `@maple/tool-bash`
 
-需要：`tools` · `shell` · `systemPrompt` · `shellEnv`
+???`tools` · `shell` · `systemPrompt` · `shellEnv`
 
 ```ts config-catalog
 /** Configuration for the bash tool. */
@@ -2521,13 +2543,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/tool-bash/src/index.ts:34`](../packages/shell/tool-bash/src/index.ts)
+???[`packages/shell/tool-bash/src/index.ts:34`](../packages/shell/tool-bash/src/index.ts)
 
-<a id="deepseek-aidsh-tool-bash-persistent"></a>
+<a id="mapletool-bash-persistent"></a>
 
-## `@deepseek-ai/dsh-tool-bash-persistent`
+## `@maple/tool-bash-persistent`
 
-需要：`tools` · `terminals`
+???`tools` · `terminals`
 
 ```ts config-catalog
 /** Configuration for the persistent Bash tool. */
@@ -2543,13 +2565,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/tool-bash-persistent/src/index.ts:432`](../packages/shell/tool-bash-persistent/src/index.ts)
+???[`packages/shell/tool-bash-persistent/src/index.ts:432`](../packages/shell/tool-bash-persistent/src/index.ts)
 
-<a id="deepseek-aidsh-tool-fs"></a>
+<a id="mapletool-fs"></a>
 
-## `@deepseek-ai/dsh-tool-fs`
+## `@maple/tool-fs`
 
-需要：`tools` · `fs` · `systemPrompt`
+???`tools` · `fs` · `systemPrompt`
 
 ```ts config-catalog
 /** Plugin config (all optional — `Config` supplies the defaults). */
@@ -2565,13 +2587,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/fs/tool-fs/src/index.ts:25`](../packages/fs/tool-fs/src/index.ts)
+???[`packages/fs/tool-fs/src/index.ts:25`](../packages/fs/tool-fs/src/index.ts)
 
-<a id="deepseek-aidsh-tool-fs-search"></a>
+<a id="mapletool-fs-search"></a>
 
-## `@deepseek-ai/dsh-tool-fs-search`
+## `@maple/tool-fs-search`
 
-需要：`tools` · `systemPrompt` · `subprocess`
+???`tools` · `systemPrompt` · `subprocess`
 
 ```ts config-catalog
 /** Plugin config; over-cap glob sampling is an explicit deployment choice and the remaining fields have defaults. */
@@ -2594,19 +2616,19 @@ export interface Config {
   stderrMaxBytes?: number
   /**
    * Cooperative tool-call timeout budget (ms) on both tools, enforced by
-   * `@deepseek-ai/dsh-tool-call-timeout-policy` through `exec.signal`.
+   * `@maple/tool-call-timeout-policy` through `exec.signal`.
    */
   timeoutMs?: number
 }
 ```
 
-来源：[`packages/fs/tool-fs-search/src/index.ts:73`](../packages/fs/tool-fs-search/src/index.ts)
+???[`packages/fs/tool-fs-search/src/index.ts:73`](../packages/fs/tool-fs-search/src/index.ts)
 
-<a id="deepseek-aidsh-tool-goal"></a>
+<a id="mapletool-goal"></a>
 
-## `@deepseek-ai/dsh-tool-goal`
+## `@maple/tool-goal`
 
-需要：`agents` · `goals` · `tools` · `systemPrompt`
+???`agents` · `goals` · `tools` · `systemPrompt`
 
 ```ts config-catalog
 /** Model policy and hard lower bounds for goal-state updates. */
@@ -2616,13 +2638,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/goal/tool-goal/src/index.ts:26`](../packages/goal/tool-goal/src/index.ts)
+???[`packages/goal/tool-goal/src/index.ts:26`](../packages/goal/tool-goal/src/index.ts)
 
-<a id="deepseek-aidsh-tool-jobs"></a>
+<a id="mapletool-jobs"></a>
 
-## `@deepseek-ai/dsh-tool-jobs`
+## `@maple/tool-jobs`
 
-需要：`tools` · `jobs` · `systemPrompt`
+???`tools` · `jobs` · `systemPrompt`
 
 ```ts config-catalog
 /** Configures bounded `job_output` waits and completion-notice delivery. */
@@ -2650,13 +2672,13 @@ export interface Config {
 export type CompletionDelivery = 'quiet' | 'wakeup'
 ```
 
-来源：[`packages/jobs/tool-jobs/src/index.ts:32`](../packages/jobs/tool-jobs/src/index.ts)
+???[`packages/jobs/tool-jobs/src/index.ts:32`](../packages/jobs/tool-jobs/src/index.ts)
 
-<a id="deepseek-aidsh-tool-lsp"></a>
+<a id="mapletool-lsp"></a>
 
-## `@deepseek-ai/dsh-tool-lsp`
+## `@maple/tool-lsp`
 
-需要：`tools` · `lsp` · `systemPrompt`
+???`tools` · `lsp` · `systemPrompt`
 
 ```ts config-catalog
 /** Plugin configuration: result caps and the timeout budget. */
@@ -2670,13 +2692,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/lsp/tool-lsp/src/index.ts:58`](../packages/lsp/tool-lsp/src/index.ts)
+???[`packages/lsp/tool-lsp/src/index.ts:58`](../packages/lsp/tool-lsp/src/index.ts)
 
-<a id="deepseek-aidsh-tool-pwsh"></a>
+<a id="mapletool-pwsh"></a>
 
-## `@deepseek-ai/dsh-tool-pwsh`
+## `@maple/tool-pwsh`
 
-需要：`tools` · `shell` · `systemPrompt` · `shellEnv`
+???`tools` · `shell` · `systemPrompt` · `shellEnv`
 
 ```ts config-catalog
 /** Configuration for the pwsh tool. */
@@ -2686,13 +2708,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/tool-pwsh/src/index.ts:52`](../packages/shell/tool-pwsh/src/index.ts)
+???[`packages/shell/tool-pwsh/src/index.ts:52`](../packages/shell/tool-pwsh/src/index.ts)
 
-<a id="deepseek-aidsh-tool-pwsh-persistent"></a>
+<a id="mapletool-pwsh-persistent"></a>
 
-## `@deepseek-ai/dsh-tool-pwsh-persistent`
+## `@maple/tool-pwsh-persistent`
 
-需要：`tools` · `terminals`
+???`tools` · `terminals`
 
 ```ts config-catalog
 /** Configuration for the persistent pwsh tool. */
@@ -2708,13 +2730,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/shell/tool-pwsh-persistent/src/index.ts:472`](../packages/shell/tool-pwsh-persistent/src/index.ts)
+???[`packages/shell/tool-pwsh-persistent/src/index.ts:472`](../packages/shell/tool-pwsh-persistent/src/index.ts)
 
-<a id="deepseek-aidsh-tool-ralph"></a>
+<a id="mapletool-ralph"></a>
 
-## `@deepseek-ai/dsh-tool-ralph`
+## `@maple/tool-ralph`
 
-需要：`tools` · `workflowEngine` · `subagents` · `systemPrompt`
+???`tools` · `workflowEngine` · `subagents` · `systemPrompt`
 
 ```ts config-catalog
 /** Deployment policy for the fixed Ralph workflow. */
@@ -2730,13 +2752,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.ts)
+???[`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.ts)
 
-<a id="deepseek-aidsh-tool-session-query"></a>
+<a id="mapletool-session-query"></a>
 
-## `@deepseek-ai/dsh-tool-session-query`
+## `@maple/tool-session-query`
 
-需要：`tools` · `systemPrompt` · `sessionQuery`
+???`tools` · `systemPrompt` · `sessionQuery`
 
 ```ts config-catalog
 /** Deployment-owned search count and timeout bounds. */
@@ -2748,13 +2770,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/session-query/tool-session-query/src/index.ts:29`](../packages/session-query/tool-session-query/src/index.ts)
+???[`packages/session-query/tool-session-query/src/index.ts:29`](../packages/session-query/tool-session-query/src/index.ts)
 
-<a id="deepseek-aidsh-tool-skill"></a>
+<a id="mapletool-skill"></a>
 
-## `@deepseek-ai/dsh-tool-skill`
+## `@maple/tool-skill`
 
-需要：`agents` · `tools` · `skills`
+???`agents` · `tools` · `skills`
 
 ```ts config-catalog
 /** Model-facing skill catalog configuration. */
@@ -2764,13 +2786,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/skill/tool-skill/src/index.ts:61`](../packages/skill/tool-skill/src/index.ts)
+???[`packages/skill/tool-skill/src/index.ts:61`](../packages/skill/tool-skill/src/index.ts)
 
-<a id="deepseek-aidsh-tool-str-replace-editor"></a>
+<a id="mapletool-str-replace-editor"></a>
 
-## `@deepseek-ai/dsh-tool-str-replace-editor`
+## `@maple/tool-str-replace-editor`
 
-需要：`tools` · `fs`
+???`tools` · `fs`
 
 ```ts config-catalog
 /** Configuration for the string-replacement editor tool. */
@@ -2782,13 +2804,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/fs/tool-str-replace-editor/src/index.ts:497`](../packages/fs/tool-str-replace-editor/src/index.ts)
+???[`packages/fs/tool-str-replace-editor/src/index.ts:497`](../packages/fs/tool-str-replace-editor/src/index.ts)
 
-<a id="deepseek-aidsh-tool-subagent"></a>
+<a id="mapletool-subagent"></a>
 
-## `@deepseek-ai/dsh-tool-subagent`
+## `@maple/tool-subagent`
 
-需要：`tools` · `subagents` · `systemPrompt`
+???`tools` · `subagents` · `systemPrompt`
 
 ```ts config-catalog
 /** Config: which registered provider this tool delegates to, plus child defaults. */
@@ -2845,15 +2867,15 @@ export interface Config {
 }
 ```
 
-依赖：[`AgentOptions`](subsystems/core.zh.md)
+Depends on: [`AgentOptions`](subsystems/core.zh.md)
 
-来源：[`packages/subagent/tool-subagent/src/index.ts:29`](../packages/subagent/tool-subagent/src/index.ts)
+???[`packages/subagent/tool-subagent/src/index.ts:29`](../packages/subagent/tool-subagent/src/index.ts)
 
-<a id="deepseek-aidsh-tool-subagent-report"></a>
+<a id="mapletool-subagent-report"></a>
 
-## `@deepseek-ai/dsh-tool-subagent-report`
+## `@maple/tool-subagent-report`
 
-需要：`subagents` · `tools` · `systemPrompt`
+???`subagents` · `tools` · `systemPrompt`
 
 ```ts config-catalog
 /** Config: how accepted reports are scheduled on the parent. */
@@ -2867,15 +2889,15 @@ export interface Config {
 }
 ```
 
-依赖：[`SubagentReportDelivery`](subsystems/subagent.zh.md)
+Depends on: [`SubagentReportDelivery`](subsystems/subagent.zh.md)
 
-来源：[`packages/subagent/tool-subagent-report/src/index.ts:27`](../packages/subagent/tool-subagent-report/src/index.ts)
+???[`packages/subagent/tool-subagent-report/src/index.ts:27`](../packages/subagent/tool-subagent-report/src/index.ts)
 
-<a id="deepseek-aidsh-tool-terminal"></a>
+<a id="mapletool-terminal"></a>
 
-## `@deepseek-ai/dsh-tool-terminal`
+## `@maple/tool-terminal`
 
-需要：`terminals` · `tools` · `systemPrompt`
+???`terminals` · `tools` · `systemPrompt`
 
 ```ts config-catalog
 /** Model-facing terminal tool configuration. */
@@ -2887,13 +2909,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/terminal/tool-terminal/src/index.ts:35`](../packages/terminal/tool-terminal/src/index.ts)
+???[`packages/terminal/tool-terminal/src/index.ts:35`](../packages/terminal/tool-terminal/src/index.ts)
 
-<a id="deepseek-aidsh-tool-todo"></a>
+<a id="mapletool-todo"></a>
 
-## `@deepseek-ai/dsh-tool-todo`
+## `@maple/tool-todo`
 
-需要：`tools`
+???`tools`
 
 ```ts config-catalog
 /** Model-facing todo tool configuration. */
@@ -2909,13 +2931,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/todo/tool-todo/src/index.ts:29`](../packages/todo/tool-todo/src/index.ts)
+???[`packages/todo/tool-todo/src/index.ts:29`](../packages/todo/tool-todo/src/index.ts)
 
-<a id="deepseek-aidsh-tool-web"></a>
+<a id="mapletool-web"></a>
 
-## `@deepseek-ai/dsh-tool-web`
+## `@maple/tool-web`
 
-需要：`tools` · `web` · `systemPrompt`
+???`tools` · `web` · `systemPrompt`
 
 ```ts config-catalog
 /** Plugin config: which web tools to register, search bounds, per-tool budgets, and the fetch output cap. */
@@ -2937,13 +2959,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/web/tool-web/src/index.ts:37`](../packages/web/tool-web/src/index.ts)
+???[`packages/web/tool-web/src/index.ts:37`](../packages/web/tool-web/src/index.ts)
 
-<a id="deepseek-aidsh-tool-workflow"></a>
+<a id="mapletool-workflow"></a>
 
-## `@deepseek-ai/dsh-tool-workflow`
+## `@maple/tool-workflow`
 
-需要：`tools` · `workflowEngine` · `systemPrompt`
+???`tools` · `workflowEngine` · `systemPrompt`
 
 ```ts config-catalog
 /** Config: the model-facing tool name plus result rendering caps. */
@@ -2955,13 +2977,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/workflow/tool-workflow/src/index.ts:33`](../packages/workflow/tool-workflow/src/index.ts)
+???[`packages/workflow/tool-workflow/src/index.ts:33`](../packages/workflow/tool-workflow/src/index.ts)
 
-<a id="deepseek-aidsh-tools"></a>
+<a id="mapletools"></a>
 
-## `@deepseek-ai/dsh-tools`
+## `@maple/tools`
 
-需要：`systemPrompt`
+???`systemPrompt`
 
 ```ts config-catalog
 /** Plugin config: how the registered tools are presented to the model. */
@@ -2991,13 +3013,13 @@ export interface Config {
 export type ToolPresentationMode = 'native' | 'code' | 'both'
 ```
 
-来源：[`packages/core/tools/src/index.ts:654`](../packages/core/tools/src/index.ts)
+???[`packages/core/tools/src/index.ts:654`](../packages/core/tools/src/index.ts)
 
-<a id="deepseek-aidsh-typert-loader"></a>
+<a id="mapletypert-loader"></a>
 
-## `@deepseek-ai/dsh-typert-loader`
+## `@maple/typert-loader`
 
-需要：`typert` · `loader`
+???`typert` · `loader`
 
 ```ts config-catalog
 /** Additional package artifacts whose owning plugins are nested behind another Loader entry. */
@@ -3007,11 +3029,11 @@ export interface Config {
 }
 ```
 
-来源：[`packages/typert/loader/src/index.ts:47`](../packages/typert/loader/src/index.ts)
+???[`packages/typert/loader/src/index.ts:47`](../packages/typert/loader/src/index.ts)
 
-<a id="deepseek-aidsh-user-approval"></a>
+<a id="mapleuser-approval"></a>
 
-## `@deepseek-ai/dsh-user-approval`
+## `@maple/user-approval`
 
 ```ts config-catalog
 /** Plugin config. All optional — `static Config` supplies the defaults. */
@@ -3038,11 +3060,11 @@ export interface Config {
 export type ApprovalPolicy = 'ask' | 'never'
 ```
 
-来源：[`packages/interaction/user-approval/src/index.ts:177`](../packages/interaction/user-approval/src/index.ts)
+???[`packages/interaction/user-approval/src/index.ts:177`](../packages/interaction/user-approval/src/index.ts)
 
-<a id="deepseek-aidsh-web"></a>
+<a id="mapleweb"></a>
 
-## `@deepseek-ai/dsh-web`
+## `@maple/web`
 
 ```ts config-catalog
 /**
@@ -3059,13 +3081,13 @@ export interface WebRuntimeConfig {
 }
 ```
 
-来源：[`packages/web/web/src/index.ts:55`](../packages/web/web/src/index.ts)
+???[`packages/web/web/src/index.ts:55`](../packages/web/web/src/index.ts)
 
-<a id="deepseek-aidsh-web-app"></a>
+<a id="mapleweb-app"></a>
 
-## `@deepseek-ai/dsh-web-app`
+## `@maple/web-app`
 
-需要：`webServer`
+???`webServer`
 
 ```ts config-catalog
 /** Plugin config: composed deployment settings plus per-invocation command-line values. */
@@ -3086,13 +3108,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/bundle/web-app/src/index.ts:42`](../packages/bundle/web-app/src/index.ts)
+???[`packages/bundle/web-app/src/index.ts:42`](../packages/bundle/web-app/src/index.ts)
 
-<a id="deepseek-aidsh-web-fetch-http"></a>
+<a id="mapleweb-fetch-http"></a>
 
-## `@deepseek-ai/dsh-web-fetch-http`
+## `@maple/web-fetch-http`
 
-需要：`web`
+???`web`
 
 ```ts config-catalog
 /** Plugin config: the provider's transport and size limits plus its `User-Agent` (all defaulted). */
@@ -3112,13 +3134,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/web/web-fetch-http/src/index.ts:34`](../packages/web/web-fetch-http/src/index.ts)
+???[`packages/web/web-fetch-http/src/index.ts:34`](../packages/web/web-fetch-http/src/index.ts)
 
-<a id="deepseek-aidsh-web-search-deepseek"></a>
+<a id="mapleweb-search-deepseek"></a>
 
-## `@deepseek-ai/dsh-web-search-deepseek`
+## `@maple/web-search-deepseek`
 
-需要：`web`
+???`web`
 
 ```ts config-catalog
 /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
@@ -3140,13 +3162,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/web/web-search-deepseek/src/index.ts:46`](../packages/web/web-search-deepseek/src/index.ts)
+???[`packages/web/web-search-deepseek/src/index.ts:46`](../packages/web/web-search-deepseek/src/index.ts)
 
-<a id="deepseek-aidsh-web-search-exa"></a>
+<a id="mapleweb-search-exa"></a>
 
-## `@deepseek-ai/dsh-web-search-exa`
+## `@maple/web-search-exa`
 
-需要：`web`
+???`web`
 
 ```ts config-catalog
 /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
@@ -3164,13 +3186,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/web/web-search-exa/src/index.ts:38`](../packages/web/web-search-exa/src/index.ts)
+???[`packages/web/web-search-exa/src/index.ts:38`](../packages/web/web-search-exa/src/index.ts)
 
-<a id="deepseek-aidsh-web-search-perplexity"></a>
+<a id="mapleweb-search-perplexity"></a>
 
-## `@deepseek-ai/dsh-web-search-perplexity`
+## `@maple/web-search-perplexity`
 
-需要：`web`
+???`web`
 
 ```ts config-catalog
 /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
@@ -3188,13 +3210,13 @@ export interface Config {
 }
 ```
 
-来源：[`packages/web/web-search-perplexity/src/index.ts:32`](../packages/web/web-search-perplexity/src/index.ts)
+???[`packages/web/web-search-perplexity/src/index.ts:32`](../packages/web/web-search-perplexity/src/index.ts)
 
-<a id="deepseek-aidsh-workflow-worker-thread"></a>
+<a id="mapleworkflow-worker-thread"></a>
 
-## `@deepseek-ai/dsh-workflow-worker-thread`
+## `@maple/workflow-worker-thread`
 
-需要：`subagents`
+???`subagents`
 
 ```ts config-catalog
 /** Plugin config (all optional — `static Config` supplies the defaults). */
@@ -3218,136 +3240,137 @@ export interface Config {
 }
 ```
 
-来源：[`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.ts)
+???[`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.ts)
 
-## 无配置的可加载插件
+## Loadable plugins with no config
 
-这些插件通过 `cordis.yml` 中不含 `config:` 块的条目加载；它们未声明任何配置接口。
+These load from a `cordis.yml` entry with no `config:` block; they declare no configuration API.
 
-- `@deepseek-ai/dsh-agent`（[`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts)）
-- `@deepseek-ai/dsh-api-gateway` — 需要 `typert`（[`packages/api/gateway/src/index.ts`](../packages/api/gateway/src/index.ts)）
-- `@deepseek-ai/dsh-api-remotes`（[`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts)）
-- `@deepseek-ai/dsh-authorization` — 需要 `credentials`（[`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts)）
-- `@deepseek-ai/dsh-client-locale`（[`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts)）
-- `@deepseek-ai/dsh-client-modules` — 需要 `webServer` · `loader`（[`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts)）
-- `@deepseek-ai/dsh-client-runtime`（[`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-agent-preset`（[`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-attachment`（[`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-brand-official`（[`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-commands`（[`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-conversation`（[`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-cordis`（[`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-deliverables` — 需要 `systemPrompt`（[`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-directory-picker-browse`（[`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-directory-picker-native`（[`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-goal`（[`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-input-trigger`（[`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-jobs`（[`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-layout`（[`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-message-feedback`（[`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-model-selection`（[`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-permission-presets`（[`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-plan`（[`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-reference`（[`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-renderer`（[`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-settings`（[`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-settings-general`（[`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-settings-models`（[`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-settings-plugin-inventory`（[`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-subagent`（[`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-theme`（[`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-tool`（[`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-trajectory`（[`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-user-questions`（[`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-workflow-run`（[`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-workspace`（[`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts)）
-- `@deepseek-ai/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts)）
-- `@deepseek-ai/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
-- `@deepseek-ai/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）
-- `@deepseek-ai/dsh-commands`（[`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts)）
-- `@deepseek-ai/dsh-cordis-client-runner`（[`packages/extensions/cordis-client-runner/src/index.ts`](../packages/extensions/cordis-client-runner/src/index.ts)）
-- `@deepseek-ai/dsh-fs-e2b` — 需要 `e2b`（[`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts)）
-- `@deepseek-ai/dsh-fs-observation-policy`（[`packages/fs/fs-observation-policy/src/index.ts`](../packages/fs/fs-observation-policy/src/index.ts)）
-- `@deepseek-ai/dsh-goal-round-driver` — 需要 `agents` · `goals` · `sessions`（[`packages/goal/goal-round-driver/src/index.ts`](../packages/goal/goal-round-driver/src/index.ts)）
-- `@deepseek-ai/dsh-host-directory-picker-auto` — 需要 `webServer` · `loader`（[`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts)）
-- `@deepseek-ai/dsh-host-directory-picker-native`（[`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts)）
-- `@deepseek-ai/dsh-host-plugin-inventory` — 需要 `loader`（[`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts)）
-- `@deepseek-ai/dsh-llm`（[`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts)）
-- `@deepseek-ai/dsh-lsp`（[`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts)）
-- `@deepseek-ai/dsh-schedule` — 需要 `agents` · `sessions` · `tools` · `sessionPersistence`（[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)）
-- `@deepseek-ai/dsh-session`（[`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts)）
-- `@deepseek-ai/dsh-session-checkpoint-policy` — 需要 `llm` · `sessionPersistence` · `sessions` · `tools`（[`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts)）
-- `@deepseek-ai/dsh-session-log-export` — 需要 `commands`（[`packages/session-query/session-log-export/src/index.ts`](../packages/session-query/session-log-export/src/index.ts)）
-- `@deepseek-ai/dsh-session-projection`（[`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts)）
-- `@deepseek-ai/dsh-session-stats` — 需要 `sessionProjections`（[`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts)）
-- `@deepseek-ai/dsh-skill-badge` — 需要 `skills`（[`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts)）
-- `@deepseek-ai/dsh-storage`（[`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts)）
-- `@deepseek-ai/dsh-subagent`（[`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts)）
-- `@deepseek-ai/dsh-subprocess-local`（[`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.ts)）
-- `@deepseek-ai/dsh-terminal`（[`packages/terminal/terminal/src/index.ts`](../packages/terminal/terminal/src/index.ts)）
-- `@deepseek-ai/dsh-tool-ask-user` — 需要 `tools` · `userInteraction`（[`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts)）
-- `@deepseek-ai/dsh-tool-call-timeout-policy` — 需要 `tools`（[`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts)）
-- `@deepseek-ai/dsh-tool-cordis` — 需要 `tools` · `systemPrompt` · `dynamicCordisRunner` · `cordisInspect`（[`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)）
-- `@deepseek-ai/dsh-tool-subagent-control` — 需要 `tools` · `subagents`（[`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts)）
-- `@deepseek-ai/dsh-user-questions`（[`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts)）
-- `@deepseek-ai/dsh-workspace` — 需要 `storageDomain` · `sessionPersistence`（[`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts)）
+- `@maple/agent` ([`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts))
+- `@maple/api-gateway` — requires `typert` ([`packages/api/gateway/src/index.ts`](../packages/api/gateway/src/index.ts))
+- `@maple/api-remotes` ([`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts))
+- `@maple/authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts))
+- `@maple/client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts))
+- `@maple/client-modules` — requires `webServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts))
+- `@maple/client-runtime` ([`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.ts))
+- `@maple/client-ui-agent-preset` ([`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.ts))
+- `@maple/client-ui-attachment` ([`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.ts))
+- `@maple/client-ui-brand-official` ([`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts))
+- `@maple/client-ui-commands` ([`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts))
+- `@maple/client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts))
+- `@maple/client-ui-cordis` ([`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts))
+- `@maple/client-ui-deliverables` — requires `systemPrompt` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts))
+- `@maple/client-ui-directory-picker-browse` ([`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts))
+- `@maple/client-ui-directory-picker-native` ([`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts))
+- `@maple/client-ui-goal` ([`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts))
+- `@maple/client-ui-input-trigger` ([`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts))
+- `@maple/client-ui-jobs` ([`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts))
+- `@maple/client-ui-layout` ([`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts))
+- `@maple/client-ui-message-feedback` ([`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts))
+- `@maple/client-ui-model-selection` ([`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts))
+- `@maple/client-ui-permission-presets` ([`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts))
+- `@maple/client-ui-plan` ([`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts))
+- `@maple/client-ui-reference` ([`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts))
+- `@maple/client-ui-renderer` ([`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.ts))
+- `@maple/client-ui-settings` ([`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts))
+- `@maple/client-ui-settings-general` ([`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts))
+- `@maple/client-ui-settings-models` ([`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts))
+- `@maple/client-ui-settings-plugin-inventory` ([`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts))
+- `@maple/client-ui-settings-plugins` ([`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts))
+- `@maple/client-ui-sidebar` ([`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts))
+- `@maple/client-ui-skill` ([`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts))
+- `@maple/client-ui-subagent` ([`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts))
+- `@maple/client-ui-theme` ([`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.ts))
+- `@maple/client-ui-tool` ([`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts))
+- `@maple/client-ui-trajectory` ([`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts))
+- `@maple/client-ui-user-questions` ([`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts))
+- `@maple/client-ui-workflow-run` ([`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts))
+- `@maple/client-ui-workspace` ([`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts))
+- `@maple/command-compact` — requires `commands` · `compaction` ([`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts))
+- `@maple/command-feedback` — requires `commands` ([`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts))
+- `@maple/command-goal` — requires `commands` · `goals` ([`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts))
+- `@maple/commands` ([`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts))
+- `@maple/cordis-client-runner` ([`packages/extensions/cordis-client-runner/src/index.ts`](../packages/extensions/cordis-client-runner/src/index.ts))
+- `@maple/fs-e2b` — requires `e2b` ([`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts))
+- `@maple/fs-observation-policy` ([`packages/fs/fs-observation-policy/src/index.ts`](../packages/fs/fs-observation-policy/src/index.ts))
+- `@maple/goal-round-driver` — requires `agents` · `goals` · `sessions` ([`packages/goal/goal-round-driver/src/index.ts`](../packages/goal/goal-round-driver/src/index.ts))
+- `@maple/host-directory-picker-auto` — requires `webServer` · `loader` ([`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts))
+- `@maple/host-directory-picker-native` ([`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts))
+- `@maple/host-plugin-inventory` — requires `loader` ([`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts))
+- `@maple/llm` ([`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts))
+- `@maple/lsp` ([`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts))
+- `@maple/schedule` — requires `agents` · `sessions` · `tools` · `sessionPersistence` ([`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts))
+- `@maple/session` ([`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts))
+- `@maple/session-checkpoint-policy` — requires `llm` · `sessionPersistence` · `sessions` · `tools` ([`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts))
+- `@maple/session-log-export` — requires `commands` ([`packages/session-query/session-log-export/src/index.ts`](../packages/session-query/session-log-export/src/index.ts))
+- `@maple/session-projection` ([`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts))
+- `@maple/session-stats` — requires `sessionProjections` ([`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts))
+- `@maple/skill-badge` — requires `skills` ([`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts))
+- `@maple/storage` ([`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts))
+- `@maple/subagent` ([`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts))
+- `@maple/subprocess-local` ([`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.ts))
+- `@maple/terminal` ([`packages/terminal/terminal/src/index.ts`](../packages/terminal/terminal/src/index.ts))
+- `@maple/tool-ask-user` — requires `tools` · `userQuestions` ([`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts))
+- `@maple/tool-call-timeout-policy` — requires `tools` ([`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts))
+- `@maple/tool-cordis` — requires `tools` · `systemPrompt` · `dynamicCordisRunner` · `cordisInspect` ([`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts))
+- `@maple/tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts))
+- `@maple/user-questions` ([`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts))
+- `@maple/workspace` — requires `storageDomain` · `sessionPersistence` ([`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts))
 
-## Seam 包（不可直接加载）
+## Seam packages (not directly loadable)
 
-抽象服务类——部署时应改为加载具体的实现包（参见[能力 seam](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.zh.md)）。
+Abstract service classes — a deployment loads a concrete implementation package instead ([capability seams](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.zh.md)).
 
-- `@deepseek-ai/dsh-attachment` — 抽象 `AttachmentStore`（[`packages/attachment/attachment/src/index.ts`](../packages/attachment/attachment/src/index.ts)）
-- `@deepseek-ai/dsh-code-runtime` — 抽象 `CodeRuntime`（[`packages/code-runtime/code-runtime/src/index.ts`](../packages/code-runtime/code-runtime/src/index.ts)）
-- `@deepseek-ai/dsh-compaction` — 抽象 `CompactionEngine`（[`packages/compaction/compaction/src/index.ts`](../packages/compaction/compaction/src/index.ts)）
-- `@deepseek-ai/dsh-credentials` — 抽象 `Credentials`（[`packages/credentials/credentials/src/index.ts`](../packages/credentials/credentials/src/index.ts)）
-- `@deepseek-ai/dsh-file-reference` — 抽象 `FileReferenceService`（[`packages/context/file-reference/src/index.ts`](../packages/context/file-reference/src/index.ts)）
-- `@deepseek-ai/dsh-fs` — 抽象 `FileSystem`（[`packages/fs/fs/src/index.ts`](../packages/fs/fs/src/index.ts)）
-- `@deepseek-ai/dsh-host-directory-picker` — 抽象 `DirectoryPicker`（[`packages/host/directory-picker/src/index.ts`](../packages/host/directory-picker/src/index.ts)）
-- `@deepseek-ai/dsh-jobs` — 抽象 `JobRegistry`（[`packages/jobs/jobs/src/index.ts`](../packages/jobs/jobs/src/index.ts)）
-- `@deepseek-ai/dsh-sandbox` — 抽象 `SandboxProvider`（[`packages/sandbox/sandbox/src/index.ts`](../packages/sandbox/sandbox/src/index.ts)）
-- `@deepseek-ai/dsh-session-persistence` — 抽象 `SessionPersistence`（[`packages/session/session-persistence/src/index.ts`](../packages/session/session-persistence/src/index.ts)）
-- `@deepseek-ai/dsh-session-query` — 抽象 `SessionQueryEngine`（[`packages/session-query/session-query/src/index.ts`](../packages/session-query/session-query/src/index.ts)）
-- `@deepseek-ai/dsh-settings` — 抽象 `Settings`（[`packages/settings/settings/src/index.ts`](../packages/settings/settings/src/index.ts)）
-- `@deepseek-ai/dsh-shell` — 抽象 `ShellExecutor`（[`packages/shell/shell/src/index.ts`](../packages/shell/shell/src/index.ts)）
-- `@deepseek-ai/dsh-spill` — 抽象 `SpillStore`（[`packages/spill/spill/src/index.ts`](../packages/spill/spill/src/index.ts)）
-- `@deepseek-ai/dsh-subprocess` — 抽象 `SubprocessRuntime`（[`packages/subprocess/subprocess/src/index.ts`](../packages/subprocess/subprocess/src/index.ts)）
-- `@deepseek-ai/dsh-workflow` — 抽象 `WorkflowEngine`（[`packages/workflow/workflow/src/index.ts`](../packages/workflow/workflow/src/index.ts)）
-## 库包（无插件入口）
+- `@maple/attachment` — abstract `AttachmentStore` ([`packages/attachment/attachment/src/index.ts`](../packages/attachment/attachment/src/index.ts))
+- `@maple/code-runtime` — abstract `CodeRuntime` ([`packages/code-runtime/code-runtime/src/index.ts`](../packages/code-runtime/code-runtime/src/index.ts))
+- `@maple/compaction` — abstract `CompactionEngine` ([`packages/compaction/compaction/src/index.ts`](../packages/compaction/compaction/src/index.ts))
+- `@maple/credentials` — abstract `CredentialProvider` ([`packages/credentials/credentials/src/index.ts`](../packages/credentials/credentials/src/index.ts))
+- `@maple/file-reference` — abstract `FileReferenceService` ([`packages/context/file-reference/src/index.ts`](../packages/context/file-reference/src/index.ts))
+- `@maple/fs` — abstract `FileSystem` ([`packages/fs/fs/src/index.ts`](../packages/fs/fs/src/index.ts))
+- `@maple/host-directory-picker` — abstract `DirectoryPicker` ([`packages/host/directory-picker/src/index.ts`](../packages/host/directory-picker/src/index.ts))
+- `@maple/jobs` — abstract `JobRegistry` ([`packages/jobs/jobs/src/index.ts`](../packages/jobs/jobs/src/index.ts))
+- `@maple/sandbox` — abstract `SandboxProvider` ([`packages/sandbox/sandbox/src/index.ts`](../packages/sandbox/sandbox/src/index.ts))
+- `@maple/session-persistence` — abstract `SessionPersistence` ([`packages/session/session-persistence/src/index.ts`](../packages/session/session-persistence/src/index.ts))
+- `@maple/session-query` — abstract `SessionQueryEngine` ([`packages/session-query/session-query/src/index.ts`](../packages/session-query/session-query/src/index.ts))
+- `@maple/settings` — abstract `SettingsProvider` ([`packages/settings/settings/src/index.ts`](../packages/settings/settings/src/index.ts))
+- `@maple/shell` — abstract `ShellExecutor` ([`packages/shell/shell/src/index.ts`](../packages/shell/shell/src/index.ts))
+- `@maple/spill` — abstract `SpillStore` ([`packages/spill/spill/src/index.ts`](../packages/spill/spill/src/index.ts))
+- `@maple/subprocess` — abstract `SubprocessRuntime` ([`packages/subprocess/subprocess/src/index.ts`](../packages/subprocess/subprocess/src/index.ts))
+- `@maple/workflow` — abstract `WorkflowEngine` ([`packages/workflow/workflow/src/index.ts`](../packages/workflow/workflow/src/index.ts))
+
+## 
 
 由其他包作为库导入；`cordis.yml` 无法加载它们。
 
-- `@deepseek-ai/dsh-acp-snapshot`（[`packages/test-support/acp-snapshot/src/index.ts`](../packages/test-support/acp-snapshot/src/index.ts)）
-- `@deepseek-ai/dsh-agent-loop-testkit`（[`packages/test-support/agent-loop-testkit/src/index.ts`](../packages/test-support/agent-loop-testkit/src/index.ts)）
-- `@deepseek-ai/dsh-anonymous-user-id`（[`packages/identity/anonymous-user-id/src/index.ts`](../packages/identity/anonymous-user-id/src/index.ts)）
-- `@deepseek-ai/dsh-app-boot`（[`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.ts)）
-- `@deepseek-ai/dsh-atomic-write`（[`packages/util/atomic-write/src/index.ts`](../packages/util/atomic-write/src/index.ts)）
-- `@deepseek-ai/dsh-base`（[`packages/bundle/base/src/index.ts`](../packages/bundle/base/src/index.ts)）
-- `@deepseek-ai/dsh-brand`（[`packages/util/brand/src/index.ts`](../packages/util/brand/src/index.ts)）
-- `@deepseek-ai/dsh-client-test-runtime`（[`packages/test-support/client-runtime/src/index.ts`](../packages/test-support/client-runtime/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-primitives`（[`packages/client/ui-primitives/src/index.ts`](../packages/client/ui-primitives/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-slots`（[`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.ts)）
-- `@deepseek-ai/dsh-client-web`（[`packages/client/web/src/index.ts`](../packages/client/web/src/index.ts)）
-- `@deepseek-ai/dsh-cmdline`（[`packages/boot/cmdline/src/index.ts`](../packages/boot/cmdline/src/index.ts)）
-- `@deepseek-ai/dsh-code-runtime-python`（[`packages/code-runtime/code-runtime-python/src/index.ts`](../packages/code-runtime/code-runtime-python/src/index.ts)）
-- `@deepseek-ai/dsh-home-paths`（[`packages/util/home-paths/src/index.ts`](../packages/util/home-paths/src/index.ts)）
-- `@deepseek-ai/dsh-hook-protocol`（[`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.ts)）
-- `@deepseek-ai/dsh-launch-environment`（[`packages/util/launch-environment/src/index.ts`](../packages/util/launch-environment/src/index.ts)）
-- `@deepseek-ai/dsh-llm-mock-server`（[`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts)）
-- `@deepseek-ai/dsh-loader-smoke`（[`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts)）
-- `@deepseek-ai/dsh-native-command`（[`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts)）
-- `@deepseek-ai/dsh-output-retention`（[`packages/util/output-retention/src/index.ts`](../packages/util/output-retention/src/index.ts)）
-- `@deepseek-ai/dsh-sandbox-windows-acl`（[`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts)）
-- `@deepseek-ai/dsh-scope`（[`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts)）
-- `@deepseek-ai/dsh-sdk-client`（[`packages/sdk/client/src/index.ts`](../packages/sdk/client/src/index.ts)）
-- `@deepseek-ai/dsh-sdk-jsonrpc-demo`（[`packages/examples/jsonrpc-demo/src/index.ts`](../packages/examples/jsonrpc-demo/src/index.ts)）
-- `@deepseek-ai/dsh-sdk-protocol`（[`packages/sdk/protocol/src/index.ts`](../packages/sdk/protocol/src/index.ts)）
-- `@deepseek-ai/dsh-session-telemetry`（[`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts)）
-- `@deepseek-ai/dsh-session-title-llm`（[`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts)）
-- `@deepseek-ai/dsh-subagent-in-process-driver`（[`packages/subagent/subagent-in-process-driver/src/index.ts`](../packages/subagent/subagent-in-process-driver/src/index.ts)）
-- `@deepseek-ai/dsh-timeout`（[`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts)）
-- `@deepseek-ai/dsh-typert-generator`（[`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts)）
-- `@deepseek-ai/dsh-typert-protocol`（[`packages/typert/protocol/src/index.ts`](../packages/typert/protocol/src/index.ts)）
-- `@deepseek-ai/dsh-typert-registry`（[`packages/typert/registry/src/index.ts`](../packages/typert/registry/src/index.ts)）
+- `@maple/acp-snapshot` ([`packages/test-support/acp-snapshot/src/index.ts`](../packages/test-support/acp-snapshot/src/index.ts))
+- `@maple/agent-loop-testkit` ([`packages/test-support/agent-loop-testkit/src/index.ts`](../packages/test-support/agent-loop-testkit/src/index.ts))
+- `@maple/anonymous-user-id` ([`packages/identity/anonymous-user-id/src/index.ts`](../packages/identity/anonymous-user-id/src/index.ts))
+- `@maple/app-boot` ([`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.ts))
+- `@maple/atomic-write` ([`packages/util/atomic-write/src/index.ts`](../packages/util/atomic-write/src/index.ts))
+- `@maple/base` ([`packages/bundle/base/src/index.ts`](../packages/bundle/base/src/index.ts))
+- `@maple/brand` ([`packages/util/brand/src/index.ts`](../packages/util/brand/src/index.ts))
+- `@maple/client-test-runtime` ([`packages/test-support/client-runtime/src/index.ts`](../packages/test-support/client-runtime/src/index.ts))
+- `@maple/client-ui-primitives` ([`packages/client/ui-primitives/src/index.ts`](../packages/client/ui-primitives/src/index.ts))
+- `@maple/client-ui-slots` ([`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.ts))
+- `@maple/client-web` ([`packages/client/web/src/index.ts`](../packages/client/web/src/index.ts))
+- `@maple/cmdline` ([`packages/boot/cmdline/src/index.ts`](../packages/boot/cmdline/src/index.ts))
+- `@maple/code-runtime-python` ([`packages/code-runtime/code-runtime-python/src/index.ts`](../packages/code-runtime/code-runtime-python/src/index.ts))
+- `@maple/home-paths` ([`packages/util/home-paths/src/index.ts`](../packages/util/home-paths/src/index.ts))
+- `@maple/hook-protocol` ([`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.ts))
+- `@maple/launch-environment` ([`packages/util/launch-environment/src/index.ts`](../packages/util/launch-environment/src/index.ts))
+- `@maple/llm-mock-server` ([`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts))
+- `@maple/loader-smoke` ([`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts))
+- `@maple/native-command` ([`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts))
+- `@maple/output-retention` ([`packages/util/output-retention/src/index.ts`](../packages/util/output-retention/src/index.ts))
+- `@maple/sandbox-windows-acl` ([`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts))
+- `@maple/scope` ([`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts))
+- `@maple/sdk-client` ([`packages/sdk/client/src/index.ts`](../packages/sdk/client/src/index.ts))
+- `@maple/sdk-jsonrpc-demo` ([`packages/examples/jsonrpc-demo/src/index.ts`](../packages/examples/jsonrpc-demo/src/index.ts))
+- `@maple/sdk-protocol` ([`packages/sdk/protocol/src/index.ts`](../packages/sdk/protocol/src/index.ts))
+- `@maple/session-telemetry` ([`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts))
+- `@maple/session-title-llm` ([`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts))
+- `@maple/subagent-in-process-driver` ([`packages/subagent/subagent-in-process-driver/src/index.ts`](../packages/subagent/subagent-in-process-driver/src/index.ts))
+- `@maple/timeout` ([`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts))
+- `@maple/typert-generator` ([`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts))
+- `@maple/typert-protocol` ([`packages/typert/protocol/src/index.ts`](../packages/typert/protocol/src/index.ts))
+- `@maple/typert-registry` ([`packages/typert/registry/src/index.ts`](../packages/typert/registry/src/index.ts))

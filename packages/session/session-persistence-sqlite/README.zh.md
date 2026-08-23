@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-session-persistence-sqlite
+# @maple/session-persistence-sqlite
 
 [English](README.md) | 中文
 

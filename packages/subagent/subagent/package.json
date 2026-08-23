@@ -1,5 +1,5 @@
 {
-  "name": "@deepseek-ai/dsh-subagent",
+  "name": "@maple/subagent",
   "description": "Abstract subagent seam (ctx.subagents): named-provider registry for delegating to child agents",
   "version": "0.1.1-rc.2",
   "publishConfig": {
@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/subagent/subagent"
   },
   "type": "module",
@@ -40,67 +40,67 @@
     "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-agent-presets": "workspace:^",
-    "@deepseek-ai/dsh-brand": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-sandbox": "workspace:^",
-    "@deepseek-ai/dsh-sandbox-policy": "workspace:^",
-    "@deepseek-ai/dsh-scope": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-session-persistence": "workspace:^",
-    "@deepseek-ai/dsh-session-projection": "workspace:^",
-    "@deepseek-ai/dsh-session-projection-cache": "workspace:^",
-    "@deepseek-ai/dsh-jobs": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/dsh-user-approval": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/agent": "workspace:^",
+    "@maple/agent-presets": "workspace:^",
+    "@maple/brand": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/sandbox": "workspace:^",
+    "@maple/sandbox-policy": "workspace:^",
+    "@maple/scope": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/session-persistence": "workspace:^",
+    "@maple/session-projection": "workspace:^",
+    "@maple/session-projection-cache": "workspace:^",
+    "@maple/jobs": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/user-approval": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "peerDependenciesMeta": {
-    "@deepseek-ai/dsh-agent-presets": {
+    "@maple/agent-presets": {
       "optional": true
     },
-    "@deepseek-ai/dsh-sandbox": {
+    "@maple/sandbox": {
       "optional": true
     },
-    "@deepseek-ai/dsh-sandbox-policy": {
+    "@maple/sandbox-policy": {
       "optional": true
     },
-    "@deepseek-ai/dsh-session-persistence": {
+    "@maple/session-persistence": {
       "optional": true
     },
-    "@deepseek-ai/dsh-session-projection": {
+    "@maple/session-projection": {
       "optional": true
     },
-    "@deepseek-ai/dsh-session-projection-cache": {
+    "@maple/session-projection-cache": {
       "optional": true
     },
-    "@deepseek-ai/dsh-jobs": {
+    "@maple/jobs": {
       "optional": true
     },
-    "@deepseek-ai/dsh-user-approval": {
+    "@maple/user-approval": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-agent-presets": "workspace:^",
-    "@deepseek-ai/dsh-brand": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-sandbox": "workspace:^",
-    "@deepseek-ai/dsh-sandbox-policy": "workspace:^",
-    "@deepseek-ai/dsh-scope": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-session-persistence": "workspace:^",
-    "@deepseek-ai/dsh-session-projection": "workspace:^",
-    "@deepseek-ai/dsh-session-projection-cache": "workspace:^",
-    "@deepseek-ai/dsh-storage": "workspace:^",
-    "@deepseek-ai/dsh-storage-domain": "workspace:^",
-    "@deepseek-ai/dsh-jobs": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/dsh-user-approval": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/agent": "workspace:^",
+    "@maple/agent-presets": "workspace:^",
+    "@maple/brand": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/sandbox": "workspace:^",
+    "@maple/sandbox-policy": "workspace:^",
+    "@maple/scope": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/session-persistence": "workspace:^",
+    "@maple/session-projection": "workspace:^",
+    "@maple/session-projection-cache": "workspace:^",
+    "@maple/storage": "workspace:^",
+    "@maple/storage-domain": "workspace:^",
+    "@maple/jobs": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/user-approval": "workspace:^",
+    "@maple/cordis": "workspace:^"
   }
 }

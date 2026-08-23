@@ -2,7 +2,7 @@
 
 English | [中文](index.zh.md)
 
-Cordis is the plugin framework underneath DeepSeek Harness: a small runtime where every capability — tools, LLM adapters, file access, the agent loop itself — is a plugin mounted into a shared context. This tutorial teaches Cordis hands-on: each chapter is a runnable example you build in a scratch directory inside this repository, ending with a plugin wired into real harness services.
+Cordis is the plugin framework underneath Maple Harness: a small runtime where every capability — tools, LLM adapters, file access, the agent loop itself — is a plugin mounted into a shared context. This tutorial teaches Cordis hands-on: each chapter is a runnable example you build in a scratch directory inside this repository, ending with a plugin wired into real harness services.
 
 The audience is agent developers. You do not need deep TypeScript experience; the [TypeScript notes](#typescript-notes) below explain the syntax that may be unfamiliar, and every chapter shows the exact commands and expected output.
 
@@ -52,8 +52,8 @@ That one-file launcher (see [vendor/cordis/bin.js](../../vendor/cordis/bin.js)) 
 The examples use three TypeScript features beyond ordinary modern JavaScript:
 
 - **Type annotations** describe values without changing runtime behavior: `ctx: Context` says that `ctx` has the Cordis context API, `who: string` accepts text, and `string[]` means an array of strings.
-- **`import type { Context } from '@deepseek-ai/cordis'`** imports only type information. It vanishes at runtime, so a plugin file that needs `Context` solely for annotations adds no runtime dependency.
-- **Declaration merging** (`declare module '@deepseek-ai/cordis' { ... }`) adds your entries to interfaces that Cordis already declares — for example the type of a new `ctx.greeter` property or event name. It generates no runtime wiring; the plugin separately provides the service or emits the event. Chapter 3 shows the pattern in full.
+- **`import type { Context } from '@maple/cordis'`** imports only type information. It vanishes at runtime, so a plugin file that needs `Context` solely for annotations adds no runtime dependency.
+- **Declaration merging** (`declare module '@maple/cordis' { ... }`) adds your entries to interfaces that Cordis already declares — for example the type of a new `ctx.greeter` property or event name. It generates no runtime wiring; the plugin separately provides the service or emits the event. Chapter 3 shows the pattern in full.
 
 Chapter 5 also uses an `interface` to describe a configuration object's fields and a generic type such as `Schema<Config>` to say which object fields a schema validates. You can copy those declarations as shown; the surrounding text explains what each one connects.
 

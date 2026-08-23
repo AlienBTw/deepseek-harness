@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import * as TestRuntimeInvariant from '@deepseek-ai/dsh-client-test-runtime/invariant'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
+import { Context } from '@maple/cordis'
+import * as TestRuntimeInvariant from '@maple/client-test-runtime/invariant'
+import InvariantRegistry from '@maple/invariants'
 
 describe('invariant companion', () => {
   it('registers under the package name with an empty installer', async () => {

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-session-projection
+# @maple/session-projection
 
 English | [中文](README.zh.md)
 

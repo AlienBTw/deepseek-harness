@@ -2,19 +2,19 @@
  * Model-facing foreground Ralph loop over the workflow and subagent seams. A
  * fixed script starts one fresh structured-output child per round, carrying
  * only the immutable objective and the previous bounded handoff between them.
- * @module @deepseek-ai/dsh-tool-ralph
+ * @module @maple/tool-ralph
  */
 
-import type { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { JsonValue } from '@deepseek-ai/dsh-session'
-import type { SubagentProvider } from '@deepseek-ai/dsh-subagent'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
-import type { WorkflowResult, WorkflowRun } from '@deepseek-ai/dsh-workflow'
+import type { Context } from '@maple/cordis'
+import z from '@maple/schemastery'
+import type { ContentBlock } from '@maple/llm'
+import type { JsonValue } from '@maple/session'
+import type { SubagentProvider } from '@maple/subagent'
+import { defineTool } from '@maple/tools'
+import type { ToolCallView, ToolResultView } from '@maple/tools'
+import type { WorkflowResult, WorkflowRun } from '@maple/workflow'
 // Declaration merge only: makes ctx.systemPrompt visible for section registration.
-import type {} from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@maple/system-prompt'
 
 export const name = 'tool-ralph'
 export const inject = ['tools', 'workflowEngine', 'subagents', 'systemPrompt']

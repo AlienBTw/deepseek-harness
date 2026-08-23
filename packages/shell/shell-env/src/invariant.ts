@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-shell-env`.
- * @module @deepseek-ai/dsh-shell-env/invariant
+ * Package-owned invariant companion for `@maple/shell-env`.
+ * @module @maple/shell-env/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-shell-env'
+const PACKAGE_NAME = '@maple/shell-env'
 
 /** Cordis companion plugin name. */
 export const name = 'shell-env-invariant'

@@ -1,0 +1,26 @@
+[package]
+name = "maple-desktop"
+version = "0.1.1-rc.2"
+edition = "2021"
+description = "Maple Harness desktop shell: boots the dsh web profile and shows its UI in one native window"
+license = "MIT"
+
+# The shell is a plain binary crate: no library target, no IPC commands, no
+# plugins beyond single-instance. Everything it does is spawn the host
+# process, wait for readiness, navigate the window, and clean up on exit.
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+rfd = "0.15"
+
+[target.'cfg(windows)'.dependencies]
+win32job = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true

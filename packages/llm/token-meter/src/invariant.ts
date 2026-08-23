@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-token-meter`.
- * @module @deepseek-ai/dsh-token-meter/invariant
+ * Package-owned invariant companion for `@maple/token-meter`.
+ * @module @maple/token-meter/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-token-meter'
+const PACKAGE_NAME = '@maple/token-meter'
 
 /** Cordis companion plugin name. */
 export const name = 'token-meter-invariant'

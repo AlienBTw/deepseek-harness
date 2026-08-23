@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-permission-presets
+# @maple/permission-presets
 
 English | [中文](README.zh.md)
 

@@ -1,5 +1,5 @@
 {
-  "name": "@deepseek-ai/dsh-client-ui-settings",
+  "name": "@maple/client-ui-settings",
   "description": "Settings domain base plugin: the settings-namespace scope service and the canonical settings slot-type contract",
   "version": "0.1.1-rc.2",
   "publishConfig": {
@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/client/ui-settings"
   },
   "type": "module",
@@ -32,9 +32,9 @@
   "dsh": {
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-connection",
-        "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-api-remotes"
+        "@maple/client-connection",
+        "@maple/client-runtime",
+        "@maple/api-remotes"
       ],
       "platform": "web"
     }
@@ -45,27 +45,27 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@deepseek-ai/schemastery": "workspace:^"
+    "@maple/schemastery": "workspace:^"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-api-remotes": "workspace:^",
-    "@deepseek-ai/dsh-client-connection": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-settings": "workspace:^"
+    "@maple/cordis": "workspace:^",
+    "@maple/api-remotes": "workspace:^",
+    "@maple/client-connection": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/settings": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-api-remotes": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-test-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-settings": "workspace:^",
+    "@maple/cordis": "workspace:^",
+    "@maple/api-remotes": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-test-runtime": "workspace:^",
+    "@maple/client-ui-slots": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/settings": "workspace:^",
     "@types/react": "~18.3.1",
     "react": "^18.2.0",
-    "@deepseek-ai/dsh-client-connection": "workspace:^"
+    "@maple/client-connection": "workspace:^"
   },
   "files": [
     "lib/index.js",

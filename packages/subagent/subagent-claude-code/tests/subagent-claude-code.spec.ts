@@ -10,8 +10,8 @@ import type {
   SDKResultMessage,
   SpawnOptions,
 } from '@anthropic-ai/claude-agent-sdk'
-import { Context } from '@deepseek-ai/cordis'
-import Loader from '@deepseek-ai/cordis-plugin-loader'
+import { Context } from '@maple/cordis'
+import Loader from '@maple/cordis-plugin-loader'
 import * as yaml from 'js-yaml'
 import {
   afterEach,
@@ -22,17 +22,17 @@ import {
   type Mock,
   vi,
 } from 'vitest'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import SubagentRuntime from '@deepseek-ai/dsh-subagent'
+import type { Agent } from '@maple/agent'
+import type { InvariantInstaller } from '@maple/invariants'
+import type { ContentBlock } from '@maple/llm'
+import SubagentRuntime from '@maple/subagent'
 import type {
   SubprocessHandle,
   SubprocessOutcome,
   SubprocessSpawnSpec,
-} from '@deepseek-ai/dsh-subprocess'
-import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
-import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+} from '@maple/subprocess'
+import LocalSubprocessRuntime from '@maple/subprocess-local'
+import { MAX_TIMER_DELAY_MS } from '@maple/timeout'
 import * as claudeCode from '../src/index.ts'
 import * as invariant from '../src/invariant.ts'
 import {
@@ -359,7 +359,7 @@ describe('task admission and package contracts', () => {
       '^1.29.0',
     )
     expect(manifest.dependencies).toHaveProperty('zod', '^4.4.3')
-    expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-codex')
+    expect(manifest.dependencies).not.toHaveProperty('@maple/subagent-codex')
 
     const sdkRoot = dirname(fileURLToPath(
       import.meta.resolve('@anthropic-ai/claude-agent-sdk'),
@@ -396,7 +396,7 @@ describe('task admission and package contracts', () => {
       : []
     expect(rows).toEqual([{
       id: 'subagent-claude-code',
-      name: '@deepseek-ai/dsh-subagent-claude-code',
+      name: '@maple/subagent-claude-code',
     }])
     expect(JSON.stringify(rows)).not.toContain('tool-subagent')
   })
@@ -704,7 +704,7 @@ describe('task admission and package contracts', () => {
     const ctx = { invariants: { register } } as unknown as Context
     await expect(invariant.apply(ctx)).resolves.toBe(dispose)
     expect(register).toHaveBeenCalledWith(
-      '@deepseek-ai/dsh-subagent-claude-code',
+      '@maple/subagent-claude-code',
       expect.any(Function),
     )
     const install = register.mock.calls[0]![1]

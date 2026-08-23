@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-host-webserver
+# @maple/host-webserver
 
 [English](README.md) | 中文
 

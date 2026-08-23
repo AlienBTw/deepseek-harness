@@ -13,18 +13,19 @@
  * metadata the surface offers for adoption. `settings.yaml` remains the only
  * thing that decides what a route serves.
  *
- * Only OpenAI-compatible protocols are interrogated. Their listing is the one
- * shape a gateway, a self-hosted server, and the official endpoints all agree
- * on, which is the case this action exists for; every other protocol reports
- * that it cannot be interrogated so the surface falls back to hand-entry
- * rather than guessing a response shape.
+ * OpenAI-compatible protocols are interrogated via `GET /models`; the local
+ * Ollama provider is additionally interrogated via its native `GET /api/tags`
+ * listing, with each model's real context window read from its own
+ * `POST /api/show` reply so no capacity is ever invented here. Every other
+ * protocol reports that it cannot be interrogated so the surface falls back to
+ * hand-entry rather than guessing a response shape.
  *
  * @module dsh-llm-pi-ai/discovery
  */
 
-import { INVALID_CREDENTIAL_CODE, LlmError, normalizeApiKey } from '@deepseek-ai/dsh-llm'
-import type { LlmDiscoveredModel, LlmModelDiscoveryRequest } from '@deepseek-ai/dsh-llm'
-import { attributionHeaders } from '@deepseek-ai/dsh-llm'
+import { INVALID_CREDENTIAL_CODE, LlmError, normalizeApiKey } from '@maple/llm'
+import type { LlmDiscoveredModel, LlmModelDiscoveryRequest } from '@maple/llm'
+import { attributionHeaders } from '@maple/llm'
 import { catalogModels } from './catalog.ts'
 
 /**
@@ -77,14 +78,46 @@ function label(...candidates: readonly unknown[]): string | undefined {
   return undefined
 }
 
+/** Default Ollama endpoint, used when the Ollama provider has no explicit baseURL. */
+const OLLAMA_BASE_URL = 'http://127.0.0.1:11434/v1'
+
+/** Suffix that identifies an OpenAI-compatible base URL. */
+const V1_SUFFIX = '/v1'
+
 /**
- * Join the endpoint base with the listing path. The base is treated as a
- * prefix rather than a URL to resolve against, so a deployment path such as
- * `https://gateway.example/openai/v1` keeps its segments instead of losing
- * them to `URL` resolution.
+ * Join the endpoint base with the listing path candidates. Ollama-native
+ * `/api/tags` is only probed for the local `ollama` provider.
+ * @param baseURL - the endpoint base URL.
+ * @param provider - the requested provider id, when known.
+ * @returns the candidate listing URLs in probe order.
  */
-function listingUrl(baseURL: string): string {
-  return `${baseURL.replace(/\/+$/, '')}/models`
+function listingUrls(baseURL: string, provider?: string): string[] {
+  const clean = baseURL.replace(/\/+$/, '')
+  const urls: string[] = []
+  const isOllama = provider === 'ollama'
+  if (clean.endsWith(V1_SUFFIX)) {
+    urls.push(`${clean}/models`)
+    if (isOllama) {
+      const prefix = clean.slice(0, -V1_SUFFIX.length)
+      urls.push(`${prefix}/api/tags`)
+    }
+  } else {
+    urls.push(`${clean}/models`)
+    urls.push(`${clean}/v1/models`)
+    if (isOllama) {
+      urls.push(`${clean}/api/tags`)
+    }
+  }
+  return [...new Set(urls)]
+}
+
+/**
+ * Whether a `models` array looks like an Ollama-native `/api/tags` reply.
+ * @param rawModels - the raw models array.
+ * @returns `true` when the shape matches Ollama's tags listing.
+ */
+function looksLikeOllamaTags(rawModels: readonly unknown[]): boolean {
+  return rawModels.some(raw => typeof raw === 'object' && raw !== null && ('details' in raw || 'digest' in raw || 'modified_at' in raw))
 }
 
 /**
@@ -131,34 +164,116 @@ async function readBounded(response: Response, url: string): Promise<string> {
 }
 
 /**
- * Read one OpenAI-compatible listing reply. Entries without a usable id are
+ * Read one OpenAI-compatible or Ollama-native listing reply. Entries without a usable id are
  * skipped rather than failing the whole interrogation: a single malformed row
  * should not deny the user the rest of a working endpoint's catalog.
+ *
+ * The Ollama-native branch extracts ids only: `/api/tags` carries family and
+ * quantization metadata but no capacity facts, which arrive from
+ * {@link enrichOllamaCapabilities} instead.
+ * @param body - the parsed JSON body.
+ * @param provider - the requested provider id, when known.
+ * @returns the discovered models.
  */
-function readListing(body: unknown): LlmDiscoveredModel[] {
+function readListing(body: unknown, provider?: string): LlmDiscoveredModel[] {
   const data = (body as { data?: unknown } | null)?.data
-  if (!Array.isArray(data)) {
-    throw new LlmError(
-      'the endpoint\'s model listing has no "data" array; enter this provider\'s models by hand',
-      'DISCOVERY_FAILED',
-    )
+  const rawModels = (body as { models?: unknown } | null)?.models
+
+  if (Array.isArray(data)) {
+    const models: LlmDiscoveredModel[] = []
+    for (const raw of data) {
+      const entry = raw as ListingEntry | null
+      const id = label(entry?.id)
+      if (id === undefined) continue
+      const name = label(entry?.name, entry?.display_name)
+      const contextWindow = capacity(entry?.context_window, entry?.context_length)
+      const maxTokens = capacity(entry?.max_output_tokens, entry?.max_tokens)
+      models.push({
+        id,
+        ...name === undefined ? {} : { name },
+        ...contextWindow === undefined ? {} : { contextWindow },
+        ...maxTokens === undefined ? {} : { maxTokens },
+      })
+    }
+    return models
   }
-  const models: LlmDiscoveredModel[] = []
-  for (const raw of data) {
-    const entry = raw as ListingEntry | null
-    const id = label(entry?.id)
-    if (id === undefined) continue
-    const name = label(entry?.name, entry?.display_name)
-    const contextWindow = capacity(entry?.context_window, entry?.context_length)
-    const maxTokens = capacity(entry?.max_output_tokens, entry?.max_tokens)
-    models.push({
-      id,
-      ...name === undefined ? {} : { name },
-      ...contextWindow === undefined ? {} : { contextWindow },
-      ...maxTokens === undefined ? {} : { maxTokens },
-    })
+
+  if (Array.isArray(rawModels) && (provider === 'ollama' || looksLikeOllamaTags(rawModels))) {
+    const models: LlmDiscoveredModel[] = []
+    for (const raw of rawModels) {
+      const entry = raw as { name?: unknown; model?: unknown } | null
+      const id = label(entry?.name, entry?.model)
+      if (id === undefined) continue
+      models.push({ id })
+    }
+    return models
   }
-  return models
+
+  throw new LlmError(
+    'the endpoint\'s model listing has no "data" array; enter this provider\'s models by hand',
+    'DISCOVERY_FAILED',
+  )
+}
+
+/** One entry of Ollama's `POST /api/show` reply that this reader consumes. */
+interface OllamaShowReply {
+  model_info?: Record<string, unknown>
+}
+
+/**
+ * Find the model's trained context length in an `/api/show` reply. The fact
+ * lives under an architecture-prefixed key (`llama.context_length`,
+ * `qwen2.context_length`, …), so match on the suffix rather than any one
+ * family.
+ * @param reply - the parsed show reply.
+ * @returns the largest context length reported, or `undefined` when none is.
+ */
+function contextLengthFromShow(reply: OllamaShowReply): number | undefined {
+  let found: number | undefined
+  for (const [key, value] of Object.entries(reply.model_info ?? {})) {
+    if (!key.endsWith('.context_length')) continue
+    const candidate = capacity(value)
+    if (candidate !== undefined && (found === undefined || candidate > found)) found = candidate
+  }
+  return found
+}
+
+/**
+ * Fill each discovered Ollama model's context window from its own
+ * `POST /api/show` reply — the one place the running server states the real
+ * value, so the surface never invents capacities. Best-effort per model: a
+ * failed or unreadable show reply leaves that model without a context window
+ * rather than failing a listing that already succeeded.
+ * @param base - the server root the tags listing came from.
+ * @param models - the ids read from the listing, updated in place.
+ * @param headers - the probe headers (credential and attribution) to reuse.
+ * @param signal - the caller's cancellation signal.
+ */
+async function enrichOllamaCapabilities(
+  base: string,
+  models: LlmDiscoveredModel[],
+  headers: Record<string, string>,
+  signal: AbortSignal | undefined,
+): Promise<void> {
+  const showUrl = `${base}/api/show`
+  for (const model of models) {
+    try {
+      const response = await fetch(showUrl, {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ model: model.id }),
+        ...signal === undefined ? {} : { signal },
+      })
+      /* v8 ignore next 3 -- a local server answering the listing but refusing every show is pathological; skip keeps the listing usable. */
+      if (!response.ok) continue
+      const reply = JSON.parse(await readBounded(response, showUrl)) as OllamaShowReply
+      const contextWindow = contextLengthFromShow(reply)
+      if (contextWindow !== undefined) model.contextWindow = contextWindow
+    } catch {
+      // Enrichment is additive metadata; a missing value degrades to the
+      // route's configured default instead of denying a working listing.
+    }
+  }
 }
 
 /**
@@ -198,7 +313,8 @@ export async function discoverModels(
 ): Promise<readonly LlmDiscoveredModel[]> {
   // A catalog route already has its answer, and a better one: the installed
   // entries carry context windows and output caps no listing endpoint reports.
-  if (request.provider !== undefined) {
+  // Ollama is exempt: its models depend on what is locally pulled.
+  if (request.provider !== undefined && request.provider !== 'ollama') {
     const installed = catalogModels(request.provider)
     if (installed.size > 0) {
       return [...installed.values()].map(model => ({
@@ -209,7 +325,8 @@ export async function discoverModels(
       }))
     }
   }
-  if (request.baseURL === undefined || request.baseURL.length === 0) {
+  const effectiveBaseURL = request.baseURL ?? (request.provider === 'ollama' ? OLLAMA_BASE_URL : undefined)
+  if (effectiveBaseURL === undefined || effectiveBaseURL.length === 0) {
     throw new LlmError(
       `pi-ai ships no catalog for provider "${request.provider ?? ''}", so its models can only come from its`
       + " endpoint; set a baseURL, or enter this provider's models by hand",
@@ -229,7 +346,7 @@ export async function discoverModels(
       'DISCOVERY_UNSUPPORTED',
     )
   }
-  const url = listingUrl(request.baseURL)
+  const candidateUrls = listingUrls(effectiveBaseURL, request.provider)
   // A key typed into the form wins: it is the one the user is testing, and it
   // may be the replacement for exactly the stored key that is failing. The
   // stored one is only asked for here, past the catalog short-circuit and the
@@ -239,46 +356,85 @@ export async function discoverModels(
   // relies on the provider's own ambient discovery is meant to be asked.
   const supplied = request.apiKey ?? await storedApiKey?.()
   const apiKey = supplied === undefined ? undefined : usableProbeKey(supplied)
-  let response: Response
-  try {
-    response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        accept: 'application/json',
-        ...apiKey === undefined ? {} : { authorization: `Bearer ${apiKey}` },
-        ...attributionHeaders(),
-      },
-      ...request.signal === undefined ? {} : { signal: request.signal },
-    })
-  } catch (error: unknown) {
-    if (request.signal?.aborted) {
-      throw new LlmError('model discovery aborted by caller', 'ABORTED', { cause: error })
+
+  let lastError: unknown
+  let lastStatus = 0
+  let lastUrl = candidateUrls[0] as string
+
+  for (const url of candidateUrls) {
+    lastUrl = url
+    let response: Response
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          ...apiKey === undefined ? {} : { authorization: `Bearer ${apiKey}` },
+          ...attributionHeaders(),
+        },
+        ...request.signal === undefined ? {} : { signal: request.signal },
+      })
+    } catch (error: unknown) {
+      if (request.signal?.aborted) {
+        throw new LlmError('model discovery aborted by caller', 'ABORTED', { cause: error })
+      }
+      lastError = error
+      continue
     }
-    throw new LlmError(`could not reach ${url}`, 'DISCOVERY_FAILED', { cause: error })
+
+    if (!response.ok) {
+      lastStatus = response.status
+      if (response.status === 401 || response.status === 403) {
+        throw new LlmError(`${url} answered ${response.status}; check the API key`, 'DISCOVERY_FAILED')
+      }
+      if (response.status === 404) {
+        continue
+      }
+      throw new LlmError(`${url} answered ${response.status}`, 'DISCOVERY_FAILED')
+    }
+
+    let text: string
+    try {
+      text = await readBounded(response, url)
+    } catch (error: unknown) {
+      if (request.signal?.aborted) {
+        throw new LlmError('model discovery aborted by caller', 'ABORTED', { cause: error })
+      }
+      throw error
+    }
+
+    let body: unknown
+    try {
+      body = JSON.parse(text)
+    } catch (error: unknown) {
+      throw new LlmError(`${url} did not answer with JSON`, 'DISCOVERY_FAILED', { cause: error })
+    }
+
+    const models = readListing(body, request.provider)
+    // The native tags listing carries no capacity facts; the running server
+    // states each model's real context length only through /api/show. The
+    // probe headers (credential + attribution) ride along unchanged.
+    if (request.provider === 'ollama' && url.endsWith('/api/tags') && models.length > 0) {
+      await enrichOllamaCapabilities(
+        url.slice(0, -'/api/tags'.length),
+        models,
+        {
+          accept: 'application/json',
+          ...apiKey === undefined ? {} : { authorization: `Bearer ${apiKey}` },
+          ...attributionHeaders(),
+        },
+        request.signal,
+      )
+    }
+    return models
   }
-  if (!response.ok) {
+
+  if (lastStatus !== 0) {
     throw new LlmError(
-      `${url} answered ${response.status}${response.status === 401 || response.status === 403 ? '; check the API key' : ''}`,
+      `${lastUrl} answered ${lastStatus}${lastStatus === 401 || lastStatus === 403 ? '; check the API key' : ''}`,
       'DISCOVERY_FAILED',
     )
   }
-  let text: string
-  try {
-    text = await readBounded(response, url)
-  } catch (error: unknown) {
-    // Cancellation during the body read rejects with the abort reason, which
-    // may be any value; the caller gets the same coded failure it would have
-    // for a cancellation before the request went out.
-    if (request.signal?.aborted) {
-      throw new LlmError('model discovery aborted by caller', 'ABORTED', { cause: error })
-    }
-    throw error
-  }
-  let body: unknown
-  try {
-    body = JSON.parse(text)
-  } catch (error: unknown) {
-    throw new LlmError(`${url} did not answer with JSON`, 'DISCOVERY_FAILED', { cause: error })
-  }
-  return readListing(body)
+
+  throw new LlmError(`could not reach ${lastUrl}`, 'DISCOVERY_FAILED', { cause: lastError })
 }

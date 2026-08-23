@@ -30,9 +30,13 @@ export interface PageRankInput {
   tol?: number
 }
 
+/** Converged ranks plus the iteration accounting that produced them. */
 export interface PageRankOutput {
+  /** Final PageRank per node. */
   ranks: Map<string, number>
+  /** Iterations actually executed. */
   iterations: number
+  /** Whether the tolerance was met before the iteration cap. */
   converged: boolean
 }
 
@@ -46,6 +50,8 @@ export interface PageRankOutput {
  *   trans[dst]   = sum over src of (weight(src->dst) / outWeight[src]) * PR[src]
  *   danglingMass = sum of PR[src] for src with outWeight[src] === 0
  *   P            = normalized personalization vector (sums to 1)
+ * @param input - nodes, weighted out-edges, and the personalization vector.
+ * @returns converged node ranks with iteration accounting.
  */
 export function personalizedPageRank(input: PageRankInput): PageRankOutput {
   const {

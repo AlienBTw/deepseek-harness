@@ -1,12 +1,12 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-client-hmr`.
- * @module @deepseek-ai/dsh-client-hmr/invariant
+ * Package-owned invariant companion for `@maple/client-hmr`.
+ * @module @maple/client-hmr/invariant
  */
 
-import type { Context, Fiber } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context, Fiber } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-client-hmr'
+const PACKAGE_NAME = '@maple/client-hmr'
 
 /** Cordis companion plugin name. */
 export const name = 'client-hmr-invariant'

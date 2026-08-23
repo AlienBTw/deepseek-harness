@@ -1,8 +1,8 @@
-# DeepSeek Harness Python SDK
+# Maple Harness Python SDK
 
 [English](https://github.com/deepseek-ai/deepseek-harness/blob/master/python/sdk/README.md) | 中文
 
-通过 JSON-RPC stdio 驱动 DeepSeek Harness 的 Python 子进程 SDK。运行时继承常规的 DeepSeek Harness 环境变量（如 `DEEPSEEK_BASE_URL` 与 `DEEPSEEK_API_KEY`），调用方可以直接使用真实模型端点，也可以把这些变量指向本地代理。
+通过 JSON-RPC stdio 驱动 Maple Harness 的 Python 子进程 SDK。运行时继承常规的 Maple Harness 环境变量（如 `DEEPSEEK_BASE_URL` 与 `DEEPSEEK_API_KEY`），调用方可以直接使用真实模型端点，也可以把这些变量指向本地代理。
 
 请从 PyPI 安装 `deepseek-harness-sdk` 分发包；导入模块仍为 `deepseek_harness`：
 
@@ -21,7 +21,7 @@ with DeepSeekHarness() as harness:
 
 `DeepSeekHarness` 会保留其按需启动的运行时子进程，以便在多次调用之间复用。请像上例一样将其用作上下文管理器，或在使用完毕后显式调用 `close()`。
 
-默认情况下，SDK 会启动 `deepseek-harness-runtime-bin` 包内置的单文件可执行程序 `dsh-jsonrpc-agent`，并通过 `DSH_CORDIS_CONFIG` 注入该包的默认配置，其中包括 stdio JSON-RPC 服务器、agent core（智能体核心）、预载的 DeepSeek 适配器、采用显式组合语义检查点策略的 JSONL 会话持久化，以及本地 bash。要运行自己的插件组合，请在配置中保留 `@deepseek-ai/dsh-sdk-jsonrpc-server` 配置项，并传入 Cordis 配置文件路径。
+默认情况下，SDK 会启动 `deepseek-harness-runtime-bin` 包内置的单文件可执行程序 `dsh-jsonrpc-agent`，并通过 `DSH_CORDIS_CONFIG` 注入该包的默认配置，其中包括 stdio JSON-RPC 服务器、agent core（智能体核心）、预载的 DeepSeek 适配器、采用显式组合语义检查点策略的 JSONL 会话持久化，以及本地 bash。要运行自己的插件组合，请在配置中保留 `@maple/sdk-jsonrpc-server` 配置项，并传入 Cordis 配置文件路径。
 
 ```py
 from deepseek_harness import DeepSeekHarness

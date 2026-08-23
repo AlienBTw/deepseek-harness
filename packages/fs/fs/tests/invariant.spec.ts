@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import { FsTargetKey, FsVersion } from '@deepseek-ai/dsh-fs'
-import type { FsTarget } from '@deepseek-ai/dsh-fs'
-import * as FsInvariant from '@deepseek-ai/dsh-fs/invariant'
-import InvariantRegistry from '@deepseek-ai/dsh-invariants'
+import { Context } from '@maple/cordis'
+import { FsTargetKey, FsVersion } from '@maple/fs'
+import type { FsTarget } from '@maple/fs'
+import * as FsInvariant from '@maple/fs/invariant'
+import InvariantRegistry from '@maple/invariants'
 
 async function setup(): Promise<Context> {
   const ctx = new Context()

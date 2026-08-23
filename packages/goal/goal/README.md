@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-goal
+# @maple/goal
 
 English | [中文](README.zh.md)
 
@@ -8,7 +8,7 @@ Event-sourced same-session goal state. The service retains one current completio
 
 ```yaml
 - id: goal
-  name: '@deepseek-ai/dsh-goal'
+  name: '@maple/goal'
   config:
     defaultMaxGoalRounds: 256
 ```

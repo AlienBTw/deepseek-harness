@@ -26,9 +26,6 @@
     },
     {
       "path": "../../core/session"
-    },
-    {
-      "path": "../../fs/fs"
     }
   ]
 }

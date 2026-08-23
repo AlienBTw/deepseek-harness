@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { type SessionEvent } from '@deepseek-ai/dsh-session'
-import { parseSessionLog } from '@deepseek-ai/dsh-llm-replay'
+import { type SessionEvent } from '@maple/session'
+import { parseSessionLog } from '@maple/llm-replay'
 import { canonicalSessionFixture } from './session-fixture-layout.ts'
 
 const HEADER = '  {"type":"session","version":0,"id":"fixture","createdAt":1,"delegationDepth":0}  '

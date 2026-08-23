@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-locale
+# @maple/client-locale
 
 English | [中文](README.zh.md)
 

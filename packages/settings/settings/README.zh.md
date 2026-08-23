@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-settings
+# @maple/settings
 
 [English](README.md) | 中文
 

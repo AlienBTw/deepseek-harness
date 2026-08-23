@@ -1,0 +1,27 @@
+{
+    "name":  "@maple/desktop",
+    "description":  "Maple Harness desktop shell: a Tauri window over the dsh web profile's local server",
+    "version":  "0.1.1-rc.2",
+    "license":  "MIT",
+    "type":  "module",
+    "publishConfig":  {
+        "access":  "public"
+    },
+    "files":  [
+        "README.md",
+        "dist"
+    ],
+    "repository":  {
+        "type":  "git",
+        "url":  "git+https://github.com/AlienBTw/maple-harness.git",
+        "directory":  "apps/desktop"
+    },
+    "scripts":  {
+                    "dev":  "tauri dev",
+                    "build":  "tauri build",
+                    "check":  "cargo check --manifest-path src-tauri/Cargo.toml"
+                },
+    "devDependencies":  {
+                            "@tauri-apps/cli":  "^2.0.0"
+                        }
+}

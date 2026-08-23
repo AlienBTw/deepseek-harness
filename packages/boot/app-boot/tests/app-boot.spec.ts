@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
+import { Context } from '@maple/cordis'
+import SystemPrompt, { renderPrompt } from '@maple/system-prompt'
 import {
   addHarnessSourceSection, assertEntriesActivated, assertEntriesLoaded, boot,
   FAIL_LOUD_RELEASE_TIMEOUT_MS, HARNESS_SOURCE_SECTION,
@@ -563,12 +563,12 @@ describe('boot', () => {
     const dir = tmp()
     const harness = tmp()
     const absolutePlugin = join(dir, 'absolute.mjs')
-    const shadow = join(dir, 'node_modules', '@deepseek-ai', 'dsh-system-prompt')
-    const harnessPlugin = join(harness, 'node_modules', '@deepseek-ai', 'dsh-system-prompt')
+    const shadow = join(dir, 'node_modules', '@maple', 'system-prompt')
+    const harnessPlugin = join(harness, 'node_modules', '@maple', 'system-prompt')
     mkdirSync(shadow, { recursive: true })
     mkdirSync(harnessPlugin, { recursive: true })
     writeFileSync(join(shadow, 'package.json'), JSON.stringify({
-      name: '@deepseek-ai/dsh-system-prompt',
+      name: '@maple/system-prompt',
       type: 'module',
       exports: './index.mjs',
     }))
@@ -579,7 +579,7 @@ describe('boot', () => {
       '',
     ].join('\n'))
     writeFileSync(join(harnessPlugin, 'package.json'), JSON.stringify({
-      name: '@deepseek-ai/dsh-system-prompt',
+      name: '@maple/system-prompt',
       type: 'module',
       exports: './index.mjs',
     }))
@@ -593,7 +593,7 @@ describe('boot', () => {
     writeFileSync(absolutePlugin, 'export function apply(ctx) { ctx.provide("absolutePluginLoaded", true) }\n')
     const entries = [
       '- id: prompt',
-      "  name: '@deepseek-ai/dsh-system-prompt'",
+      "  name: '@maple/system-prompt'",
       '- id: relative',
       "  name: './relative.mjs'",
     ]
@@ -784,7 +784,7 @@ describe('boot', () => {
 
 describe('addHarnessSourceSection', () => {
   const SOURCE_ROOT = `${sep}opt${sep}harness-src`
-  const EXPECTED = `The DeepSeek Harness implementation checkout is at ${SOURCE_ROOT}. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.`
+  const EXPECTED = `The Maple Harness implementation checkout is at ${SOURCE_ROOT}. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.`
 
   it('distinguishes the source path from the current workdir between identity and persona', async () => {
     const ctx = new Context()
@@ -797,7 +797,7 @@ describe('addHarnessSourceSection', () => {
       expect(rendered).toContain(EXPECTED)
       // Harness-owned opener (-100) → source (-99) → persona (0). The >= 0 guards
       // keep a drifted opener/persona string from a false pass through `-1 < n`.
-      const identityAt = rendered.indexOf('You are an AI agent powered by DeepSeek Harness.')
+      const identityAt = rendered.indexOf('You are an AI agent powered by Maple Harness.')
       const sourceAt = rendered.indexOf(EXPECTED)
       const personaAt = rendered.indexOf('You are a coding agent.')
       expect(identityAt).toBeGreaterThanOrEqual(0)

@@ -4,19 +4,19 @@
  * producers. It also delivers unreported completions to the owning agent:
  * injected into a busy owner's next step, or opening a turn on an idle one
  * under the default `wakeup` delivery, bounded per owner.
- * @module @deepseek-ai/dsh-tool-jobs
+ * @module @maple/tool-jobs
  */
 
-import type { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import { boundContextSummary, createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
-import { TextRetainer } from '@deepseek-ai/dsh-output-retention'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { GenericCallView, ToolDefinition, ToolExecution } from '@deepseek-ai/dsh-tools'
-import { JobId } from '@deepseek-ai/dsh-jobs'
-import type { JobSnapshot } from '@deepseek-ai/dsh-jobs'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Context } from '@maple/cordis'
+import z from '@maple/schemastery'
+import { boundContextSummary, createUserMessage, type ContentBlock } from '@maple/llm'
+import { TextRetainer } from '@maple/output-retention'
+import { defineTool } from '@maple/tools'
+import type { GenericCallView, ToolDefinition, ToolExecution } from '@maple/tools'
+import { JobId } from '@maple/jobs'
+import type { JobSnapshot } from '@maple/jobs'
+import type {} from '@maple/system-prompt'
+import type { Agent } from '@maple/agent'
 
 export const name = 'tool-jobs'
 export const inject = ['tools', 'jobs', 'systemPrompt']

@@ -31,18 +31,36 @@ const SCOPE_NODE_TYPES = new Set([
   'decorated_definition',
 ])
 
+/**
+ * One file pre-parsed into plain-JS rendering data. The WASM tree is freed
+ * after this shape is built, so the renderer never touches live AST nodes;
+ * the binary search over the token budget re-renders from it cheaply.
+ */
 export interface ParsedFile {
+  /** Path relative to the repository root; the renderer's grouping key. */
   rel_fname: string
+  /** Full source text the lines were split from. */
   source: string
+  /** Source split on newlines; indexed by the zero-based rows elsewhere here. */
   lines: string[]
+  /** Spans of scope-defining nodes (functions, classes, …), innermost first in discovery order. */
   scopeSpans: Array<{ startRow: number; endRow: number }>
+  /** For each scope's start row, the start rows of its enclosing scopes. */
   ancestorHeadersByStartRow: Map<number, number[]>
 }
 
+/**
+ * Build one file's plain-JS rendering data from its parsed AST, freeing the
+ * caller from any further WASM-node access.
+ * @param rel_fname - path relative to the repository root.
+ * @param source - full file source text.
+ * @param rootNode - the parsed tree root, or `null` when parsing failed.
+ * @returns the rendering data {@link renderTreeContext} consumes.
+ */
 export function parseFileForRendering(
   rel_fname: string,
   source: string,
-  rootNode: TSNode | null
+  rootNode: TSNode | null,
 ): ParsedFile {
   const lines = source.split('\n')
   const { scopeSpans, ancestorHeadersByStartRow } = collectScopeNodes(rootNode)
@@ -55,6 +73,12 @@ export function parseFileForRendering(
   }
 }
 
+/**
+ * Walk the AST collecting scope spans and each scope's ancestor-header chain
+ * as plain JS, so the WASM tree can be freed immediately after parsing.
+ * @param rootNode - the parsed tree root, or `null` when parsing failed.
+ * @returns the scope data one {@link ParsedFile} carries.
+ */
 export function collectScopeNodes(rootNode: TSNode | null): {
   scopeSpans: Array<{ startRow: number; endRow: number }>
   ancestorHeadersByStartRow: Map<number, number[]>
@@ -93,6 +117,14 @@ export function collectScopeNodes(rootNode: TSNode | null): {
   return { scopeSpans, ancestorHeadersByStartRow }
 }
 
+/**
+ * Render the lines-of-interest for one file with their enclosing scope
+ * headers, eliding uninteresting runs behind an ellipsis line — the per-file
+ * body of a ranked repo map.
+ * @param parsed - the pre-parsed rendering data for this file.
+ * @param lois - zero-based line numbers of the symbols this file was ranked for.
+ * @returns the rendered text, empty when there are no lines to show.
+ */
 export function renderTreeContext(parsed: ParsedFile, lois: number[]): string {
   if (lois.length === 0) return ''
   const { lines, scopeSpans, ancestorHeadersByStartRow } = parsed
@@ -124,7 +156,8 @@ export function renderTreeContext(parsed: ParsedFile, lois: number[]): string {
   const runs: number[][] = []
   let current: number[] = []
   for (const ln of sorted) {
-    if (current.length === 0 || (current[current.length - 1] !== undefined && ln === current[current.length - 1]! + 1)) {
+    const last = current[current.length - 1]
+    if (last === undefined || ln === last + 1) {
       current.push(ln)
     } else {
       runs.push(current)
@@ -142,8 +175,9 @@ export function renderTreeContext(parsed: ParsedFile, lois: number[]): string {
     if (!run) continue
     for (const ln of run) {
       const src = lines[ln] ?? ''
-      const prefix = displayLines.has(ln) ? ' ' : ' '
-      out.push(`${prefix} ${src}`)
+      // Both arms of the ported ternary rendered the same space; keep the
+      // two-space prefix byte-for-byte.
+      out.push(`  ${src}`)
     }
     const nextRun = runs[r + 1]
     const lastInRun = run[run.length - 1]
@@ -162,6 +196,13 @@ export function renderTreeContext(parsed: ParsedFile, lois: number[]): string {
   return out.join('\n')
 }
 
+/**
+ * Render lines-of-interest without scope context — the fallback for files
+ * whose parse failed, so a map still shows the ranked lines bare.
+ * @param source - full file source text.
+ * @param lois - zero-based line numbers to show, in any order.
+ * @returns the rendered text with ellipsis lines between disjoint runs.
+ */
 export function renderBareLois(source: string, lois: Set<number>): string {
   const lines = source.split('\n')
   const out: string[] = []

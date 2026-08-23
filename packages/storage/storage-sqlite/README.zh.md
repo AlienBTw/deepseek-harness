@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-storage-sqlite
+# @maple/storage-sqlite
 
 [English](README.md) | 中文
 

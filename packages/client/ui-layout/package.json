@@ -1,5 +1,5 @@
 {
-  "name": "@deepseek-ai/dsh-client-ui-layout",
+  "name": "@maple/client-ui-layout",
   "description": "Shell plugin: three-column AppFrame with drag handles, ctx.layout viewing-state service (navigation + panels)",
   "version": "0.1.1-rc.2",
   "publishConfig": {
@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/client/ui-layout"
   },
   "type": "module",
@@ -32,8 +32,8 @@
   "dsh": {
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-theme"
+        "@maple/client-runtime",
+        "@maple/client-ui-theme"
       ],
       "platform": "web"
     }
@@ -44,19 +44,19 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-ui-theme": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@maple/client-locale": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-ui-slots": "workspace:^",
+    "@maple/client-ui-theme": "workspace:^",
+    "@maple/invariants": "workspace:^",
     "@types/react": "~18.3.1",
-    "@deepseek-ai/cordis": "workspace:^",
+    "@maple/cordis": "workspace:^",
     "react": "^18.2.0"
   },
   "files": [

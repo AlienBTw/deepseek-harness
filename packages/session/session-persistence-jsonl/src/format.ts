@@ -9,9 +9,9 @@
  */
 
 import { join } from 'node:path'
-import { decodeStorageRecord, packChunkRuns, SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
-import type { SessionEvent, SessionHeader, SessionId, StorageRecord } from '@deepseek-ai/dsh-session'
-import { SessionFormatUnsupportedError, sessionFormatVersionRefusal } from '@deepseek-ai/dsh-session-persistence'
+import { decodeStorageRecord, packChunkRuns, SESSION_FORMAT_VERSION } from '@maple/session'
+import type { SessionEvent, SessionHeader, SessionId, StorageRecord } from '@maple/session'
+import { SessionFormatUnsupportedError, sessionFormatVersionRefusal } from '@maple/session-persistence'
 
 /** Physical encoding selected for JSONL session artifacts. */
 export type JsonlCompression = 'zstd' | 'none'

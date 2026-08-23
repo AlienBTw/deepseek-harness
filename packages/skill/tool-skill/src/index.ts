@@ -1,16 +1,16 @@
 /**
  * Durable session skill catalog and model-facing `skill` loader tool.
  *
- * @module @deepseek-ai/dsh-tool-skill
+ * @module @maple/tool-skill
  */
 
 import { createHash } from 'node:crypto'
-import type { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { UserMessage } from '@deepseek-ai/dsh-session'
+import type { Context } from '@maple/cordis'
+import z from '@maple/schemastery'
+import type { Agent, PreStepDecision } from '@maple/agent'
+import { defineTool } from '@maple/tools'
+import { createUserMessage } from '@maple/llm'
+import type { UserMessage } from '@maple/session'
 import {
   escapeText,
   isModelInvocable,
@@ -19,7 +19,7 @@ import {
   renderSkillContent,
   type SkillInvocationSource,
   type SkillSummary,
-} from '@deepseek-ai/dsh-skill'
+} from '@maple/skill'
 
 export const name = 'tool-skill'
 export const inject = ['agents', 'tools', 'skills']
@@ -40,7 +40,7 @@ export interface SkillCatalogSource {
   readonly entries: readonly { readonly name: string; readonly description: string }[]
 }
 
-declare module '@deepseek-ai/dsh-llm' {
+declare module '@maple/llm' {
   interface MessageSourceMap {
     'skill-catalog': SkillCatalogSource
   }

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-llm-pi-ai
+# @maple/llm-pi-ai
 
 [English](README.md) | 中文
 
@@ -12,7 +12,7 @@
 
 ```yaml
 - id: llm
-  name: '@deepseek-ai/dsh-llm-pi-ai'
+  name: '@maple/llm-pi-ai'
   config:
     providers:
       # Catalog route: endpoint, protocol, and models all come from pi-ai.
@@ -85,6 +85,8 @@ profile 的 `models` 列表是*替换*该路由已安装 catalog，而不是扩�
 
 `modelOverrides` 无需这份代价就能就地重塑单个已安装 catalog 模型：每个键是一个 catalog 模型 id，每个值可写 `models` 条目接受的同一批字段，只是 id 落在键上，而 catalog 的其余部分原样继续服务——「改一个模型、其余三十七个原样保留」只是一次三行编辑。一条覆盖会成为该 catalog 条目的配置，因此容量、档位与 compat 沿与 `models` 条目相同的路径解析，携带相同的诊断与相同的请求默认值语义。覆盖只在正服务自身 catalog 的 catalog 路由上才有意义：与 `models` 列表并存的一份（该列表本就替换了 catalog）、落在手工声明路由上的一份（其模型已在 `models` 中完整写出），或点名了 catalog 未描述模型的一份，都会被拒绝而非跳过，因为一个静默保持原样的模型，就是一个否则要有人费力追查的笔误。
 
+`ollama` 路由附带三个仅含标识的引导条目（`llama3.2`、`qwen2.5-coder`、`deepseek-r1`），让未配置的 profile 无需声明模型即可解析。它们刻意不携带上下文窗口与输出上限——这些取决于本机拉取了什么、以及它如何被服务——因此在模型发现从运行中的服务器取回真实值之前，它们沿用路由的可配置容量默认值。
+
 ### 按模型的推理（reasoning）档位
 
 `reasoningEfforts` 声明模型可选的思考级别：每个键是选择器提供的一个档位，其值是分派在协议中发送的拼写，因此 `high: high` 原样透传规范名称，而 `max: ultra` 则为使用自有词汇的网关改名。键取自 pi-ai 的档位集合（`off`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`）；未声明的档位不会被提供。省略该字段会保留已安装 catalog 条目的能力（手工声明的模型没有这份能力，也不推理）；`false` 声明一个不具备推理能力的模型，profile 正是以此从其网关无法服务的 catalog 模型上剥除推理；空声明会被拒绝，而不是在这两种含义之间去猜。
@@ -138,7 +140,9 @@ pi-ai 依据提供方 id 与 baseURL 决定每个请求的形状：系统提示�
 
 询问只读 `openai-completions` 与 `openai-responses`，它们「`GET /models` + bearer 认证」的形状是网关、自建服务与官方端点三方一致认可的那一种。Azure 尽管出身 OpenAI 也被排除——它用 `api-key` 标头认证并要求 `api-version` 查询参数——Codex 则走 OAuth；其余协议一律以 `DISCOVERY_UNSUPPORTED` 回答，让界面回退到手工填写，而不是把认证失败报成一个没有模型的提供方。`baseURL` 按前缀而非待解析 URL 处理，因此 `https://gateway.example/openai/v1` 这类部署路径会保留其路径段。
 
-多数列表只公布 id；`context_window`/`context_length` 与 `max_output_tokens`/`max_tokens` 在网关提供时会被读取，没有可用 id 的条目会被跳过而不是让整份列表失败，其余仍由采纳方补齐。回复在四兆字节上限下读取，且上限落在实际收到的字节上——端点是用户自己填的 URL，因此会先看声明长度，但绝不把它当作边界。端点不可达、凭据被拒、响应非 JSON、以及响应没有 `data` 数组，都会以 `DISCOVERY_FAILED` 失败，消息点名端点；仅当 401 或 403 时才点名凭据。读取响应体期间被取消会呈现为 `ABORTED`，与请求发出之前被取消一致。
+本地 `ollama` 提供方以两种原生形状加入可询问集合。它的模型取决于本机拉取了什么，因此豁免于 catalog 捷径，并默认指向 `http://127.0.0.1:11434/v1`。询问先探测 `GET /models`，再探测原生的 `GET /api/tags` 列表；原生形状只对该提供方请求，因此 OpenAI 兼容网关绝不会收到携带其凭据的兄弟路径请求。`/api/tags` 只披露标识、不含容量事实，因此每个发现的 id 会通过 `POST /api/show` 直接追问：回复里以架构名为前缀的 `*.context_length` 值成为该模型的上下文窗口；某次 show 调用失败或不可读时，只是该模型不带容量，而不会让已经成功的列表整体失败。这条路径上的任何容量都不是编造的；服务器描述不出的模型就保持未描述，直到服务器能够描述为止。
+
+多数列表只公布 id；`context_window`/`context_length` 与 `max_output_tokens`/`max_tokens` 在网关提供时会被读取，没有可用 id 的条目会被跳过而不是让整份列表失败，其余仍由采纳方补齐。回复在四兆字节上限下读取，且上限落在实际收到的字节上——端点是用户自己填的 URL，因此会先看声明长度，但绝不把它当作边界。端点不可达、凭据被拒、响应非 JSON、以及响应既无 `data` 也无可读 `models` 数组，都会以 `DISCOVERY_FAILED` 失败，消息点名端点；仅当 401 或 403 时才点名凭据。读取响应体期间被取消会呈现为 `ABORTED`，与请求发出之前被取消一致。
 
 ## 提供方／模型路由与回放
 

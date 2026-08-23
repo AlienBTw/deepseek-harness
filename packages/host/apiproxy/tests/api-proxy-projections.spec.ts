@@ -8,22 +8,22 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
+import { Context } from '@maple/cordis'
 import { z } from 'zod'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import { AttachmentStore } from '@deepseek-ai/dsh-attachment'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import type { Session } from '@deepseek-ai/dsh-session'
-import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
-import UserQuestionService from '@deepseek-ai/dsh-user-questions'
-import type { MuxFrame, RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
-import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import { createApiProxy } from '@deepseek-ai/dsh-host-apiproxy'
+import AgentRegistry, { Inbox } from '@maple/agent'
+import { AttachmentStore } from '@maple/attachment'
+import type { Agent } from '@maple/agent'
+import { createUserMessage } from '@maple/llm'
+import SessionStore, { SessionId } from '@maple/session'
+import type { Session } from '@maple/session'
+import SessionProjectionRegistry from '@maple/session-projection'
+import type { ProjectionDefinition } from '@maple/session-projection'
+import UserQuestionService from '@maple/user-questions'
+import type { MuxFrame, RpcRequest } from '@maple/host-apiproxy/api'
+import { RpcId } from '@maple/host-apiproxy/api/rpc'
+import { createApiProxy } from '@maple/host-apiproxy'
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
+declare module '@maple/session-projection/types' {
   interface SessionProjectionStateMap {
     'test/last-user': LastUserState
     'test/internal-count': number

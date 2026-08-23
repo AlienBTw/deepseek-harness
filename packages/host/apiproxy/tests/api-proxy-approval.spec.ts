@@ -7,17 +7,17 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import SessionStore from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import UserQuestionService from '@deepseek-ai/dsh-user-questions'
-import ApprovalService from '@deepseek-ai/dsh-user-approval'
-import type { ApprovalRequestId } from '@deepseek-ai/dsh-user-approval'
-import type { ApiProxy, MuxFrame, RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
-import type { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import { RpcId as mintRpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
+import { Context } from '@maple/cordis'
+import AgentRegistry from '@maple/agent'
+import type { Agent } from '@maple/agent'
+import SessionStore from '@maple/session'
+import SystemPrompt from '@maple/system-prompt'
+import UserQuestionService from '@maple/user-questions'
+import ApprovalService from '@maple/user-approval'
+import type { ApprovalRequestId } from '@maple/user-approval'
+import type { ApiProxy, MuxFrame, RpcRequest } from '@maple/host-apiproxy/api'
+import type { RpcId } from '@maple/host-apiproxy/api/rpc'
+import { RpcId as mintRpcId } from '@maple/host-apiproxy/api/rpc'
 import { createApiProxy } from '../src/api-proxy.ts'
 
 async function harness(): Promise<{ ctx: Context; api: ApiProxy }> {

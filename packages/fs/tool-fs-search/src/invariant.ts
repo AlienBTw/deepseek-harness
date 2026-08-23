@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-tool-fs-search`.
- * @module @deepseek-ai/dsh-tool-fs-search/invariant
+ * Package-owned invariant companion for `@maple/tool-fs-search`.
+ * @module @maple/tool-fs-search/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tool-fs-search'
+const PACKAGE_NAME = '@maple/tool-fs-search'
 
 /** Cordis companion plugin name. */
 export const name = 'tool-fs-search-invariant'

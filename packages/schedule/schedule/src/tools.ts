@@ -1,13 +1,13 @@
 /**
  * Agent-scoped Schedule management tools over the durable session fold.
- * @module @deepseek-ai/dsh-schedule
+ * @module @maple/schedule
  */
 
-import type { Context } from '@deepseek-ai/cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { GenericCallView } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@maple/cordis'
+import type { Agent } from '@maple/agent'
+import type { ContentBlock } from '@maple/llm'
+import { defineTool } from '@maple/tools'
+import type { GenericCallView } from '@maple/tools'
 import {
   allocateScheduleId,
   createAfterScheduleRecord,

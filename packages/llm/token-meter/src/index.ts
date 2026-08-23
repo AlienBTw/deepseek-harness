@@ -1,17 +1,17 @@
 /**
  * Single replay-aware token-meter service for request and surface pressure.
  *
- * @module @deepseek-ai/dsh-token-meter
+ * @module @maple/token-meter
  */
 
-import { Context, Service } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import { BlockAssembler, deepFreeze } from '@deepseek-ai/dsh-llm'
-import type { Message, TokenUsage } from '@deepseek-ai/dsh-llm'
-import type { EpochHeader, Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import { canonicalHeader, headerEquals, isSurfaceEvent } from '@deepseek-ai/dsh-session'
+import { Context, Service } from '@maple/cordis'
+import z from '@maple/schemastery'
+import { BlockAssembler, deepFreeze } from '@maple/llm'
+import type { Message, TokenUsage } from '@maple/llm'
+import type { EpochHeader, Session, SessionEvent } from '@maple/session'
+import { canonicalHeader, headerEquals, isSurfaceEvent } from '@maple/session'
 // Type-only: resolves the optional projection registry Context declaration.
-import type {} from '@deepseek-ai/dsh-session-projection'
+import type {} from '@maple/session-projection'
 import type {
   TokenMeasurement,
   TokenMeasurementBaseline,
@@ -64,7 +64,7 @@ function validateConfigKeys(config: TokenMeterConfig): void {
   }
 }
 
-declare module '@deepseek-ai/cordis' {
+declare module '@maple/cordis' {
   interface Context {
     tokenMeter: TokenMeter
   }

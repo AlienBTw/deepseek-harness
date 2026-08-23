@@ -11,10 +11,10 @@
  * @module dsh-agent-loop/tool-calls
  */
 
-import type { Context } from '@deepseek-ai/cordis'
-import { assertNever, createToolResultMessage, type ToolCallBlock } from '@deepseek-ai/dsh-llm'
-import type { Session, UserMessage } from '@deepseek-ai/dsh-session'
-import { TOOL_ABORTED_BEFORE_DISPATCH, TOOL_RUNTIME_SCHEDULER, type ToolExecutionInput, type ToolExecutionMode, type ToolExecutionResult, type ToolRunContext } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@maple/cordis'
+import { assertNever, createToolResultMessage, type ToolCallBlock } from '@maple/llm'
+import type { Session, UserMessage } from '@maple/session'
+import { TOOL_ABORTED_BEFORE_DISPATCH, TOOL_RUNTIME_SCHEDULER, type ToolExecutionInput, type ToolExecutionMode, type ToolExecutionResult, type ToolRunContext } from '@maple/tools'
 
 /** One tool call after argument parsing, ready to schedule. */
 interface PlannedCall {

@@ -4,19 +4,19 @@
  * version this controller last observed, and a `version-conflict` reply carries
  * the authoritative item, so a lost race reconciles from the reply itself
  * instead of refetching the whole Session.
- * @module @deepseek-ai/dsh-client-ui-message-feedback/client/controller
+ * @module @maple/client-ui-message-feedback/client/controller
  */
 
-import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
-import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
-import type { MessageId, SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { RemoteResult } from '@maple/typert-protocol'
+import type { HostObservable } from '@maple/client-ui-slots'
+import type { MessageId, SessionId } from '@maple/client-connection/client'
 import type {
   MessageFeedbackDeleteResult,
   MessageFeedbackItem,
   MessageFeedbackListResult,
   MessageFeedbackPutResult,
   MessageFeedbackRating,
-} from '@deepseek-ai/dsh-message-feedback/types'
+} from '@maple/message-feedback/types'
 
 /**
  * The three Remote calls this controller needs. The generated face wraps every

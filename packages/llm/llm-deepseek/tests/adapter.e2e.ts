@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import LlmRuntime, { createUserMessage, CallId, ReasoningEffortId, createMessage } from '@deepseek-ai/dsh-llm'
-import type { Message, ToolSchema } from '@deepseek-ai/dsh-llm'
-import AttachmentStore, { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment'
+import { Context } from '@maple/cordis'
+import LlmRuntime, { createUserMessage, CallId, ReasoningEffortId, createMessage } from '@maple/llm'
+import type { Message, ToolSchema } from '@maple/llm'
+import AttachmentStore, { AttachmentId, ImageVariantId } from '@maple/attachment'
 import type {
   ImageAttachmentLimits,
   ImageAttachmentRef,
@@ -15,10 +15,10 @@ import type {
   RequestImageAttachment,
   SaveImageAttachment,
   StoredImageAttachment,
-} from '@deepseek-ai/dsh-attachment'
-import { LocalCredentialProvider } from '@deepseek-ai/dsh-credentials-local'
-import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
-import type { Config } from '@deepseek-ai/dsh-llm-deepseek'
+} from '@maple/attachment'
+import { LocalCredentialProvider } from '@maple/credentials-local'
+import * as LlmDeepSeek from '@maple/llm-deepseek'
+import type { Config } from '@maple/llm-deepseek'
 import { assemble, type AssembledResult } from './assemble.ts'
 
 /**

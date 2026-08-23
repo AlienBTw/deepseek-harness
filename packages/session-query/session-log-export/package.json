@@ -1,11 +1,11 @@
 {
-  "name": "@deepseek-ai/dsh-session-log-export",
+  "name": "@maple/session-log-export",
   "description": "Web Session-log export command and shared download dialog",
   "version": "0.1.1-rc.2",
   "publishConfig": { "access": "public" },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/session-query/session-log-export"
   },
   "type": "module",
@@ -22,37 +22,37 @@
   "scripts": { "bundle": "tsdown", "watch": "tsdown --watch" },
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-commands": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
-    "@deepseek-ai/dsh-commands": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^"
+    "@maple/cordis": "workspace:^",
+    "@maple/client-locale": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-ui-commands": "workspace:^",
+    "@maple/client-ui-conversation": "workspace:^",
+    "@maple/commands": "workspace:^",
+    "@maple/invariants": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/cordis-plugin-loader": "workspace:^",
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-commands": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-commands": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
+    "@maple/cordis": "workspace:^",
+    "@maple/cordis-plugin-loader": "workspace:^",
+    "@maple/agent": "workspace:^",
+    "@maple/client-locale": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-ui-commands": "workspace:^",
+    "@maple/client-ui-conversation": "workspace:^",
+    "@maple/client-ui-primitives": "workspace:^",
+    "@maple/client-ui-slots": "workspace:^",
+    "@maple/commands": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/session": "workspace:^",
     "@types/react": "~18.3.1",
     "react": "^18.2.0"
   },
   "dsh": {
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-commands",
-        "@deepseek-ai/dsh-client-ui-conversation"
+        "@maple/client-locale",
+        "@maple/client-runtime",
+        "@maple/client-ui-commands",
+        "@maple/client-ui-conversation"
       ],
       "platform": "web"
     }

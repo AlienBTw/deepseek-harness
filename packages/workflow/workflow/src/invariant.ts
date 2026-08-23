@@ -1,7 +1,7 @@
-/** Package-owned workflow lifecycle invariants. @module @deepseek-ai/dsh-workflow/invariant */
+/** Package-owned workflow lifecycle invariants. @module @maple/workflow/invariant */
 
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantFailure, InvariantInstaller } from '@maple/invariants'
 import type {
   WorkflowAgentEndInfo,
   WorkflowAgentInfo,
@@ -9,7 +9,7 @@ import type {
   WorkflowRunInfo,
 } from './types.ts'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-workflow'
+const PACKAGE_NAME = '@maple/workflow'
 
 /** Cordis companion plugin name. */
 export const name = 'workflow-invariant'

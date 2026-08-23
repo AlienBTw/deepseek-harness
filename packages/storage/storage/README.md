@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-storage
+# @maple/storage
 
 English | [中文](README.zh.md)
 

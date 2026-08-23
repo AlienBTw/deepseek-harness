@@ -2,12 +2,12 @@
  * Public session-reference request, candidate, and preparation records.
  * Imports stay on type-only subpaths so generated Remote clients can consume
  * this module without Host runtime code.
- * @module @deepseek-ai/dsh-session-reference/types
+ * @module @maple/session-reference/types
  */
 
-import type { UserMessage } from '@deepseek-ai/dsh-llm/message'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { UserMessage } from '@maple/llm/message'
+import type { ContentBlock } from '@maple/llm/types'
+import type { SessionId } from '@maple/session/types'
 
 /** Durable source session, cited event seqs, and snapshot facts for prepared cross-session context. */
 export interface SessionReferenceSource {
@@ -29,7 +29,7 @@ export interface SessionReferenceSource {
   }[]
 }
 
-declare module '@deepseek-ai/dsh-llm' {
+declare module '@maple/llm' {
   interface MessageSourceMap {
     'session-reference': SessionReferenceSource
   }

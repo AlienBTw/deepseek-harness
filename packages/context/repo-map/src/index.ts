@@ -6,10 +6,10 @@
  * workspace directly into the agent's context before tools are called.
  */
 
-import type { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import type { PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@maple/cordis'
+import z from '@maple/schemastery'
+import type { PreStepDecision } from '@maple/agent'
+import { createUserMessage } from '@maple/llm'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { RepoMap } from './repomap'
@@ -19,6 +19,9 @@ import type { SourceFile } from './types'
 export const name = 'repo-map'
 export const inject = ['agents']
 
+/**
+ * The plugin's configuration schema.
+ */
 export interface Config {
   /** Maximum token budget for the repo-map outline. Default: 2000. */
   maxTokens?: number
@@ -149,4 +152,8 @@ export function apply(ctx: Context, config: Config): void {
   }, { prepend: true })
 }
 
+/**
+ * The cordis plugin face: name, injected services, schema, and the apply body
+ * registering the first-step repo-map injection.
+ */
 export default { name, apply, Config }

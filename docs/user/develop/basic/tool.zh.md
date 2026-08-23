@@ -9,8 +9,8 @@
 将 `scratch-plugin/src/my-plugin.ts` 替换为：
 
 ```ts
-import type { Context } from '@deepseek-ai/cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@maple/cordis'
+import { defineTool } from '@maple/tools'
 
 export const name = 'greet-tool'
 export const inject = ['tools']

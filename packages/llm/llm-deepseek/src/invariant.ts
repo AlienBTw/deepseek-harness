@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-llm-deepseek`.
- * @module @deepseek-ai/dsh-llm-deepseek/invariant
+ * Package-owned invariant companion for `@maple/llm-deepseek`.
+ * @module @maple/llm-deepseek/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-llm-deepseek'
+const PACKAGE_NAME = '@maple/llm-deepseek'
 
 /** Cordis companion plugin name. */
 export const name = 'llm-deepseek-invariant'

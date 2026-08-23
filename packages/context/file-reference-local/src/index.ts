@@ -1,18 +1,18 @@
 /**
  * Local-filesystem implementation of `ctx.fileReferences`.
  *
- * @module @deepseek-ai/dsh-file-reference-local
+ * @module @maple/file-reference-local
  */
 
-import { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import { Context } from '@maple/cordis'
+import z from '@maple/schemastery'
+import type { Agent } from '@maple/agent'
 import FileReferenceService, {
   FILE_REFERENCE_PROMPT,
   type FileReferenceCandidate,
-} from '@deepseek-ai/dsh-file-reference'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-tools'
+} from '@maple/file-reference'
+import type {} from '@maple/system-prompt'
+import type {} from '@maple/tools'
 import {
   DEFAULT_FILE_SEARCH_EXCLUDED_DIRECTORIES,
   DEFAULT_FILE_SEARCH_MAX_ENTRIES,
@@ -28,8 +28,8 @@ export {
   WorkspaceFileSearch,
 } from './search.ts'
 export type { FileSearchConfig } from './search.ts'
-export { FILE_REFERENCE_PROMPT } from '@deepseek-ai/dsh-file-reference'
-export { activeAtToken, formatFileMention } from '@deepseek-ai/dsh-file-reference/grammar'
+export { FILE_REFERENCE_PROMPT } from '@maple/file-reference'
+export { activeAtToken, formatFileMention } from '@maple/file-reference/grammar'
 
 /** Local file-reference discovery configuration. */
 export interface Config {

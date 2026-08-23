@@ -1,13 +1,13 @@
 {
-  "name": "@deepseek-ai/dsh-subagent-dsh-sdk",
-  "description": "Out-of-process SDK subagent backend: drives a child DeepSeek Harness runtime subprocess over stdio JSON-RPC through the TypeScript SDK client",
+  "name": "@maple/subagent-dsh-sdk",
+  "description": "Out-of-process SDK subagent backend: drives a child Maple Harness runtime subprocess over stdio JSON-RPC through the TypeScript SDK client",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/subagent/subagent-dsh-sdk"
   },
   "type": "module",
@@ -32,29 +32,29 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-sdk-client": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-subagent": "workspace:^",
-    "@deepseek-ai/dsh-subprocess": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/agent": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/sdk-client": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/subagent": "workspace:^",
+    "@maple/subprocess": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "workspace:^"
+    "@maple/schemastery": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis-plugin-loader": "workspace:^",
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-loader-smoke": "workspace:^",
-    "@deepseek-ai/dsh-sdk-client": "workspace:^",
-    "@deepseek-ai/dsh-sdk-protocol": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-subagent": "workspace:^",
-    "@deepseek-ai/dsh-subprocess": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/cordis-plugin-loader": "workspace:^",
+    "@maple/agent": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/loader-smoke": "workspace:^",
+    "@maple/sdk-client": "workspace:^",
+    "@maple/sdk-protocol": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/subagent": "workspace:^",
+    "@maple/subprocess": "workspace:^",
+    "@maple/cordis": "workspace:^"
   }
 }

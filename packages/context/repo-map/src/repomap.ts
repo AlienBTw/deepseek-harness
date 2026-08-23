@@ -23,7 +23,7 @@ import {
 } from './graph'
 import {
   renderTreeContext,
-    collectScopeNodes,
+  collectScopeNodes,
   type ParsedFile,
   type TSNode,
 } from './tree-context'
@@ -52,9 +52,17 @@ function isImportant(rel_fname: string): boolean {
 /** The RepoMap engine. */
 export type TagExtractor = (rel_fname: string, fname?: string, content?: string) => Promise<Tag[]>
 
+/**
+ * The RepoMap engine: tags → graph → PageRank → ranked tags → token-budgeted
+ * map. Construct once per consumer; every call re-reads the files it is given.
+ */
 export class RepoMap {
   private customGetTags?: TagExtractor
 
+  /**
+   * @param options - an alternate tag extractor; omission uses the shared
+   *   grammar-backed {@link getTags}.
+   */
   constructor(options?: { getTags?: TagExtractor }) {
     if (options?.getTags) {
       this.customGetTags = options.getTags
@@ -63,8 +71,9 @@ export class RepoMap {
   /**
    * Compute the full repo-map for a set of source files.
    *
-   * @param files     source files to map (rel_fname + content)
-   * @param options   budget / chat / mentioned config
+   * @param filesOrOptions - source files to map, or the options object carrying
+   *   them under `sourceFiles`.
+   * @param options - budget / chat / mentioned config
    * @returns         rendered map + all intermediate data for visualization
    */
   async getRepoMap(
@@ -78,7 +87,7 @@ export class RepoMap {
       files = filesOrOptions
       opts = options
     } else {
-      files = filesOrOptions.sourceFiles || []
+      files = filesOrOptions.sourceFiles
       opts = filesOrOptions
     }
     const {
@@ -96,7 +105,7 @@ export class RepoMap {
     // 1. Extract tags from every file (async — needs grammar).
     const allTags: Tag[] = []
     for (const file of files) {
-      const tags = await tagExtractor(file.rel_fname, file.fname ?? file.rel_fname, file.content)
+      const tags = await tagExtractor(file.rel_fname, file.fname, file.content)
       allTags.push(...tags)
     }
 
@@ -208,13 +217,13 @@ export class RepoMap {
           const parser = new Parser()
           parser.setLanguage(language)
           const tree = parser.parse(file.content)
-          const rootNode = (tree?.rootNode as unknown as TSNode) ?? null
+          const rootNode = tree.rootNode as unknown as TSNode
           // Extract all needed AST data as plain JS, THEN free the WASM tree.
           // The renderer never touches WASM node objects after this.
           const collected = collectScopeNodes(rootNode)
           scopeSpans = collected.scopeSpans
           ancestorHeadersByStartRow = collected.ancestorHeadersByStartRow
-          tree?.delete?.()
+          tree.delete()
         } catch {
           // Parsing failed; renderer will fall back to bare LOI lines.
         }

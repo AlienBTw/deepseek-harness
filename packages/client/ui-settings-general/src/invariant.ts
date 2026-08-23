@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-client-ui-settings-general`.
- * @module @deepseek-ai/dsh-client-ui-settings-general/invariant
+ * Package-owned invariant companion for `@maple/client-ui-settings-general`.
+ * @module @maple/client-ui-settings-general/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-client-ui-settings-general'
+const PACKAGE_NAME = '@maple/client-ui-settings-general'
 
 /** Cordis companion plugin name. */
 export const name = 'client-ui-settings-general-invariant'

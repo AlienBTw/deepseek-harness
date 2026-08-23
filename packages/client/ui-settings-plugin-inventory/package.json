@@ -1,5 +1,5 @@
 {
-  "name": "@deepseek-ai/dsh-client-ui-settings-plugin-inventory",
+  "name": "@maple/client-ui-settings-plugin-inventory",
   "description": "Read-only Cordis Loader inventory tab in Web Plugins settings",
   "version": "0.1.1-rc.2",
   "publishConfig": {
@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/client/ui-settings-plugin-inventory"
   },
   "type": "module",
@@ -32,10 +32,10 @@
   "dsh": {
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-api-remotes",
-        "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-settings",
-        "@deepseek-ai/dsh-client-locale"
+        "@maple/api-remotes",
+        "@maple/client-runtime",
+        "@maple/client-ui-settings",
+        "@maple/client-locale"
       ],
       "platform": "web"
     }
@@ -46,25 +46,25 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-api-remotes": "workspace:^",
-    "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-settings": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/api-remotes": "workspace:^",
+    "@maple/client-locale": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-ui-settings": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-api-remotes": "workspace:^",
-    "@deepseek-ai/dsh-client-locale": "workspace:^",
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-test-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-settings": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@maple/api-remotes": "workspace:^",
+    "@maple/client-locale": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-test-runtime": "workspace:^",
+    "@maple/client-ui-primitives": "workspace:^",
+    "@maple/client-ui-settings": "workspace:^",
+    "@maple/client-ui-slots": "workspace:^",
+    "@maple/invariants": "workspace:^",
     "@testing-library/react": "^16.1.0",
     "@types/react": "~18.3.1",
-    "@deepseek-ai/cordis": "workspace:^",
+    "@maple/cordis": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

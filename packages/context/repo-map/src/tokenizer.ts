@@ -13,7 +13,11 @@
  * byte-exact counts; the sampling wrapper stays the same.
  */
 
-/** Rough token estimate for a short string (no sampling). ~chars/4. */
+/**
+ * Rough token estimate for a short string (no sampling). ~chars/4.
+ * @param text - the text to size.
+ * @returns the conservative ceiling-style estimate.
+ */
 export function estimateTokensExact(text: string): number {
   if (text.length === 0) return 0
   // Chars/4 is the standard GPT-family approximation for English/code.
@@ -29,6 +33,8 @@ export function estimateTokensExact(text: string): number {
  * then scale by the char-length ratio (sample -> whole).
  *
  * Mirrors repomap.py lines 89–101 exactly in structure.
+ * @param text - the rendered map text to size for the budget search.
+ * @returns the extrapolated token count.
  */
 export function tokenCount(text: string): number {
   const lenText = text.length

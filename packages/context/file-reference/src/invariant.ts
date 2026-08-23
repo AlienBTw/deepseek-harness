@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-file-reference`.
- * @module @deepseek-ai/dsh-file-reference/invariant
+ * Package-owned invariant companion for `@maple/file-reference`.
+ * @module @maple/file-reference/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-file-reference'
+const PACKAGE_NAME = '@maple/file-reference'
 
 /** Cordis companion plugin name. */
 export const name = 'file-reference-invariant'

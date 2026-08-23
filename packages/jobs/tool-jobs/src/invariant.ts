@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-tool-jobs`.
- * @module @deepseek-ai/dsh-tool-jobs/invariant
+ * Package-owned invariant companion for `@maple/tool-jobs`.
+ * @module @maple/tool-jobs/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tool-jobs'
+const PACKAGE_NAME = '@maple/tool-jobs'
 
 /** Cordis companion plugin name. */
 export const name = 'tool-jobs-invariant'

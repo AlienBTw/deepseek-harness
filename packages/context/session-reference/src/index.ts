@@ -2,17 +2,17 @@
  * Cross-session snapshot preparation. Hosts adapt mentions into structured
  * references; this service owns exact reads, projection, budgets, and durable context.
  *
- * @module @deepseek-ai/dsh-session-reference
+ * @module @maple/session-reference
  */
 
-import { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import { createUserMessage, freezeMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, UserMessage } from '@deepseek-ai/dsh-llm'
-import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { SessionSurfaceSnapshot, SessionTitleObservationResult } from '@deepseek-ai/dsh-session-query'
+import { Context } from '@maple/cordis'
+import z from '@maple/schemastery'
+import type { Agent, PreStepDecision } from '@maple/agent'
+import { Remote, TypertRemoteService } from '@maple/typert-protocol'
+import { createUserMessage, freezeMessage } from '@maple/llm'
+import type { ContentBlock, UserMessage } from '@maple/llm'
+import type { SessionId } from '@maple/session'
+import type { SessionSurfaceSnapshot, SessionTitleObservationResult } from '@maple/session-query'
 import {
   DEFAULT_CANDIDATE_LIMIT,
   DEFAULT_MAX_REFERENCE_BYTES,
@@ -55,7 +55,7 @@ user explicitly repeats them.
 `
 const PROMPT_SUFFIX = '\n</referenced-sessions>'
 
-declare module '@deepseek-ai/cordis' {
+declare module '@maple/cordis' {
   interface Context {
     sessionReferenceResolver: SessionReferenceResolver
   }

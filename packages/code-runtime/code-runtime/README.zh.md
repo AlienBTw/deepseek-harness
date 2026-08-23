@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-code-runtime
+# @maple/code-runtime
 
 [English](README.md) | 中文
 

@@ -6,18 +6,18 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import SessionStore from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime from '@deepseek-ai/dsh-tools'
-import UserQuestionService from '@deepseek-ai/dsh-user-questions'
-import LlmRuntime, { LlmAdapter } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, LlmModelInfo, LlmProviderInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
-import { SettingsProvider, settingsNamespace } from '@deepseek-ai/dsh-settings'
-import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
-import { CredentialProvider } from '@deepseek-ai/dsh-credentials'
+import { Context } from '@maple/cordis'
+import z from '@maple/schemastery'
+import AgentRegistry from '@maple/agent'
+import SessionStore from '@maple/session'
+import SystemPrompt from '@maple/system-prompt'
+import ToolRuntime from '@maple/tools'
+import UserQuestionService from '@maple/user-questions'
+import LlmRuntime, { LlmAdapter } from '@maple/llm'
+import type { GenerateOptions, LlmModelInfo, LlmProviderInfo, StreamChunk } from '@maple/llm'
+import { SettingsProvider, settingsNamespace } from '@maple/settings'
+import type { SettingsNamespace } from '@maple/settings'
+import { CredentialProvider } from '@maple/credentials'
 import type {
   CredentialInfo,
   CredentialKey,
@@ -26,11 +26,11 @@ import type {
   CredentialRecordInfo,
   CredentialRef,
   ResolvedCredential,
-} from '@deepseek-ai/dsh-credentials'
+} from '@maple/credentials'
 import type { HostFrame } from '../src/api/index.ts'
 import type { RpcRequest, RpcResponse } from '../src/api/rpc.ts'
 import { RpcId } from '../src/api/rpc.ts'
-import { AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-agent-default-model'
+import { AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE } from '@maple/agent-default-model'
 import { createApiProxy } from '../src/api-proxy.ts'
 
 const DEFAULTS = { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' }

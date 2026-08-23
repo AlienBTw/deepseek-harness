@@ -32,19 +32,19 @@
  * as the user's environment layer; a store that doubled as the environment
  * layer would shadow non-secret entries behind its precedence, making them
  * silently unreachable.
- * @module @deepseek-ai/dsh-credentials-local
+ * @module @maple/credentials-local
  */
 
-import { Context, Service } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
+import { Context, Service } from '@maple/cordis'
+import z from '@maple/schemastery'
 import { watch as chokidarWatch } from 'chokidar'
 import { mkdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { Document, isMap, isScalar, parseDocument, type YAMLError } from 'yaml'
-import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
-import { canonicalizeWatchPath, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-import { CredentialProvider, credentialRef, parseCredentialKey } from '@deepseek-ai/dsh-credentials'
+import { withFileLock, writeFileAtomic } from '@maple/atomic-write'
+import { canonicalizeWatchPath, resolveDshHome } from '@maple/home-paths'
+import { launchEnvironmentOf } from '@maple/launch-environment'
+import { CredentialProvider, credentialRef, parseCredentialKey } from '@maple/credentials'
 import type {
   ApiKeyRecord,
   CredentialInfo,
@@ -54,8 +54,8 @@ import type {
   CredentialRecordInfo,
   CredentialRef,
   ResolvedCredential,
-} from '@deepseek-ai/dsh-credentials'
-import type { LaunchEnvironmentEntry } from '@deepseek-ai/dsh-launch-environment'
+} from '@maple/credentials'
+import type { LaunchEnvironmentEntry } from '@maple/launch-environment'
 
 /** Basename of the credentials document inside the harness home. */
 export const CREDENTIALS_FILENAME = '.credentials.yaml'

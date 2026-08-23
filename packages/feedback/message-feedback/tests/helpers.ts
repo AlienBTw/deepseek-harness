@@ -1,25 +1,25 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Context } from '@deepseek-ai/cordis'
-import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+import { Context } from '@maple/cordis'
+import { createAssistantMessage, createUserMessage } from '@maple/llm'
+import type { MessageId } from '@maple/llm/brand'
 import SessionStore, {
   SESSION_FORMAT_VERSION,
   Session,
   SessionId,
   type SessionEvent,
   type SessionHeader,
-} from '@deepseek-ai/dsh-session'
+} from '@maple/session'
 import SessionPersistence, {
   SessionPersistenceRevision,
   type SessionInspection,
   type SessionLocation,
   type SessionPersistenceSnapshot,
-} from '@deepseek-ai/dsh-session-persistence'
-import Storage from '@deepseek-ai/dsh-storage'
-import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
-import * as StorageJson from '@deepseek-ai/dsh-storage-json'
+} from '@maple/session-persistence'
+import Storage from '@maple/storage'
+import * as StorageDomain from '@maple/storage-domain'
+import * as StorageJson from '@maple/storage-json'
 import MessageFeedbackService from '../src/index.ts'
 
 export interface MessageFixture {

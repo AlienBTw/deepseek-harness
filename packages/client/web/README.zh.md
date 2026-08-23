@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-web
+# @maple/client-web
 
 [English](README.md) | 中文
 

@@ -15,7 +15,8 @@
   ],
   "ignoreWorkspaces": [
     "vendor/*",
-    "python/sdk-runtime"
+    "python/sdk-runtime",
+    "apps/desktop"
   ],
   "ignoreDependencies": [
     "@yarnpkg/cli-dist",
@@ -76,13 +77,13 @@
         "**/*.ts"
       ],
       "ignoreDependencies": [
-        "@deepseek-ai/.+"
+        "@maple/.+"
       ]
     },
     "packages/host/directory-picker-auto": {
       "ignoreDependencies": [
-        "@deepseek-ai/dsh-client-ui-directory-picker-browse",
-        "@deepseek-ai/dsh-client-ui-directory-picker-native"
+        "@maple/client-ui-directory-picker-browse",
+        "@maple/client-ui-directory-picker-native"
       ]
     },
     "packages/extensions/cordis-host-runner": {
@@ -116,7 +117,7 @@
         "tests/**/*.ts"
       ],
       "ignoreDependencies": [
-        "@deepseek-ai/dsh-api-gateway"
+        "@maple/api-gateway"
       ]
     },
     "packages/client/ui-primitives": {
@@ -250,6 +251,11 @@
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts"
+      ]
+    },
+    "packages/context/repo-map": {
+      "ignoreDependencies": [
+        "tree-sitter-wasms"
       ]
     },
     "packages/context/time-context": {
@@ -618,8 +624,8 @@
         "tests/**/*.ts"
       ],
       "ignoreDependencies": [
-        "@deepseek-ai/dsh-client-ui-primitives",
-        "@deepseek-ai/dsh-client-ui-slots",
+        "@maple/client-ui-primitives",
+        "@maple/client-ui-slots",
         "@types/react",
         "@types/react-dom",
         "react",
@@ -637,7 +643,7 @@
         "tests/**/*.ts"
       ],
       "ignoreDependencies": [
-        "@deepseek-ai/.+"
+        "@(?:deepseek-ai|maple)/.+"
       ]
     },
     "packages/subagent/subagent-dsh-sdk": {
@@ -652,17 +658,17 @@
     },
     "packages/bundle/base": {
       "ignoreDependencies": [
-        "@deepseek-ai/.+"
+        "@maple/.+"
       ]
     },
     "packages/bundle/headless": {
       "ignoreDependencies": [
-        "@deepseek-ai/dsh-code-runtime-worker-thread"
+        "@maple/code-runtime-worker-thread"
       ]
     },
     "packages/bundle/web-app": {
       "ignoreDependencies": [
-        "@deepseek-ai/.+"
+        "@maple/.+"
       ]
     }
   }

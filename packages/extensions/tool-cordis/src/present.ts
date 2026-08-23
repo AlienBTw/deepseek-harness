@@ -1,6 +1,6 @@
 /** Pure replay-safe render intents for Cordis tools. */
 
-import type { GenericCallView } from '@deepseek-ai/dsh-tools'
+import type { GenericCallView } from '@maple/tools'
 
 /**
  * Render a runtime-inspection call.

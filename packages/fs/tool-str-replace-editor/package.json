@@ -1,5 +1,5 @@
 {
-  "name": "@deepseek-ai/dsh-tool-str-replace-editor",
+  "name": "@maple/tool-str-replace-editor",
   "description": "Model-facing view, create, literal replace, and line insert tool over the Harness filesystem service",
   "version": "0.1.1-rc.2",
   "publishConfig": {
@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
     "directory": "packages/fs/tool-str-replace-editor"
   },
   "type": "module",
@@ -31,29 +31,29 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-fs": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-sandbox": "workspace:^",
-    "@deepseek-ai/dsh-sandbox-policy": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/fs": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/sandbox": "workspace:^",
+    "@maple/sandbox-policy": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/cordis": "workspace:^"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "workspace:^"
+    "@maple/schemastery": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-fs": "workspace:^",
-    "@deepseek-ai/dsh-fs-local": "workspace:^",
-    "@deepseek-ai/dsh-fs-observation-policy": "workspace:^",
-    "@deepseek-ai/dsh-fs-sandbox": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-sandbox": "workspace:^",
-    "@deepseek-ai/dsh-sandbox-policy": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-system-prompt": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@maple/agent": "workspace:^",
+    "@maple/fs": "workspace:^",
+    "@maple/fs-local": "workspace:^",
+    "@maple/fs-observation-policy": "workspace:^",
+    "@maple/fs-sandbox": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/sandbox": "workspace:^",
+    "@maple/sandbox-policy": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/system-prompt": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/cordis": "workspace:^"
   }
 }

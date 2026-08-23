@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maple</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: grid;
+        place-items: center;
+        background: #14161a;
+        color: #9aa3af;
+        font: 15px/1.6 system-ui, sans-serif;
+      }
+      .mark { font-size: 34px; font-weight: 650; color: #e8eaed; letter-spacing: 0.02em; }
+      .status { margin-top: 10px; }
+      @media (prefers-reduced-motion: no-preference) {
+        .status::after { content: '…'; animation: dots 1.2s steps(4) infinite; }
+        @keyframes dots { 0% { content: ''; } 75% { content: '…'; } }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">Maple</div>
+      <div class="status">Starting the local harness</div>
+    </main>
+  </body>
+</html>

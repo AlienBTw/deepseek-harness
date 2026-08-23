@@ -25,8 +25,8 @@ packages:
 linkWorkspacePackages: true
 
 overrides:
-  '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
-  '@deepseek-ai/schemastery': 'link:vendor/schemastery'
+  '@maple/cosmokit': 'link:vendor/cosmokit'
+  '@maple/schemastery': 'link:vendor/schemastery'
 
 peerDependencyRules:
   allowedVersions:
@@ -52,7 +52,7 @@ allowBuilds:
   koffi: true
   # The Python runtime deploy includes the reviewed workspace postinstall that
   # restores the executable bit on node-pty's macOS spawn helper.
-  '@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local': true
+  '@maple/subprocess-local@file:packages/subprocess/subprocess-local': true
 
 minimumReleaseAgeExclude:
   # Fresh pi-ai releases carry the model catalog updates that are the whole

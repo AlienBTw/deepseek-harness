@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-client-ui-workspace`.
- * @module @deepseek-ai/dsh-client-ui-workspace/invariant
+ * Package-owned invariant companion for `@maple/client-ui-workspace`.
+ * @module @maple/client-ui-workspace/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from '@deepseek-ai/cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@maple/cordis'
+import type { InvariantInstaller } from '@maple/invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-client-ui-workspace'
+const PACKAGE_NAME = '@maple/client-ui-workspace'
 
 /** Cordis companion plugin name. */
 export const name = 'client-ui-workspace-invariant'

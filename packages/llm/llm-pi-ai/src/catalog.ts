@@ -14,6 +14,7 @@
 
 import { builtinProviders, getBuiltinModels, getBuiltinProviders } from '@earendil-works/pi-ai/providers/all'
 import type { BuiltinProvider } from '@earendil-works/pi-ai/providers/all'
+import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
 import type {
   AnthropicMessagesCompat,
   Api,
@@ -148,6 +149,91 @@ export const CHAT_TEMPLATE_VARS = Object.keys(CHAT_TEMPLATE_VAR_GATE) as readonl
 
 let providerIndex: Map<string, Provider> | undefined
 
+/** Default Ollama endpoint. */
+const OLLAMA_BASE_URL = 'http://127.0.0.1:11434/v1'
+
+/** Thinking-level map for the local DeepSeek R1 model. */
+const OLLAMA_DEEPSEEK_R1_THINKING_LEVEL_MAP: ThinkingLevelMap = {
+  minimal: null,
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: null,
+  max: null,
+}
+
+/**
+ * Build one Ollama default model entry. Capacities are deliberately absent:
+ * they are per-installation facts of what was pulled and how it was served,
+ * so they are stated later — by `/api/show` during discovery, or by the
+ * route's configurable defaults at {@link resolveRouteModels} materialization
+ * — never invented here.
+ * @param id - model id.
+ * @param name - display name.
+ * @param reasoning - whether the model supports reasoning.
+ * @param thinkingLevelMap - reasoning level map, when reasoning is true.
+ * @returns the model entry.
+ */
+function ollamaModel(
+  id: string,
+  name: string,
+  reasoning: boolean,
+  thinkingLevelMap?: ThinkingLevelMap,
+): CapacityPending {
+  return {
+    id,
+    name,
+    provider: 'ollama',
+    api: 'openai-completions',
+    baseUrl: OLLAMA_BASE_URL,
+    reasoning,
+    ...(thinkingLevelMap === undefined ? {} : { thinkingLevelMap }),
+    input: ['text'],
+    cost: NO_COST,
+  }
+}
+
+/**
+ * An installed catalog entry whose context window and output cap are still
+ * pending. The seeds only ever feed {@link resolveRouteModels}' fallback chain,
+ * which fills its configured defaults before any model reaches a consumer —
+ * every route serves the materialized result, never these entries — so the
+ * `as Model<Api>` casts at the two exits document that contract instead of
+ * fabricating numbers to satisfy the type.
+ */
+type CapacityPending = Omit<Model<Api>, 'contextWindow' | 'maxTokens'>
+  & Partial<Pick<Model<Api>, 'contextWindow' | 'maxTokens'>>
+
+/** Bootstrap entries for the local Ollama provider. */
+const OLLAMA_DEFAULT_MODELS: readonly CapacityPending[] = [
+  ollamaModel('llama3.2', 'Llama 3.2', false),
+  ollamaModel('qwen2.5-coder', 'Qwen 2.5 Coder', false),
+  ollamaModel('deepseek-r1', 'DeepSeek R1 (Local)', true, OLLAMA_DEEPSEEK_R1_THINKING_LEVEL_MAP),
+]
+
+/** Build the local Ollama catalog provider. */
+function ollamaCatalogProvider(): Provider {
+  return {
+    id: 'ollama',
+    name: 'Ollama',
+    baseUrl: OLLAMA_BASE_URL,
+    auth: {
+      apiKey: {
+        name: 'Ollama',
+        resolve: ({ credential }) => Promise.resolve({
+          auth: credential?.key === undefined ? { apiKey: 'ollama' } : { apiKey: credential.key },
+          source: 'Ollama',
+        }),
+      },
+    },
+    // Cast per the CapacityPending contract: routes never serve these seeds
+    // directly, so no consumer reads their pending capacities.
+    getModels: () => [...OLLAMA_DEFAULT_MODELS] as Model<Api>[],
+    stream: (model, context, options) => openAICompletionsApi().stream(model, context, options),
+    streamSimple: (model, context, options) => openAICompletionsApi().streamSimple(model, context, options),
+  }
+}
+
 /**
  * Installed catalog providers by id, constructed once. Each entry owns the API
  * implementations for its own models, which is why a catalog route reuses this
@@ -155,7 +241,12 @@ let providerIndex: Map<string, Provider> | undefined
  * @returns the catalog provider index.
  */
 function catalogProviders(): Map<string, Provider> {
-  providerIndex ??= new Map(builtinProviders().map(provider => [provider.id, provider]))
+  if (providerIndex === undefined) {
+    providerIndex = new Map(builtinProviders().map(provider => [provider.id, provider]))
+    if (!providerIndex.has('ollama')) {
+      providerIndex.set('ollama', ollamaCatalogProvider())
+    }
+  }
   return providerIndex
 }
 
@@ -173,16 +264,22 @@ export function catalogProvider(provider: string): Provider | undefined {
  * @returns the catalog provider ids.
  */
 export function catalogProviderIds(): readonly string[] {
-  return getBuiltinProviders()
+  const ids = getBuiltinProviders()
+  return (ids as readonly string[]).includes('ollama') ? ids : [...ids, 'ollama']
 }
 
 /**
  * The installed catalog models for one route, indexed by model id.
  * @param provider - provider route key.
- * @returns catalog models by id; empty for a route pi-ai does not ship.
+ * @returns catalog models by id; empty for a route pi-ai does not ship. The
+ *   Ollama entries carry no capacities yet — {@link resolveRouteModels} fills
+ *   them from the route's configured defaults.
  */
 export function catalogModels(provider: string): Map<string, Model<Api>> {
   if (!catalogProviders().has(provider)) return new Map()
+  if (provider === 'ollama') {
+    return new Map(OLLAMA_DEFAULT_MODELS.map(model => [model.id, model as Model<Api>]))
+  }
   const models = getBuiltinModels(provider as BuiltinProvider) as Model<Api>[]
   return new Map(models.map(model => [model.id, model]))
 }

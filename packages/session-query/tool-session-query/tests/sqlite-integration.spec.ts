@@ -1,20 +1,20 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
+import { Context } from '@maple/cordis'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { createUserMessage, CallId  } from '@deepseek-ai/dsh-llm'
+import type { Agent } from '@maple/agent'
+import { createUserMessage, CallId  } from '@maple/llm'
 import SessionStore, {
   SESSION_FORMAT_VERSION,
   SessionId,
   type Session,
-} from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRuntime from '@deepseek-ai/dsh-tools'
-import * as ToolSessionQuery from '@deepseek-ai/dsh-tool-session-query'
+} from '@maple/session'
+import JsonlSessionPersistence from '@maple/session-persistence-jsonl'
+import SqliteSessionQueryEngine from '@maple/session-query-sqlite'
+import SystemPrompt from '@maple/system-prompt'
+import ToolRuntime from '@maple/tools'
+import * as ToolSessionQuery from '@maple/tool-session-query'
 
 const temporaryDirectories: string[] = []
 const contexts: Context[] = []

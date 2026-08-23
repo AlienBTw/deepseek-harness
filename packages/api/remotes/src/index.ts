@@ -1,18 +1,18 @@
 /** Host BFF entry and Loader shell for the Remote contribution assembly. */
 
-import type { TypertForwardableEvent } from '@deepseek-ai/dsh-typert-protocol'
+import type { TypertForwardableEvent } from '@maple/typert-protocol'
 import { API_REMOTE_FORWARDED_EVENTS } from './remote-events.ts'
 
 // The owner packages' client-safe `./types` exports carry the cordis `Events`
 // declarations for every allowlisted event. Pulling them into this face is what
 // makes the shape assertion below judge real signatures rather than an empty
 // event vocabulary.
-import type {} from '@deepseek-ai/dsh-commands/types'
-import type {} from '@deepseek-ai/dsh-cordis-host-runner/types'
-import type {} from '@deepseek-ai/dsh-credentials/types'
-import type {} from '@deepseek-ai/dsh-llm/types'
-import type {} from '@deepseek-ai/dsh-agent-presets/types'
-import type {} from '@deepseek-ai/dsh-settings/types'
+import type {} from '@maple/commands/types'
+import type {} from '@maple/cordis-host-runner/types'
+import type {} from '@maple/credentials/types'
+import type {} from '@maple/llm/types'
+import type {} from '@maple/agent-presets/types'
+import type {} from '@maple/settings/types'
 
 export {
   ApiRemoteSessionNotFound,

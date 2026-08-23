@@ -1,17 +1,17 @@
 /**
- * `@deepseek-ai/dsh-web-search-exa`: registers an Exa-backed `WebSearchProvider`
+ * `@maple/web-search-exa`: registers an Exa-backed `WebSearchProvider`
  * with `ctx.web`. A function/namespace plugin (NOT a default-export service):
  * a search provider does not own the `ctx.web` key — it registers INTO the
- * seam's provider registry, exactly as `@deepseek-ai/dsh-llm-deepseek`
- * registers an adapter into `ctx.llm`. The key is owned by `@deepseek-ai/dsh-web`.
+ * seam's provider registry, exactly as `@maple/llm-deepseek`
+ * registers an adapter into `ctx.llm`. The key is owned by `@maple/web`.
  *
- * @module @deepseek-ai/dsh-web-search-exa
+ * @module @maple/web-search-exa
  */
 
-import type { Context } from '@deepseek-ai/cordis'
-import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-import z from '@deepseek-ai/schemastery'
-import type {} from '@deepseek-ai/dsh-web'
+import type { Context } from '@maple/cordis'
+import { launchEnvironmentOf } from '@maple/launch-environment'
+import z from '@maple/schemastery'
+import type {} from '@maple/web'
 import {
   ExaSearchProvider,
   EXA_DEFAULT_BASE_URL,
