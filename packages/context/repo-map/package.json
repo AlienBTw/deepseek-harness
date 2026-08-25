@@ -18,6 +18,10 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -34,12 +38,14 @@
   },
   "peerDependencies": {
     "@maple/agent": "workspace:^",
+    "@maple/invariants": "workspace:^",
     "@maple/session": "workspace:^",
     "@maple/cordis": "workspace:^"
   },
   "devDependencies": {
     "@maple/cordis": "workspace:^",
     "@maple/agent": "workspace:^",
+    "@maple/invariants": "workspace:^",
     "@maple/llm": "workspace:^",
     "@maple/session": "workspace:^",
     "@maple/system-prompt": "workspace:^"

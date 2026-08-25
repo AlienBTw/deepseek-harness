@@ -358,7 +358,6 @@ export function resolveAdapterOptions(config: Config, environment?: LaunchEnviro
     apiKeyEnv: credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV),
     baseURL: config.baseURL
       ?? environment?.get('MAPLE_PROXY_URL')?.value
-      ?? environment?.get('MAPL_PROXY_URL')?.value
       ?? environment?.get(BASE_URL_ENV)?.value
       ?? PUBLIC_BASE_URL,
     defaults: {

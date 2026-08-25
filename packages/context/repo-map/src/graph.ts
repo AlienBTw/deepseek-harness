@@ -192,6 +192,7 @@ export function buildGraph(input: BuildGraphInput): BuildGraphOutput {
     // every ident here; a miss would mean that invariant was broken upstream.
     const definers = defines.get(ident)
     const refs = references.get(ident)
+    /* v8 ignore next 2 -- idents is built as defines ∩ references above, so both lookups always succeed. */
     if (definers === undefined || refs === undefined) {
       throw new TypeError(`repo-map: ident "${ident}" missing from defines/references`)
     }
@@ -351,10 +352,17 @@ export function buildRankedTags(
   }
 
   // Append tag-less files (1-tuple sentinels), sorted by node PageRank desc.
+  // A definition key is `${rel_fname}\u0000${name}`, so the owning file is the
+  // prefix before the separator.
+  const filesWithDefs = new Set<string>()
+  for (const key of definitions.keys()) {
+    const separator = key.indexOf('\u0000')
+    if (separator > 0) filesWithDefs.add(key.slice(0, separator))
+  }
   const topRank = [...nodeRanks.entries()].sort((a, b) => b[1] - a[1])
   const relOtherWithoutTags = new Set<string>()
   for (const f of allRelFnames) {
-    if (!definitions.has(`${f}\u0000`) && !fnamesAlreadyIncluded.has(f)) {
+    if (!filesWithDefs.has(f) && !fnamesAlreadyIncluded.has(f)) {
       // Heuristic: a file is "tag-less" if it has no def entries at all.
       relOtherWithoutTags.add(f)
     }

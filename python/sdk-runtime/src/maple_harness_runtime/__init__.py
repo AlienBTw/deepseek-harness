@@ -141,7 +141,7 @@ def _node_launch_args() -> tuple[str, str]:
         node_root
         / "node_modules"
         / "@maple"
-        / "dsh-sdk-jsonrpc-demo"
+        / "sdk-jsonrpc-demo"
         / "lib"
         / "packaged-bin.js"
     )

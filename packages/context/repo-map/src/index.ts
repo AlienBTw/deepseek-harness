@@ -152,8 +152,3 @@ export function apply(ctx: Context, config: Config): void {
   }, { prepend: true })
 }
 
-/**
- * The cordis plugin face: name, injected services, schema, and the apply body
- * registering the first-step repo-map injection.
- */
-export default { name, apply, Config }

@@ -18,7 +18,7 @@ import { MAX_TIMER_DELAY_MS } from '@maple/timeout'
 import { getOrCreateAnonymousUserId, type AnonymousUserId } from '@maple/anonymous-user-id'
 import { SessionId } from '@maple/session'
 import * as LlmDeepSeek from '@maple/llm-deepseek'
-import { DeepSeekAdapter, resolveAdapterOptions } from '@maple/llm-deepseek'
+import { DeepSeekAdapter, PUBLIC_BASE_URL, resolveAdapterOptions } from '@maple/llm-deepseek'
 import { httpErrorCode, resolveRequestImagePolicy } from '../src/adapter.ts'
 import { assemble } from './assemble.ts'
 import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
@@ -1974,6 +1974,22 @@ describe('plugin registration and config', () => {
       { source: 'process', values: { DEEPSEEK_BASE_URL: 'https://stale.example' } },
     ])
     expect(resolveAdapterOptions({ baseURL: 'https://gateway.internal' }, shell).baseURL).toBe('https://gateway.internal')
+  })
+  it('routes through MAPLE_PROXY_URL ahead of DEEPSEEK_BASE_URL, ignoring unknown proxy names', () => {
+    const both = createLaunchEnvironmentSnapshot([
+      {
+        source: 'user-env',
+        path: '/home/.maple/.env',
+        values: { MAPLE_PROXY_URL: 'https://proxy.example/v1', DEEPSEEK_BASE_URL: 'https://api.example' },
+      },
+    ])
+    expect(resolveAdapterOptions({}, both).baseURL).toBe('https://proxy.example/v1')
+    // No historical spelling of the proxy variable resolves; only the
+    // documented name routes traffic.
+    const misspelled = createLaunchEnvironmentSnapshot([
+      { source: 'user-env', path: '/home/.maple/.env', values: { MAPL_PROXY_URL: 'https://proxy.example/v1' } },
+    ])
+    expect(resolveAdapterOptions({}, misspelled).baseURL).toBe(PUBLIC_BASE_URL)
   })
   it('defaults to the public base URL without config or env', async () => {
     vi.stubEnv('DEEPSEEK_API_KEY', 'k')

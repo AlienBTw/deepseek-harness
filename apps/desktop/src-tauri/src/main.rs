@@ -393,7 +393,12 @@ fn main() {
             let handle = app.handle().clone();
             pump_stdout(handle, reader);
             static HINTED: AtomicBool = AtomicBool::new(false);
-            supervise(app.handle().clone(), plane, &HINTED);
+            // A dedicated OS thread: supervise sleeps in plain intervals, which
+            // must not hold setup and block the event loop during boot.
+            let supervise_app = app.handle().clone();
+            std::thread::spawn(move || {
+                supervise(supervise_app, plane, &HINTED);
+            });
             Ok(())
         })
         .build(tauri::generate_context!())
