@@ -159,3 +159,37 @@ describe('isImageAdmissionError', () => {
     expect(isImageAdmissionError(new Error('unknown failure'))).toBe(false)
   })
 })
+
+describe('Attachment Quarantine', () => {
+  it('classifies attachment errors correctly', async () => {
+    const { classifyAttachmentQuarantineReason, formatQuarantinedImagePlaceholder } = await import('../src/index.ts')
+    expect(classifyAttachmentQuarantineReason(new AttachmentError('missing', 'ATTACHMENT_NOT_FOUND'))).toBe('not-found')
+    expect(classifyAttachmentQuarantineReason(new AttachmentError('checksum mismatch', 'ATTACHMENT_CORRUPT'))).toBe('corrupt')
+    expect(classifyAttachmentQuarantineReason(new AttachmentError('io error', 'ATTACHMENT_READ_FAILED'))).toBe('read-failed')
+    expect(classifyAttachmentQuarantineReason(new AttachmentError('policy', 'IMAGE_TOO_LARGE'))).toBeNull()
+    expect(classifyAttachmentQuarantineReason(new Error('other'))).toBeNull()
+
+    const ref: ImageAttachmentRef = {
+      attachmentId: AttachmentId('sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'),
+      mediaType: 'image/png',
+      bytes: 100,
+      width: 10,
+      height: 10,
+      name: 'screenshot.png',
+    }
+
+    expect(formatQuarantinedImagePlaceholder(ref, 'not-found'))
+      .toBe('[quarantined image attachment sha256:1 (not-found: screenshot.png)]')
+
+    const refNoName: ImageAttachmentRef = {
+      attachmentId: AttachmentId('sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'),
+      mediaType: 'image/jpeg',
+      bytes: 50,
+      width: 5,
+      height: 5,
+    }
+
+    expect(formatQuarantinedImagePlaceholder(refNoName, 'corrupt'))
+      .toBe('[quarantined image attachment sha256:a (corrupt)]')
+  })
+})

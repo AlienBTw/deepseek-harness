@@ -33,18 +33,19 @@
   "license": "MIT",
   "dependencies": {
     "@maple/schemastery": "workspace:^",
+    "js-tiktoken": "1.0.21",
     "tree-sitter-wasms": "0.1.13",
     "web-tree-sitter": "0.22.6"
   },
   "peerDependencies": {
     "@maple/agent": "workspace:^",
+    "@maple/cordis": "workspace:^",
     "@maple/invariants": "workspace:^",
-    "@maple/session": "workspace:^",
-    "@maple/cordis": "workspace:^"
+    "@maple/session": "workspace:^"
   },
   "devDependencies": {
-    "@maple/cordis": "workspace:^",
     "@maple/agent": "workspace:^",
+    "@maple/cordis": "workspace:^",
     "@maple/invariants": "workspace:^",
     "@maple/llm": "workspace:^",
     "@maple/session": "workspace:^",

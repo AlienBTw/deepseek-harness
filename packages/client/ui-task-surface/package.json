@@ -1,0 +1,79 @@
+{
+  "name": "@maple/client-ui-task-surface",
+  "description": "Web Task Surface dock: actionable panel above the composer over the taskSurface projection and Remote API",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
+    "directory": "packages/client/ui-task-surface"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "maple": {
+    "client": {
+      "inject": [
+        "@maple/client-runtime",
+        "@maple/api-remotes",
+        "@maple/client-locale",
+        "@maple/client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "bundle": "tsdown",
+    "watch": "tsdown --watch"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@maple/api-remotes": "workspace:^",
+    "@maple/client-locale": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-ui-conversation": "workspace:^",
+    "@maple/cordis": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/task-surface": "workspace:^"
+  },
+  "devDependencies": {
+    "@maple/api-remotes": "workspace:^",
+    "@maple/client-locale": "workspace:^",
+    "@maple/client-runtime": "workspace:^",
+    "@maple/client-test-runtime": "workspace:^",
+    "@maple/client-ui-conversation": "workspace:^",
+    "@maple/client-ui-primitives": "workspace:^",
+    "@maple/client-ui-slots": "workspace:^",
+    "@maple/cordis": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/task-surface": "workspace:^",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts"
+  ]
+}

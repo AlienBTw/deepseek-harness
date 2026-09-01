@@ -10,7 +10,7 @@ import { resolve } from 'node:path'
 import type { Agent, AgentHandle } from '@maple/agent'
 import { createUserMessage } from '@maple/llm'
 import { carrierKeyOf, type Scoped } from '@maple/scope'
-import { SessionId } from '@maple/session'
+import { SessionId, type Session, type TurnEndReason } from '@maple/session'
 import type SubagentRuntime from '@maple/subagent'
 import type { SubagentRunEndInfo } from '@maple/subagent'
 import * as LlmDeepSeek from '@maple/llm-deepseek'
@@ -18,6 +18,9 @@ import type {
   InitializeParams,
   InitializeResult,
   JsonRpcTransportPeer,
+  SdkPromptStatus,
+  SessionCancelParams,
+  SessionCancelResult,
   SessionEventNotification,
   SessionPromptParams,
   SessionPromptResult,
@@ -27,6 +30,7 @@ import type {
 
 interface SessionRecord {
   handle: AgentHandle
+  promptInFlight: boolean
 }
 
 /** Recover the delegating parent from the service-owned scoped carrier. */
@@ -43,6 +47,21 @@ export interface HarnessSdkJsonRpcServerOptions {
 function successStatus(reason: string, options: HarnessSdkJsonRpcServerOptions): 'ok' | 'error' {
   if (reason === 'completed') return 'ok'
   return reason === 'max-tokens' && options.maxTokensAsSuccess === true ? 'ok' : 'error'
+}
+
+function promptStatus(reason: TurnEndReason, options: HarnessSdkJsonRpcServerOptions): SdkPromptStatus {
+  if (reason.kind === 'completed') return 'ok'
+  if (reason.kind === 'aborted') return 'aborted'
+  return successStatus(reason.kind, options) === 'ok' ? 'ok' : 'error'
+}
+
+function turnEndAfterSeq(session: Session, priorSeq: number): TurnEndReason | undefined {
+  for (let index = session.events.length - 1; index >= 0; index--) {
+    const event = session.events[index]
+    if (event === undefined || event.seq <= priorSeq) break
+    if (event.type === 'turn/end') return event.data.reason
+  }
+  return undefined
 }
 
 /**
@@ -125,9 +144,9 @@ export class HarnessSdkJsonRpcServer {
   }
 
   /**
-   * Queue one identified prompt without assigning later activity to it.
+   * Queue one identified prompt and settle when the agent next becomes idle.
    * @param params - target session and user content.
-   * @returns the durable message identity.
+   * @returns the durable message identity and settled turn outcome.
    */
   async prompt(params: SessionPromptParams): Promise<SessionPromptResult> {
     const rec = await this.getOrCreateSession(params.sessionId)
@@ -137,9 +156,41 @@ export class HarnessSdkJsonRpcServer {
     if (this.ctx.agents.get(rec.handle.agent.id) !== rec.handle.agent) {
       throw new Error(`session agent was disposed outside the server: ${params.sessionId}`)
     }
+    if (rec.promptInFlight) {
+      throw new Error(`session already has an active prompt: ${params.sessionId}`)
+    }
     const message = createUserMessage({ content: params.contentBlocks, source: { kind: 'user' } })
-    rec.handle.agent.followup(message)
-    return { messageId: message.id }
+    const priorSeq = rec.handle.agent.session.events.at(-1)?.seq ?? -1
+    rec.promptInFlight = true
+    try {
+      rec.handle.agent.followup(message)
+      await rec.handle.agent.whenIdle()
+      const reason = turnEndAfterSeq(rec.handle.agent.session, priorSeq)
+      if (reason === undefined) {
+        throw new Error(`session reached idle without turn/end: ${params.sessionId}`)
+      }
+      return {
+        messageId: message.id,
+        status: promptStatus(reason, this.options),
+        reason,
+      }
+    } finally {
+      rec.promptInFlight = false
+    }
+  }
+
+  /**
+   * Cancel active work on one session.
+   * @param params - target session and cancellation options.
+   * @returns status indicating if the cancellation was applied.
+   */
+  async cancel(params: SessionCancelParams): Promise<SessionCancelResult> {
+    const existing = this.sessions.get(params.sessionId)
+    if (!existing) return { canceled: false }
+    const live = this.ctx.agents.get(existing.handle.agent.id)
+    if (live !== existing.handle.agent) return { canceled: false }
+    existing.handle.agent.cancel({ kind: 'user' }, { keepInbox: params.keepInbox })
+    return { canceled: true }
   }
 
   /**
@@ -193,6 +244,8 @@ export class HarnessSdkJsonRpcServer {
         return this.initialize(params as unknown as InitializeParams)
       case 'session/prompt':
         return this.prompt(params as unknown as SessionPromptParams)
+      case 'session/cancel':
+        return this.cancel(params as unknown as SessionCancelParams)
       case 'shutdown':
         return this.shutdown()
       default:
@@ -229,7 +282,7 @@ export class HarnessSdkJsonRpcServer {
         ...this.maxTokens === undefined ? {} : { maxTokens: this.maxTokens },
       },
     })
-    const rec: SessionRecord = { handle }
+    const rec: SessionRecord = { handle, promptInFlight: false }
     this.sessions.set(sessionId, rec)
     return rec
   }

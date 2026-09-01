@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { AttachmentId, ImageVariantId } from '@maple/attachment'
-import type { ImageAttachmentRef, ImageMediaType, RequestImageAttachment } from '@maple/attachment'
+import type { ImageAttachmentRef, ImageMediaType, RequestImageAttachment, RequestImageEntry } from '@maple/attachment'
 import { createUserMessage, CallId, ReasoningEffortId, createMessage } from '@maple/llm'
 import type { ContentBlock, GenerateOptions, Message } from '@maple/llm'
 import {
@@ -53,6 +53,10 @@ function requestVersion(ref: ImageAttachmentRef): RequestImageAttachment {
   }
 }
 
+function resolvedEntry(ref: ImageAttachmentRef): RequestImageEntry {
+  return { kind: 'resolved', version: requestVersion(ref) }
+}
+
 function imageOptions(
   refs: readonly ImageAttachmentRef[],
   resolveFileId: FileResolver = fileResolver(),
@@ -60,7 +64,7 @@ function imageOptions(
 ) {
   return {
     representation: { kind: 'file' as const, resolveFileId },
-    requestImages: new Map(refs.map(ref => [ref.attachmentId, requestVersion(ref)])),
+    requestImages: new Map(refs.map(ref => [ref.attachmentId, resolvedEntry(ref)])),
     maxRequestImageBytes,
   }
 }
@@ -72,7 +76,7 @@ function inlineImageOptions(
 ): ImageSerializationOptions {
   return {
     representation: { kind: 'base64' },
-    requestImages: new Map(refs.map(ref => [ref.attachmentId, requestVersion(ref)])),
+    requestImages: new Map(refs.map(ref => [ref.attachmentId, resolvedEntry(ref)])),
     maxRequestImageBytes,
     byteQuantum,
   }

@@ -166,30 +166,22 @@ export class HarnessSession {
       options?.onNotification?.(notification)
     }
     try {
-      const messageId = await client.prompt(this.id, contentBlocks)
-      let received = false
-      while (true) {
-        const notification = await subscription.next()
-        if (!received) {
-          if (notification.method !== 'session.event'
-            || notification.params.sessionId !== this.id
-            || !isInboxReceipt(notification.params.event, messageId)) continue
-          received = true
-        }
+      const promptResult = await client.prompt(this.id, contentBlocks)
+      for (;;) {
+        const notification = subscription.tryNext()
+        if (notification === undefined) break
         collect(notification)
-        if (notification.method === 'session.status'
-          && notification.params.sessionId === this.id
-          && notification.params.status === 'idle') break
+      }
+      return {
+        sessionId: this.id,
+        finalResponse: finalResponse(events),
+        status: promptResult.status,
+        reason: promptResult.reason,
+        events,
+        notifications,
       }
     } finally {
       subscription.close()
-    }
-
-    return {
-      sessionId: this.id,
-      finalResponse: finalResponse(events),
-      events,
-      notifications,
     }
   }
 }
@@ -219,13 +211,6 @@ function validatedSessionEvent(value: unknown): SessionEvent {
     }
   }
   return value as unknown as SessionEvent
-}
-
-/** Whether a raw session event is the durable enqueue receipt for `messageId`. */
-function isInboxReceipt(value: unknown, messageId: string): boolean {
-  if (!isRecord(value) || value.type !== 'agent/inbox/spliced' || !isRecord(value.data)) return false
-  const inserted = value.data.inserted
-  return Array.isArray(inserted) && inserted.some(message => isRecord(message) && message.id === messageId)
 }
 
 /**

@@ -9,9 +9,11 @@
 //! the shell adds only windowing and lifetime.
 //!
 //! Debug builds launch the CLI from source through tsx (the same launch the
-//! repo's root `pnpm dsh` script uses); release builds run the built
-//! `apps/cli/lib/bin.js`, so packaging requires `pnpm run build` first.
-//! `MAPLE_DESKTOP_LAUNCH=built|source` overrides either default. The host
+//! repo's root `pnpm dsh` script uses); release builds prefer a bundled sidecar
+//! (`sidecar/node` + `sidecar/cli/bin.js` under Tauri resources) and fall back
+//! to the built `apps/cli/lib/bin.js` with a system `node` when the sidecar is
+//! absent (unpackaged `cargo build --release`). `MAPLE_DESKTOP_LAUNCH=built|source`
+//! overrides either default.
 //! child runs inside a kill-on-close job object, so it cannot outlive this
 //! process even when cleanup never runs, and fatal startup errors surface in
 //! a dialog because a GUI-subsystem binary has no stderr to print them on.
@@ -30,6 +32,7 @@ use std::{
 };
 
 use tauri::{Manager, RunEvent, Url};
+use tauri::path::BaseDirectory;
 
 /// How long the shell waits for the host's readiness line before giving up.
 /// First boots transform every plugin module through tsx, so the budget is
@@ -164,29 +167,63 @@ fn repo_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 enum LaunchPlane {
     /// The checked-in source entry through the tsx ESM hook.
     Source,
-    /// The bundled `apps/cli/lib/bin.js`.
+    /// The bundled `apps/cli/lib/bin.js` with a system `node`.
     Built,
+    /// Release resources: bundled `sidecar/node` + `sidecar/cli/bin.js`.
+    Bundled,
 }
 
 impl LaunchPlane {
-    fn from_env_or_default() -> Result<Self, String> {
+    fn from_env_or_default(app: &tauri::AppHandle) -> Result<Self, String> {
         match std::env::var("MAPLE_DESKTOP_LAUNCH").as_deref() {
+            Ok("bundled") => Ok(Self::Bundled),
             Ok("built") => Ok(Self::Built),
             Ok("source") => Ok(Self::Source),
             Ok(other) => Err(format!(
-                "MAPLE_DESKTOP_LAUNCH must be \"source\" or \"built\", got {other:?}"
+                "MAPLE_DESKTOP_LAUNCH must be \"source\", \"built\", or \"bundled\", got {other:?}"
             )),
             Err(_) if cfg!(debug_assertions) => Ok(Self::Source),
+            Err(_) if bundled_sidecar(app).is_some() => Ok(Self::Bundled),
             Err(_) => Ok(Self::Built),
         }
+    }
+}
+
+/// Bundled release layout under Tauri resources (`sidecar/node`, `sidecar/cli/bin.js`).
+struct BundledSidecar {
+    node: PathBuf,
+    cli: PathBuf,
+}
+
+fn bundled_sidecar(app: &tauri::AppHandle) -> Option<BundledSidecar> {
+    let resource = app.path().resolve("sidecar", BaseDirectory::Resource).ok()?;
+    #[cfg(windows)]
+    let node = resource.join("node").join("node.exe");
+    #[cfg(not(windows))]
+    let node = resource.join("node").join("node");
+    let cli = resource.join("cli").join("bin.js");
+    if node.is_file() && cli.is_file() {
+        Some(BundledSidecar { node, cli })
+    } else {
+        None
     }
 }
 
 /// Spawn the harness host serving the web profile. `--port 0` lets the OS
 /// pick a free port and `--no-open` suppresses the default-browser handoff;
 /// the actual port arrives in the readiness line rather than being assumed.
-fn spawn_host(root: &Path, plane: LaunchPlane) -> Result<Child, String> {
-    let mut command = Command::new("node");
+fn spawn_host(root: &Path, plane: LaunchPlane, app: &tauri::AppHandle) -> Result<Child, String> {
+    let mut command = match plane {
+        LaunchPlane::Bundled => {
+            let sidecar = bundled_sidecar(app).ok_or_else(|| {
+                "release sidecar resources are missing; run pnpm desktop:build after pnpm run build".into()
+            })?;
+            let mut command = Command::new(&sidecar.node);
+            command.arg(&sidecar.cli);
+            command
+        }
+        LaunchPlane::Built | LaunchPlane::Source => Command::new("node"),
+    };
     match plane {
         LaunchPlane::Source => {
             // Debug builds mirror the root package.json's `dsh` script exactly:
@@ -194,17 +231,31 @@ fn spawn_host(root: &Path, plane: LaunchPlane) -> Result<Child, String> {
             command.arg(root.join("apps/cli/src/bin.ts"));
         }
         LaunchPlane::Built => {
-            // Release builds run the bin `pnpm run build` produced next to the
-            // source tree.
             command.arg(root.join("apps/cli/lib/bin.js"));
         }
+        LaunchPlane::Bundled => {}
     }
     command.args(["web", "--no-open", "--port", "0"]);
-    // Bare `tsx/esm` resolves through the checkout's own node_modules, so the
-    // child must start there regardless of where the shell was launched from.
+    // Bare `tsx/esm` and the built CLI both resolve through the checkout's
+    // own node_modules, so the child must start there regardless of where the
+    // shell was launched from.
     command.current_dir(root);
     command.stdout(Stdio::piped());
     command.stderr(Stdio::inherit());
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        // Own process group so a shell-level signal to the desktop does not
+        // fan out to the host child tree.
+        unsafe {
+            command.pre_exec(|| {
+                if libc::setsid() == -1 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+    }
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -365,11 +416,11 @@ fn main() {
                 Ok(root) => root,
                 Err(message) => fatal(message),
             };
-            let plane = match LaunchPlane::from_env_or_default() {
+            let plane = match LaunchPlane::from_env_or_default(app.handle()) {
                 Ok(plane) => plane,
                 Err(message) => fatal(message),
             };
-            let mut host = match spawn_host(&root, plane) {
+            let mut host = match spawn_host(&root, plane, app.handle()) {
                 Ok(host) => host,
                 Err(message) => fatal(message),
             };

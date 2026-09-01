@@ -40,6 +40,9 @@
       "path": "../../feedback/message-feedback"
     },
     {
+      "path": "../../task-surface/task-surface"
+    },
+    {
       "path": "../../host/plugin-inventory"
     },
     {

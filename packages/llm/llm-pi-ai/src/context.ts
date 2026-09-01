@@ -9,10 +9,17 @@ import type { ContentBlock, GenerateOptions, Message } from '@maple/llm'
 import type {
   AttachmentId,
   AttachmentStore,
-  ImageAttachmentRef,
   ImageRequestPolicy,
-  RequestImageAttachment,
+  RequestImageEntry,
 } from '@maple/attachment'
+import {
+  isQuarantinedRequestImage,
+  prepareRequestImages,
+  requestImageEntryBytes,
+  requestImageEntryText,
+  resolvedRequestImage,
+} from '@maple/attachment'
+import type { Session } from '@maple/session'
 import type { Context as PiContext, ImageContent, Message as PiMessage, TextContent, Tool as PiTool } from '@earendil-works/pi-ai'
 import { toPiAssistant } from './replay.ts'
 import { DEFAULT_REQUEST_IMAGE_MAX_BYTES, DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET } from './config.ts'
@@ -47,7 +54,7 @@ function assertSupportedImageRoles(messages: readonly Message[]): void {
 
 async function userContent(
   blocks: readonly ContentBlock[],
-  requestImages: ReadonlyMap<AttachmentId, RequestImageAttachment>,
+  requestImages: ReadonlyMap<AttachmentId, RequestImageEntry>,
 ): Promise<string | (TextContent | ImageContent)[]> {
   const content: (TextContent | ImageContent)[] = []
   for (const block of blocks) {
@@ -56,7 +63,18 @@ async function userContent(
         if (block.text.length > 0) content.push({ type: 'text', text: block.text })
         break
       case 'image': {
-        const version = requestImages.get(block.attachment.attachmentId) as RequestImageAttachment
+        const entry = requestImages.get(block.attachment.attachmentId)
+        if (entry === undefined) {
+          throw new LlmError(
+            `pi-ai request image ${block.attachment.attachmentId} was not prepared.`,
+            'INVALID_REQUEST',
+          )
+        }
+        if (isQuarantinedRequestImage(entry)) {
+          content.push({ type: 'text', text: requestImageEntryText(entry) })
+          break
+        }
+        const version = resolvedRequestImage(entry)
         content.push({ type: 'text', text: requestImageHandleText(version) })
         content.push({
           type: 'image',
@@ -82,35 +100,6 @@ async function userContent(
   }
   if (content.every(block => block.type === 'text')) return content.map(block => block.text).join('')
   return content
-}
-
-function collectImageRefs(
-  blocks: readonly ContentBlock[],
-  refs: Map<AttachmentId, ImageAttachmentRef>,
-): void {
-  for (const block of blocks) {
-    if (block.type === 'image') refs.set(block.attachment.attachmentId, block.attachment)
-    else if (block.type === 'tool-result') collectImageRefs(block.content, refs)
-  }
-}
-
-async function prepareRequestImages(
-  messages: readonly Message[],
-  attachments: AttachmentStore,
-  policy: ImageRequestPolicy,
-  signal?: AbortSignal,
-): Promise<Map<AttachmentId, RequestImageAttachment>> {
-  const refs = new Map<AttachmentId, ImageAttachmentRef>()
-  for (const message of messages) collectImageRefs(message.content, refs)
-  const orderedRefs = [...refs.values()]
-  const prepared = await Promise.all(orderedRefs.map(
-    ref => attachments.readImageRequest(ref, policy, signal),
-  ))
-  const versions = new Map<AttachmentId, RequestImageAttachment>()
-  for (const [index, ref] of orderedRefs.entries()) {
-    versions.set(ref.attachmentId, prepared[index] as RequestImageAttachment)
-  }
-  return versions
 }
 
 function toolsOf(options: GenerateOptions): PiTool[] | undefined {
@@ -202,6 +191,7 @@ export function toPiContext(
   onReplayDegrade?: (reason: string) => void,
   maxRequestImageBytes?: number,
   requestImagePolicy?: ImageRequestPolicy,
+  session?: Session,
 ): Promise<PiContext>
 export function toPiContext(
   options: GenerateOptions,
@@ -209,10 +199,11 @@ export function toPiContext(
   onReplayDegrade?: (reason: string) => void,
   maxRequestImageBytes?: number,
   requestImagePolicy?: ImageRequestPolicy,
+  session?: Session,
 ): PiContext | Promise<PiContext> {
   return attachments === undefined
     ? textOnlyContext(options, onReplayDegrade)
-    : toPiContextWithImages(options, attachments, onReplayDegrade, maxRequestImageBytes, requestImagePolicy)
+    : toPiContextWithImages(options, attachments, onReplayDegrade, maxRequestImageBytes, requestImagePolicy, session)
 }
 
 async function toPiContextWithImages(
@@ -224,6 +215,7 @@ async function toPiContextWithImages(
     maxPixels: DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET,
     maxBytes: DEFAULT_REQUEST_IMAGE_MAX_BYTES,
   },
+  session?: Session,
 ): Promise<PiContext> {
   assertSupportedImageRoles(options.messages)
   const requestMessages = offloadRequestImagesWithPolicy(options.messages, {
@@ -232,12 +224,15 @@ async function toPiContextWithImages(
     byteQuantum: 1,
     byteLength: ref => Math.min(ref.bytes, requestImagePolicy.maxBytes),
   })
-  const requestImages = await prepareRequestImages(requestMessages, attachments, requestImagePolicy, options.signal)
+  const requestImages = await prepareRequestImages(requestMessages, attachments, requestImagePolicy, options.signal, session)
   const exactMessages = offloadRequestImagesWithPolicy(requestMessages, {
     representation: 'base64',
     ...maxRequestImageBytes === undefined ? {} : { maxBytes: maxRequestImageBytes },
     byteQuantum: 1,
-    byteLength: ref => (requestImages.get(ref.attachmentId) as RequestImageAttachment).bytes,
+    byteLength: (ref) => {
+      const entry = requestImages.get(ref.attachmentId)
+      return entry === undefined ? Math.min(ref.bytes, requestImagePolicy.maxBytes) : requestImageEntryBytes(entry)
+    },
   })
   const toolNames = new Map<CallId, string>()
   const messages: PiMessage[] = []

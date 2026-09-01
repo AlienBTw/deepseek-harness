@@ -90,7 +90,11 @@ describe('DeepSeekHarness', () => {
     const harness = {
       start: () => Promise.resolve(),
       client: {
-        prompt: () => Promise.resolve('accepted-message'),
+        prompt: () => Promise.resolve({
+          messageId: 'accepted-message',
+          status: 'ok' as const,
+          reason: { kind: 'completed' as const },
+        }),
         subscribeSessionTree: () => ({
           next: async () => {
             const notification = notifications.shift()
@@ -107,8 +111,8 @@ describe('DeepSeekHarness', () => {
     const result = await new HarnessSession(harness, 'owned').run('go')
 
     expect(result.notifications.map(notification => notification.method))
-      .toEqual(['session.event', 'session.status'])
-    expect(result.events.map(event => event.type)).toEqual(['agent/inbox/spliced'])
+      .toEqual(['session.status', 'session.event', 'session.event', 'session.event', 'session.status'])
+    expect(result.events.map(event => event.type)).toEqual(['turn/start', 'agent/inbox/spliced', 'agent/inbox/spliced'])
     expect(closed).toBe(true)
   })
 
@@ -491,6 +495,19 @@ describe('wire payload validation', () => {
     await expect(harness.run('no-data')).rejects.toThrow(SdkProtocolError)
   })
 
+  it('client.cancel sends cancellation and validates result', async () => {
+    const client = new HarnessClient(fakeLaunch())
+    cleanups.push(() => client.close())
+    await client.initialize({ cwd: process.cwd(), provider: 'p', model: 'm' })
+
+    const res = await client.cancel('sess-test', true)
+    expect(res).toBe(true)
+
+    const malformedClient = new HarnessClient(fakeLaunch({ FAKE_MALFORMED_CANCEL: '1' }))
+    cleanups.push(() => malformedClient.close())
+    await malformedClient.initialize({ cwd: process.cwd(), provider: 'p', model: 'm' })
+    await expect(malformedClient.cancel('sess-test')).rejects.toThrow(SdkProtocolError)
+  })
 })
 
 describe('stderr tail bound', () => {

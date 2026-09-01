@@ -8,6 +8,7 @@ import fileReferencesRemote from '@maple/file-reference/remote'
 import pluginInventoryRemote from '@maple/host-plugin-inventory/remote'
 import messageFeedbackRemote from '@maple/message-feedback/remote'
 import sessionReferencesRemote from '@maple/session-reference/remote'
+import taskSurfaceRemote from '@maple/task-surface/remote'
 import type { TypertClientRemote } from '@maple/typert-protocol'
 
 export type { TypertClientRemote as ClientRemote } from '@maple/typert-protocol'
@@ -18,6 +19,7 @@ export type {} from '@maple/goal/remote'
 export type {} from '@maple/host-plugin-inventory/remote'
 export type {} from '@maple/message-feedback/remote'
 export type {} from '@maple/session-reference/remote'
+export type {} from '@maple/task-surface/remote'
 // The forwarded-event allowlist's selection seat: without it in the consumer's
 // compilation face `TypertRemoteEvent` is `never` and every `$on` call fails.
 export type { ApiRemoteForwardedEvent } from '../types.ts'
@@ -115,7 +117,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
   try {
     for (const contribution of [
       commandsRemote, goalsRemote, dynamicRemote, fileReferencesRemote,
-      pluginInventoryRemote, messageFeedbackRemote, sessionReferencesRemote,
+      pluginInventoryRemote, messageFeedbackRemote, sessionReferencesRemote, taskSurfaceRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }

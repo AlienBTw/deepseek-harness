@@ -65,6 +65,7 @@
     "@maple/settings": "workspace:^",
     "@maple/skill": "workspace:^",
     "@maple/subagent": "workspace:^",
+    "@maple/task-surface": "workspace:^",
     "@maple/jobs": "workspace:^",
     "@maple/tools": "workspace:^",
     "@maple/user-approval": "workspace:^",

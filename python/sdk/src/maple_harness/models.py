@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 from pydantic import BaseModel
 
@@ -16,11 +16,10 @@ class Notification:
     payload: JsonObject
 
 
-@dataclass(slots=True)
-class IncomingRequest:
-    id: str | int
-    method: str
-    payload: JsonObject
+class SessionPromptResponse(BaseModel):
+    messageId: str
+    status: str
+    reason: dict[str, Any]
 
 
 class ServerInfo(BaseModel):

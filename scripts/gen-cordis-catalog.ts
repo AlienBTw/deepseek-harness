@@ -109,6 +109,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   tools: 'tools.md',
   typert: 'typert.md',
   typertGateway: 'typert.md',
+  taskSurface: 'user-questions.md',
   userQuestions: 'user-questions.md',
   web: 'web.md',
   workflowEngine: 'workflow.md',
@@ -625,6 +626,14 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   WorkflowAgentEndInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
   WorkflowAgentInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
   WorkflowResultInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
+  GetActiveTaskSurfaceResult: 'Task Surface inspection result contract is owned by packages/task-surface/task-surface/README.md',
+  SubmitTaskSurfaceRequest: 'Task Surface submit input contract is owned by packages/task-surface/task-surface/README.md',
+  SubmitTaskSurfaceResult: 'Task Surface submit outcome contract is owned by packages/task-surface/task-surface/README.md',
+  DismissTaskSurfaceRequest: 'Task Surface dismiss input contract is owned by packages/task-surface/task-surface/README.md',
+  DismissTaskSurfaceResult: 'Task Surface dismiss outcome contract is owned by packages/task-surface/task-surface/README.md',
+  GetActiveTaskSurfaceRemoteRequest: 'Task Surface remote wire request is owned by packages/task-surface/task-surface/src/service.ts',
+  SubmitTaskSurfaceRemoteRequest: 'Task Surface remote wire request is owned by packages/task-surface/task-surface/src/service.ts',
+  DismissTaskSurfaceRemoteRequest: 'Task Surface remote wire request is owned by packages/task-surface/task-surface/src/service.ts',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */

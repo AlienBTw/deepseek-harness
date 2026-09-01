@@ -28,19 +28,24 @@ pnpm desktop:dev    # debug shell + host launched from source through tsx
 打包构建运行的是构建后的 CLI 而非源码树，所以先构建：
 
 ```sh
-pnpm run build      # produces apps/cli/lib/bin.js
-pnpm desktop:build  # NSIS installer under src-tauri/target/release/bundle
+pnpm run build              # produces apps/cli/lib/bin.js
+pnpm desktop:build          # stages sidecar resources, then NSIS installer
 ```
 
-仓库根通过从工作目录与可执行文件向上查找来定位；在检出布局之外启动时请设置 `MAPLE_DESKTOP_REPO_ROOT`。
+`pnpm desktop:build` 会运行 `scripts/prepare-sidecar.mjs`，将 `apps/cli/lib/bin.js` 与 Node 二进制复制到 `src-tauri/sidecar/`，再由 Tauri 作为资源打包。可用 `NODE_SIDECAR=/absolute/path/to/node` 覆盖 Node 副本。
+
+Release 安装优先使用捆绑 sidecar（`sidecar/node` + `sidecar/cli/bin.js`）；未准备这些资源的解包 `cargo build --release` 会回退到系统 `node` 加检出中的 `apps/cli/lib/bin.js`。
+
+仓库根通过从工作目录与可执行文件向上查找来定位，再读取本应用数据目录（`%APPDATA%\app.maple.desktop\`）下的 `repo-root.txt` 提示文件或可执行文件旁的 `maple-desktop.repo` 文件；`MAPLE_DESKTOP_REPO_ROOT` 覆盖一切。任一提示文件指向检出后，双击已安装二进制即可工作。
 
 ### 启动平面
 
-Debug 构建经 tsx ESM 钩子从源码启动 CLI；release 构建运行 `apps/cli/lib/bin.js`。设置 `MAPLE_DESKTOP_LAUNCH=built` 或 `=source` 可双向覆盖默认值。当 tsx 钩子在很深的嵌套进程树下卡住时（已在 agent 沙箱中观察到），这个覆盖就有用：先 `pnpm run build`，再用 `MAPLE_DESKTOP_LAUNCH=built pnpm desktop:dev` 从构建产物启动。
+Debug 构建经 tsx ESM 钩子从源码启动 CLI；release 构建在存在时优先使用捆绑 sidecar，否则使用系统 `node` 加 `apps/cli/lib/bin.js`。设置 `MAPLE_DESKTOP_LAUNCH=source`、`=built` 或 `=bundled` 可覆盖。当 tsx 钩子在很深的嵌套进程树下卡住时（已在 agent 沙箱中观察到），这个覆盖就有用：先 `pnpm run build`，再用 `MAPLE_DESKTOP_LAUNCH=built pnpm desktop:dev` 从构建产物启动。
 
 ## 已知限制与延期工作
 
-- 打包出的二进制仍解析仓库检出与系统 `node`：真正的独立打包（sidecar Node 运行时加作为 Tauri 资源的已构建 CLI）尚未实现。
+- 打包二进制仍为插件组合解析仓库检出；sidecar 携带 Node 与已构建 CLI，但不携带完整工作区树。
+- Unix 上宿主子进程在独立会话中运行，发往桌面外壳的信号不会扇出到 Node 树；Windows 使用 kill-on-close 作业对象。
 - 窗口关闭经 `TerminateProcess` 终止宿主，跳过 harness 的优雅处置（配置监视器、遥测排空）；会话为懒持久化，持久内容不受影响。
 - macOS 与 Linux 未测试：作业对象守卫仅限 Windows，其他平台只剩显式清理。
 

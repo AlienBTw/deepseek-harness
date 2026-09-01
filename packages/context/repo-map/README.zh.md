@@ -34,7 +34,7 @@ src/README.md
 
 ## 已知限制与延期工作
 
-- **token 计数使用 chars/4 的采样启发式**——对典型代码与英文误差约 15% 以内但并非逐字节精确；若预算要求精确，可换用真实 BPE 分词器（js-tiktoken）替换 `estimateTokensExact`。
+- **token 计数通过 js-tiktoken 使用 cl100k_base**——长文本仍先采样行再计数，以保持二分预算搜索的速度。
 - **语法覆盖在构建期固定**——随包发布的 `tree-sitter-wasms` 集合决定了支持的语言；不受支持语言的文件经 `renderBareLois` 回退为裸行渲染。
 - **提及标识符的加权是部分的**——本移植跳过了 Aider 的路径组件个性化匹配，改用 ×10 边乘子来应用被提及的标识符。
 

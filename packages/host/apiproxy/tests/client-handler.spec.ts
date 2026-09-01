@@ -25,6 +25,7 @@ function scriptedApi(overrides: {
   agentPresets?: Partial<ApiProxy['agentPresets']>
   events?: Partial<ApiProxy['events']>
   goals?: Partial<ApiProxy['goals']>
+  taskSurface?: Partial<ApiProxy['taskSurface']>
   settings?: Partial<ApiProxy['settings']>
   credentials?: Partial<ApiProxy['credentials']>
   llm?: Partial<ApiProxy['llm']>
@@ -107,6 +108,12 @@ function scriptedApi(overrides: {
       complete: err,
       clear: err,
       ...overrides.goals,
+    },
+    taskSurface: {
+      getActive: r => ok(r, { active: false, reason: 'not-open' }),
+      submit: err,
+      dismiss: err,
+      ...overrides.taskSurface,
     },
     settings: {
       describe: r => ok(r, { writable: true, hasDocument: false, namespaces: [] }),

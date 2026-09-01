@@ -9,7 +9,7 @@
  */
 
 import type { ContentBlock } from '@maple/llm'
-import type { SessionEvent } from '@maple/session'
+import type { SessionEvent, TurnEndReason } from '@maple/session'
 import type { SubagentStopReason } from '@maple/subagent'
 
 /** Parameters for the process-wide SDK handshake. */
@@ -38,10 +38,17 @@ export interface SessionPromptParams {
   contentBlocks: ContentBlock[]
 }
 
-/** Durable enqueue receipt for one prompt. */
+/** Settled prompt outcome after the agent reaches idle. */
+export type SdkPromptStatus = 'ok' | 'error' | 'aborted'
+
+/** Durable enqueue receipt plus the settled turn outcome. */
 export interface SessionPromptResult {
   /** Identity of the queued user message. */
   messageId: string
+  /** Deployment-mapped turn outcome. */
+  status: SdkPromptStatus
+  /** The provider-reported turn end reason from the session log. */
+  reason: TurnEndReason
 }
 
 /** Deployment-mapped SDK outcome: `ok` for an accepted result, `error` otherwise. */
@@ -89,6 +96,20 @@ export interface SubagentFinishedNotification {
   lastAssistantMessage?: ContentBlock[]
 }
 
+/** Parameters to cancel an active turn on one session. */
+export interface SessionCancelParams {
+  /** Target session id to cancel. */
+  sessionId: string
+  /** Whether to keep queued/steering inbox messages. */
+  keepInbox?: boolean
+}
+
+/** Result of canceling a session turn. */
+export interface SessionCancelResult {
+  /** True when the cancel signal was sent to an active or loaded agent. */
+  canceled: boolean
+}
+
 /** Server-to-client notifications by JSON-RPC method name. */
 export interface HarnessSdkNotificationMap {
   'session.event': SessionEventNotification
@@ -101,5 +122,6 @@ export interface HarnessSdkNotificationMap {
 export interface HarnessSdkRequestMap {
   'initialize': { params: InitializeParams; result: InitializeResult }
   'session/prompt': { params: SessionPromptParams; result: SessionPromptResult }
+  'session/cancel': { params: SessionCancelParams; result: SessionCancelResult }
   'shutdown': { params: undefined; result: Record<string, never> }
 }

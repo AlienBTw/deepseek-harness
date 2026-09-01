@@ -29,8 +29,8 @@
           maxDepth: 1
       - insert:
           - id: agent-team
-            name: '@maple/experimental-agent-team'
+            name: '@maple/agent-team'
           - id: tool-agent-team
-            name: '@maple/experimental-tool-agent-team'
+            name: '@maple/tool-agent-team'
           - id: team-fixture-llm
             name: './tests/fixtures/team-llm.mjs'

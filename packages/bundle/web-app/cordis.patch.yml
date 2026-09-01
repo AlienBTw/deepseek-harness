@@ -291,6 +291,13 @@
     - id: ui-user-questions
       name: '@maple/client-ui-user-questions'
 
+    # Task Surface: actionable dock over the taskSurface projection + Remote API.
+    - id: ui-task-surface
+      name: '@maple/client-ui-task-surface'
+
+    - id: ui-agent-team
+      name: '@maple/client-ui-agent-team'
+
     - id: ui-trajectory
       name: '@maple/client-ui-trajectory'
 

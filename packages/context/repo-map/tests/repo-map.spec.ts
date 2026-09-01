@@ -105,4 +105,33 @@ describe('@maple/context-repo-map', () => {
     expect(result.repoMap.length).toBeGreaterThan(0)
     expect(tokenCount(result.repoMap)).toBeLessThanOrEqual(500)
   })
+
+  it('boosts files matching mentioned identifiers in path components', async () => {
+    const mockGetTags = async (rel_fname: string): Promise<Tag[]> => {
+      return [
+        {
+          rel_fname,
+          fname: rel_fname,
+          line: 0,
+          name: 'render',
+          kind: 'def',
+        },
+      ]
+    }
+
+    const repoMap = new RepoMap({ getTags: mockGetTags })
+    const sourceFiles: SourceFile[] = [
+      { rel_fname: 'src/components/button.ts', fname: 'src/components/button.ts', content: 'export function render() {}' },
+      { rel_fname: 'src/utils/helpers.ts', fname: 'src/utils/helpers.ts', content: 'export function render() {}' },
+    ]
+
+    const result = await repoMap.getRepoMap({
+      sourceFiles,
+      mentionedIdents: ['button'],
+      maxMapTokens: 500,
+    })
+
+    expect(result).toBeDefined()
+    expect(result.repoMap).toContain('button.ts')
+  })
 })

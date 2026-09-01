@@ -41,8 +41,10 @@
 | `@maple/tool-subagent-control` | `interrupt_agent`、`list_agents`、`send_message` | `ctx.tools`、`ctx.subagents`、`ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`、`tool/result`、`child session events through ctx.subagents` | - | 这些是控制可继续后台 subagent 的全局命名工具：绑定提供方的 `tool-subagent` 实例注册不同的委派工具；本包注册一次 `send_message` 和 `interrupt_agent`，另由 `list_agents` 通过单独加载的 `/list-agents` 插件提供，其目录行使用 sessionProjections 和实时 Agent 注册表。 |
 | `@maple/tool-subagent-report` | `report` | `ctx.subagents`、`ctx.systemPrompt`、`a live continuable in-process child Agent` | `tool/call`、`tool/result`、`a user-role message in the direct parent session` | - | 按可继续的进程内子级注册，而非全局注册，因此该 schema 仅在这种子级内部可见，并且不受其全局 `toolFilter` 影响。同一份贡献还会安装子级作用域的 `tool:report` 系统提示词 section，本目录不渲染该 section。面向父级的 `send_message` 工具单独安装。 |
 | `@maple/tool-jobs` | `job_kill`、`job_list`、`job_output` | `ctx.tools`、`ctx.jobs`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`user/message via agent.inject() for background completion notices` | - | 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。 |
-| `@maple/experimental-tool-agent-team` | `followup_task`、`interrupt_agent`、`list_agents`、`send_message`、`spawn_teammate`、`team_task_create`、`team_task_get`、`team_task_list`、`team_task_update`、`wait_agent` | `ctx.tools`、`ctx.systemPrompt`、`ctx.agentTeams`、`an exact live Team member Agent` | `tool/call`、`team/member`、`team/message/queued`、`team/message/delivered`、`team/task`、`tool/result` | - | 这 10 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 maple-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。 |
+| `@maple/tool-agent-team` | `followup_task`、`interrupt_agent`、`list_agents`、`send_message`、`spawn_teammate`、`team_task_create`、`team_task_get`、`team_task_list`、`team_task_update`、`wait_agent` | `ctx.tools`、`ctx.systemPrompt`、`ctx.agentTeams`、`an exact live Team member Agent` | `tool/call`、`team/member`、`team/message/queued`、`team/message/delivered`、`team/task`、`tool/result` | - | 这 10 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 maple-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。 |
 | `@maple/tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
+| `@maple/tool-recall` | `history_read`、`history_search` | `ctx.tools`、`owning Agent session` | `tool/call`、`tool/result` | - | history_read 和 history_search 直接从持久化会话日志中检索被压缩的对话历史范围。 |
+| `@maple/tool-task-surface` | `show_task_surface` | `ctx.tools` | `tool/call`、`tool/result` | - | show_task_surface 展示交互式声明式 UI 面板（表单、单选、对比、表格、指标）并结束本轮以等待用户提交。 |
 | `@maple/tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@maple/tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
 
@@ -1714,9 +1716,9 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。
 
-<a id="mapleexperimental-tool-agent-team"></a>
+<a id="mapletool-agent-team"></a>
 
-## `@maple/experimental-tool-agent-team`
+## `@maple/tool-agent-team`
 
 ### `followup_task`
 
@@ -1742,7 +1744,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `interrupt_agent`
 
@@ -1763,7 +1765,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `list_agents`
 
@@ -1776,7 +1778,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `send_message`
 
@@ -1802,7 +1804,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `spawn_teammate`
 
@@ -1841,7 +1843,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `team_task_create`
 
@@ -1881,7 +1883,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `team_task_get`
 
@@ -1902,7 +1904,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `team_task_list`
 
@@ -1941,7 +1943,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `team_task_update`
 
@@ -2008,7 +2010,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 ### `wait_agent`
 
@@ -2026,7 +2028,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 }
 ```
 
-来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+来源：[`packages/agent-team/tool-agent-team/src/index.ts`](../packages/agent-team/tool-agent-team/src/index.ts)
 
 这 10 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 maple-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。
 
@@ -2080,6 +2082,94 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 来源：[`packages/todo/tool-todo/src/index.ts`](../packages/todo/tool-todo/src/index.ts)
 
 todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。
+
+<a id="mapletool-recall"></a>
+
+## `@maple/tool-recall`
+
+### `history_read`
+
+读取压缩检查点所覆盖的原始对话范围。当索引检查点或先前的状态摘要表明相关细节已被压缩，且你需要确切的历史数值、错误或指令时使用。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "checkpoint": {
+      "type": "string",
+      "description": "The checkpoint identifier (e.g. \"c12\" or \"12\")."
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Line offset to start reading from for pagination."
+    }
+  },
+  "required": [
+    "checkpoint"
+  ]
+}
+```
+
+来源：[`packages/compaction/tool-recall/src/index.ts`](../packages/compaction/tool-recall/src/index.ts)
+
+### `history_search`
+
+在所有已压缩／被覆盖的对话历史中搜索字面量文本查询。返回包含检查点 ID 和事件序号的匹配片段。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Literal text query to search for in compacted history."
+    },
+    "checkpoint": {
+      "type": "string",
+      "description": "Optional specific checkpoint ID to restrict the search to."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum number of matching snippets to return."
+    }
+  },
+  "required": [
+    "query"
+  ]
+}
+```
+
+来源：[`packages/compaction/tool-recall/src/index.ts`](../packages/compaction/tool-recall/src/index.ts)
+
+history_read 和 history_search 直接从持久化会话日志中检索被压缩的对话历史范围。
+
+<a id="mapletool-task-surface"></a>
+
+## `@maple/tool-task-surface`
+
+### `show_task_surface`
+
+在用户界面中显示结构化的交互式任务表面（表单、选择、表格、指标、差异审查或排序列表）。调用此工具会结束当前轮次，并等待用户提交其输入或决策。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "model": {
+      "type": "object",
+      "description": "The complete TaskSurfaceModelV1 declarative structure.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "model"
+  ]
+}
+```
+
+来源：[`packages/task-surface/tool-task-surface/src/index.ts`](../packages/task-surface/tool-task-surface/src/index.ts)
+
+show_task_surface 展示交互式声明式 UI 面板（表单、单选、对比、表格、指标）并结束本轮以等待用户提交。
 
 <a id="mapletool-workflow"></a>
 

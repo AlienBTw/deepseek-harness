@@ -2627,9 +2627,9 @@ function hasPackageSurface(model: PackageModel): boolean {
 }
 
 function isDualFacePackage(manifest: Record<string, unknown>): boolean {
-  const dsh = manifest.dsh
+  const dsh = (manifest.maple ?? manifest.dsh) as Record<string, unknown> | undefined
   const client = dsh !== null && typeof dsh === 'object'
-    ? (dsh as Record<string, unknown>).client
+    ? dsh['client']
     : undefined
   return client !== null
     && typeof client === 'object'

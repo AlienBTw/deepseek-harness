@@ -1933,6 +1933,49 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'taskSurface',
+    summary: 'Service managing active Task Surface state, idempotent submissions, and dismissals.',
+    description: 'Service managing active Task Surface state, idempotent submissions, and dismissals.',
+    methods: [
+      {
+        signature: 'getActive(input: { session: Session }): GetActiveTaskSurfaceResult',
+        description: 'Retrieve active surface for a session.',
+        parameters: [{ name: 'input', description: 'query containing target session.' }],
+        returns: 'active surface information or not-open status.',
+      },
+      {
+        signature: 'submit(input: SubmitTaskSurfaceRequest & { session: Session; agent: Agent }): Promise<SubmitTaskSurfaceResult>',
+        description: 'Submit values for an active Task Surface.',
+        parameters: [{ name: 'input', description: 'submission request with field values, target session, and live agent.' }],
+        returns: 'submission outcome and queued message ID.',
+      },
+      {
+        signature: 'dismiss(input: DismissTaskSurfaceRequest & { session: Session }): DismissTaskSurfaceResult',
+        description: 'Dismiss an active Task Surface.',
+        parameters: [{ name: 'input', description: 'dismissal request with target session.' }],
+        returns: 'dismissal outcome and appended event sequence number.',
+      },
+      {
+        signature: '@Remote(\'getActive\') remoteGetActive(request: GetActiveTaskSurfaceRemoteRequest): GetActiveTaskSurfaceResult',
+        description: 'Retrieve the active Task Surface for one session through the remote boundary.',
+        parameters: [{ name: 'request', description: 'session to inspect.' }],
+        returns: 'active surface information or not-open status.',
+      },
+      {
+        signature: '@Remote(\'submit\') remoteSubmit(agent: Agent, request: SubmitTaskSurfaceRemoteRequest): Promise<SubmitTaskSurfaceResult>',
+        description: 'Submit values for the active Task Surface through the remote boundary.',
+        parameters: [{ name: 'agent', description: 'live agent resolved from the wire session identity.' }, { name: 'request', description: 'submission payload without the resolved session id.' }],
+        returns: 'submission outcome and queued message id when accepted.',
+      },
+      {
+        signature: '@Remote(\'dismiss\') remoteDismiss(agent: Agent, request: DismissTaskSurfaceRemoteRequest): DismissTaskSurfaceResult',
+        description: 'Dismiss the active Task Surface through the remote boundary.',
+        parameters: [{ name: 'agent', description: 'live agent resolved from the wire session identity.' }, { name: 'request', description: 'dismissal payload without the resolved session id.' }],
+        returns: 'dismissal outcome and appended event sequence when dismissed.',
+      },
+    ],
+  },
+  {
     key: 'terminals',
     summary: 'In-process registry for replaceable PTY backends and exact-Agent sessions.',
     description: 'In-process registry for replaceable PTY backends and exact-Agent sessions.',
@@ -2950,6 +2993,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
   },
   {
+    name: 'AttachmentQuarantineReason',
+    declaration: 'export type AttachmentQuarantineReason = \'not-found\' | \'corrupt\' | \'read-failed\';',
+  },
+  {
     name: 'AuthorizationEntry',
     declaration: 'export interface AuthorizationEntry {\n    key: CredentialKey;\n    label: string;\n    methods: readonly AuthorizationMethod[];\n    inFlight: boolean;\n}',
   },
@@ -3254,6 +3301,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface DirectoryRegistrationHandle {\n    (): void;\n    replace(entries: readonly LlmConfigurableProvider[]): void;\n}',
   },
   {
+    name: 'DismissTaskSurfaceRemoteRequest',
+    declaration: 'export type DismissTaskSurfaceRemoteRequest = Omit<DismissTaskSurfaceRequest, \'sessionId\'>;',
+  },
+  {
+    name: 'DismissTaskSurfaceRequest',
+    declaration: 'export interface DismissTaskSurfaceRequest {\n    sessionId: SessionId;\n    surfaceId: TaskSurfaceId;\n    dismissalId: TaskSurfaceDismissalId;\n}',
+  },
+  {
+    name: 'DismissTaskSurfaceResult',
+    declaration: 'export type DismissTaskSurfaceResult = {\n    dismissed: true;\n    eventSeq: number;\n} | {\n    dismissed: false;\n    reason: \'not-open\' | \'submission-pending\';\n};',
+  },
+  {
     name: 'Domain',
     declaration: 'export interface Domain<S extends DomainSpec> {\n    readonly name: string;\n    readonly global: DomainGlobalHandleOf<S>;\n    table<N extends keyof S[\'tables\'] & string>(name: N): KvTable<TableKeyOf<S, N>, TableValueOf<S, N>>;\n    close(): Promise<void>;\n}',
   },
@@ -3300,14 +3359,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DownloadsApi',
     declaration: 'export interface DownloadsApi {\n    sessionLog(request: {\n        sessionId: SessionId;\n        includeDescendants?: boolean;\n    }, signal: AbortSignal): Promise<Response>;\n}',
-  },
-  {
-    name: 'MapleEnvironment',
-    declaration: 'export type MapleEnvironment = Readonly<Record<MapleEnvironmentKey, string>>;',
-  },
-  {
-    name: 'MapleEnvironmentKey',
-    declaration: 'export type MapleEnvironmentKey = `${typeof MAPLE_ENV_PREFIX}${string}`;',
   },
   {
     name: 'DynamicCordisPackage',
@@ -3412,6 +3463,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'GenericResultView',
     declaration: 'export interface GenericResultView {\n    card: \'generic\';\n    title?: string;\n    content?: ContentBlock[];\n}',
+  },
+  {
+    name: 'GetActiveTaskSurfaceRemoteRequest',
+    declaration: 'export interface GetActiveTaskSurfaceRemoteRequest {\n    sessionId: SessionId;\n}',
+  },
+  {
+    name: 'GetActiveTaskSurfaceResult',
+    declaration: 'export type GetActiveTaskSurfaceResult = {\n    active: true;\n    callId: CallId;\n    surfaceId: TaskSurfaceId;\n    model: TaskSurfaceModelV1;\n    pending: TaskSurfacePendingSubmission | null;\n} | {\n    active: false;\n    reason: \'not-open\';\n};',
   },
   {
     name: 'GoalActivation',
@@ -3692,6 +3751,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ManualCompactAgentContext',
     declaration: 'export interface ManualCompactAgentContext extends CompactionAgentContext {\n    runMaintenance<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T>;\n}',
+  },
+  {
+    name: 'MapleEnvironment',
+    declaration: 'export type MapleEnvironment = Readonly<Record<MapleEnvironmentKey, string>>;',
+  },
+  {
+    name: 'MapleEnvironmentKey',
+    declaration: 'export type MapleEnvironmentKey = `${typeof MAPLE_ENV_PREFIX}${string}`;',
   },
   {
     name: 'Message',
@@ -4083,7 +4150,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionEventMap',
-    declaration: 'export interface SessionEventMap {\n    \'turn/start\': {\n        turn: number;\n    };\n    \'turn/end\': {\n        turn: number;\n        reason: TurnEndReason;\n    };\n    \'step/start\': {\n        turn: number;\n        step: number;\n    };\n    \'step/end\': {\n        turn: number;\n        step: number;\n    };\n    \'user/message\': UserMessage;\n    \'assistant/chunk\': {\n        turn: number;\n        step: number;\n        chunk: StreamChunk;\n    };\n    \'assistant/message\': {\n        turn: number;\n        step: number;\n        message: AssistantMessage;\n        usage?: TokenUsage;\n        interrupted?: true;\n    };\n    \'tool/call\': {\n        turn: number;\n        step: number;\n        callId: CallId;\n        name: string;\n        arguments: string;\n    };\n    \'tool/result\': {\n        turn: number;\n        step: number;\n        message: ToolResultMessage;\n        error?: {\n            name: string;\n            code: string;\n        };\n        meta?: JsonValue;\n    };\n    \'todo/write\': {\n        todos: TodoItem[];\n    };\n    \'request/header\': {\n        header: EpochHeader;\n        reason: RequestHeaderReason;\n    };\n    \'request/context\': RequestContext;\n    \'session/end-seed\': Record<string, never>;\n}',
+    declaration: 'export interface SessionEventMap {\n    \'turn/start\': {\n        turn: number;\n    };\n    \'turn/end\': {\n        turn: number;\n        reason: TurnEndReason;\n    };\n    \'step/start\': {\n        turn: number;\n        step: number;\n    };\n    \'step/end\': {\n        turn: number;\n        step: number;\n    };\n    \'user/message\': UserMessage;\n    \'assistant/chunk\': {\n        turn: number;\n        step: number;\n        chunk: StreamChunk;\n    };\n    \'assistant/message\': {\n        turn: number;\n        step: number;\n        message: AssistantMessage;\n        usage?: TokenUsage;\n        interrupted?: true;\n    };\n    \'tool/call\': {\n        turn: number;\n        step: number;\n        callId: CallId;\n        name: string;\n        arguments: string;\n    };\n    \'tool/result\': {\n        turn: number;\n        step: number;\n        message: ToolResultMessage;\n        error?: {\n            name: string;\n            code: string;\n        };\n        meta?: JsonValue;\n    };\n    \'todo/write\': {\n        todos: TodoItem[];\n    };\n    \'request/header\': {\n        header: EpochHeader;\n        reason: RequestHeaderReason;\n    };\n    \'request/context\': RequestContext;\n    \'session/end-seed\': Record<string, never>;\n    \'attachment/quarantine\': {\n        attachmentId: AttachmentId;\n        reason: AttachmentQuarantineReason;\n    };\n    \'attachment/recovered\': {\n        attachmentId: AttachmentId;\n    };\n}',
   },
   {
     name: 'SessionEventMetadataFilter',
@@ -4530,6 +4597,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SubagentStopReasonMap {\n    completed: \'completed\';\n    aborted: \'aborted\';\n    error: \'error\';\n    \'max-tokens\': \'max-tokens\';\n    refusal: \'refusal\';\n}',
   },
   {
+    name: 'SubmitTaskSurfaceRequest',
+    declaration: 'export interface SubmitTaskSurfaceRequest {\n    sessionId: SessionId;\n    surfaceId: TaskSurfaceId;\n    submissionId: TaskSurfaceSubmissionId;\n    values: Record<string, JsonValue>;\n    note?: string;\n}',
+  },
+  {
+    name: 'SubmitTaskSurfaceResult',
+    declaration: 'export type SubmitTaskSurfaceResult = {\n    accepted: true;\n    messageId: MessageId;\n    phase: TaskSurfaceSubmissionPhase;\n} | {\n    accepted: false;\n    reason: \'not-open\' | \'stale\' | \'invalid-submission\' | \'submission-pending\';\n};',
+  },
+  {
     name: 'SubprocessCollect',
     declaration: 'export interface SubprocessCollect {\n    maxBytes: number;\n    spill?: {\n        maxBytes: number;\n    };\n}',
   },
@@ -4608,6 +4683,50 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TableValueOf',
     declaration: 'export type TableValueOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<string, infer V> ? V : never;',
+  },
+  {
+    name: 'TaskSurfaceBlock',
+    declaration: 'export type TaskSurfaceBlock = {\n    kind: \'markdown\';\n    text: string;\n} | {\n    kind: \'metric\';\n    label: string;\n    value: string;\n    hint?: string;\n} | {\n    kind: \'diff\';\n    filename: string;\n    original: string;\n    modified: string;\n} | {\n    kind: \'table\';\n    headers: string[];\n    rows: string[][];\n};',
+  },
+  {
+    name: 'TaskSurfaceDismissalId',
+    declaration: 'export type TaskSurfaceDismissalId = Branded<\'TaskSurfaceDismissalId\'>;',
+  },
+  {
+    name: 'TaskSurfaceField',
+    declaration: 'export type TaskSurfaceField = {\n    kind: \'choice\';\n    id: string;\n    label: string;\n    options: TaskSurfaceOption[];\n    multiple?: boolean;\n    required?: boolean;\n} | {\n    kind: \'text\';\n    id: string;\n    label: string;\n    placeholder?: string;\n    required?: boolean;\n} | {\n    kind: \'order\';\n    id: string;\n    label: string;\n    items: TaskSurfaceOption[];\n    required?: boolean;\n};',
+  },
+  {
+    name: 'TaskSurfaceId',
+    declaration: 'export type TaskSurfaceId = Branded<\'TaskSurfaceId\'>;',
+  },
+  {
+    name: 'TaskSurfaceLayout',
+    declaration: 'export type TaskSurfaceLayout = \'stack\' | \'grid-2\' | \'grid-3\';',
+  },
+  {
+    name: 'TaskSurfaceModelV1',
+    declaration: 'export interface TaskSurfaceModelV1 {\n    version: 1;\n    title: string;\n    description?: string;\n    sections: TaskSurfaceSection[];\n    fields?: TaskSurfaceField[];\n    submit: {\n        label: string;\n    };\n}',
+  },
+  {
+    name: 'TaskSurfaceOption',
+    declaration: 'export interface TaskSurfaceOption {\n    id: string;\n    label: string;\n    description?: string;\n}',
+  },
+  {
+    name: 'TaskSurfacePendingSubmission',
+    declaration: 'export interface TaskSurfacePendingSubmission {\n    submissionId: TaskSurfaceSubmissionId;\n    messageId: MessageId;\n    phase: TaskSurfaceSubmissionPhase;\n}',
+  },
+  {
+    name: 'TaskSurfaceSection',
+    declaration: 'export interface TaskSurfaceSection {\n    id: string;\n    title?: string;\n    layout?: TaskSurfaceLayout;\n    blocks: TaskSurfaceBlock[];\n}',
+  },
+  {
+    name: 'TaskSurfaceSubmissionId',
+    declaration: 'export type TaskSurfaceSubmissionId = Branded<\'TaskSurfaceSubmissionId\'>;',
+  },
+  {
+    name: 'TaskSurfaceSubmissionPhase',
+    declaration: 'export type TaskSurfaceSubmissionPhase = \'queued\' | \'claiming\';',
   },
   {
     name: 'TeamId',

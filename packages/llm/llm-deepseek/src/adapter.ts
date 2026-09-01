@@ -10,7 +10,6 @@
 
 import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, offloadRequestImagesWithPolicy, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@maple/llm'
 import type {
-  ContentBlock,
   GenerateOptions,
   LlmModelInfo,
   LlmProviderInfo,
@@ -23,10 +22,15 @@ import type {
 import type {
   AttachmentId,
   AttachmentStore,
-  ImageAttachmentRef,
   ImageRequestPolicy,
-  RequestImageAttachment,
+  RequestImageEntry,
 } from '@maple/attachment'
+import {
+  prepareRequestImages,
+  resolvedRequestImage,
+} from '@maple/attachment'
+import type { Session } from '@maple/session'
+import type { SessionId } from '@maple/session'
 import type { CredentialRef } from '@maple/credentials'
 import { deadline, idleWatchdog, timeoutOf } from '@maple/timeout'
 import type { AnonymousUserId } from '@maple/anonymous-user-id'
@@ -122,6 +126,8 @@ export interface DeepSeekAdapterOptions {
   resolveUserId: () => AnonymousUserId
   /** Resolve the current durable attachment service; absence rejects image input. */
   resolveAttachments?: () => AttachmentStore | undefined
+  /** Resolve a live session for attachment quarantine recording. */
+  resolveSession?: (sessionId: SessionId) => Session | undefined
   /** Resolve the process-wide upload reuse store. */
   resolveFiles?: () => DeepSeekFileStore
 }
@@ -182,15 +188,6 @@ class FileResolutionFailure extends Error {
   }
 }
 
-function collectImageRefs(
-  content: readonly ContentBlock[],
-  refs: Map<AttachmentId, ImageAttachmentRef>,
-): void {
-  for (const block of content) {
-    if (block.type === 'image') refs.set(block.attachment.attachmentId, block.attachment)
-    else if (block.type === 'tool-result') collectImageRefs(block.content, refs)
-  }
-}
 
 /**
  * Resolve the request-image budgets owned by one DeepSeek model route.
@@ -211,24 +208,6 @@ export function resolveRequestImagePolicy(model: DeepSeekCatalogModel): ImageReq
   }
 }
 
-async function prepareRequestImages(
-  options: GenerateOptions,
-  attachments: AttachmentStore,
-  model: DeepSeekCatalogModel,
-  signal: AbortSignal,
-): Promise<Map<AttachmentId, RequestImageAttachment>> {
-  const refs = new Map<AttachmentId, ImageAttachmentRef>()
-  for (const message of options.messages) collectImageRefs(message.content, refs)
-  const policy = resolveRequestImagePolicy(model)
-  const orderedRefs = [...refs.values()]
-  const projected = await Promise.all(orderedRefs.map(
-    ref => attachments.readImageRequest(ref, policy, signal),
-  ))
-  return new Map(orderedRefs.map((ref, index) => (
-    [ref.attachmentId, projected[index] as RequestImageAttachment]
-  )))
-}
-
 function providerRejectedNormalizedImage(detail: string): boolean {
   const reasonBeforeImage = /(?:unsupported|invalid|cannot read|failed to (?:decode|process)).{0,40}image/iu
   const imageBeforeReason = /image.{0,40}(?:unsupported|invalid|cannot be decoded)/iu
@@ -236,7 +215,7 @@ function providerRejectedNormalizedImage(detail: string): boolean {
 }
 
 interface UsedRequestFile {
-  version: RequestImageAttachment
+  version: RequestImageEntry & { kind: 'resolved' }
   fileId: DeepSeekFileId
   location: ImageWireLocation
 }
@@ -264,15 +243,15 @@ function staleMappings(
   files: readonly UsedRequestFile[],
   detail: string,
 ): UsedRequestFile[] {
-  const unique = [...new Map(files.map(file => [`${file.version.variantId}\0${file.fileId}`, file])).values()]
+  const unique = [...new Map(files.map(file => [`${file.version.version.variantId}\0${file.fileId}`, file])).values()]
   const exact = unique.filter(file => detailNamesFileId(detail, file.fileId))
   return exact.length > 0 ? exact : unique
 }
 
 function normalizedImageFacts(
-  file: { version: RequestImageAttachment; location: ImageWireLocation },
+  file: { version: Extract<RequestImageEntry, { kind: 'resolved' }>; location: ImageWireLocation },
 ): string {
-  const version = file.version
+  const version = file.version.version
   const name = version.attachment.name ?? version.attachment.attachmentId
   const colour = version.hasAlpha ? 'sRGBA' : 'sRGB'
   return `"${name}" at message ${file.location.message}, image ${file.location.image} `
@@ -291,7 +270,7 @@ function normalizedImageDiagnostic(
       + 'The provider rejected bytes already normalized by the harness; PNG, JPEG, WebP, and GIF remain supported input formats.'
   }
   const candidates = [...new Map(files.map(file => [
-    `${file.version.variantId}\0${file.location.message}\0${file.location.image}`,
+    `${file.version.version.variantId}\0${file.location.message}\0${file.location.image}`,
     file,
   ])).values()]
   return `DeepSeek rejected a normalized request image: ${providerMessage}. Candidate images: `
@@ -459,6 +438,9 @@ export class DeepSeekAdapter extends LlmAdapter {
     }
     const apiKey = await this.config.resolveApiKey(connection)
     const userId = this.config.resolveUserId()
+    const session = options.sessionId === undefined
+      ? undefined
+      : this.config.resolveSession?.(options.sessionId)
     const consumer = new AbortController()
     const upstream = options.signal === undefined
       ? consumer.signal
@@ -471,6 +453,7 @@ export class DeepSeekAdapter extends LlmAdapter {
       apiKey,
       userId,
       attachments,
+      session,
       () => { watchdog.pulse() },
     )[Symbol.asyncIterator]()
     let exhausted = false
@@ -515,6 +498,7 @@ export class DeepSeekAdapter extends LlmAdapter {
     apiKey: string,
     userId: AnonymousUserId,
     attachments: AttachmentStore | undefined,
+    session: Session | undefined,
     onActivity: () => void,
   ): AsyncIterable<StreamChunk> {
     const headers = {
@@ -543,9 +527,9 @@ export class DeepSeekAdapter extends LlmAdapter {
       byteLength: ref => Math.min(ref.bytes, policy.maxBytes),
     })
     const requestOptions = requestMessages === options.messages ? options : { ...options, messages: [...requestMessages] }
-    const requestImages = attachments === undefined || model === undefined
-      ? new Map<AttachmentId, RequestImageAttachment>()
-      : await prepareRequestImages(requestOptions, attachments, model, signal)
+    const requestImages = attachments === undefined || model === undefined || policy === undefined
+      ? new Map<AttachmentId, RequestImageEntry>()
+      : await prepareRequestImages(requestOptions.messages, attachments, policy, signal, session)
     let representation: 'file' | 'base64' = 'file'
     let fileAttempt = 0
     while (true) {
@@ -582,7 +566,7 @@ export class DeepSeekAdapter extends LlmAdapter {
                   throw new FileResolutionFailure(error)
                 }
                 onActivity()
-                usedFiles.push({ version, fileId: resolved.record.fileId, location })
+                usedFiles.push({ version: { kind: 'resolved', version }, fileId: resolved.record.fileId, location })
                 return resolved.record.fileId
               },
             },
@@ -636,7 +620,7 @@ export class DeepSeekAdapter extends LlmAdapter {
         const staleFile = usedFiles.length > 0 && providerRejectedFileId(detail)
         if (staleFile) {
           await Promise.all(staleMappings(usedFiles, detail).map(file => (
-            this.files.invalidate(file.version, file.fileId, fileConnection)
+            this.files.invalidate(resolvedRequestImage(file.version), file.fileId, fileConnection)
           )))
           if (fileAttempt === 0) {
             fileAttempt += 1

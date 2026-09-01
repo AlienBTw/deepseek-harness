@@ -17,6 +17,7 @@
     ".": { "types": "./lib/types/index.d.ts", "default": "./lib/index.js" },
     "./invariant": { "types": "./lib/types/invariant.d.ts", "default": "./lib/invariant.js" },
     "./types": { "types": "./lib/types/types.d.ts", "default": "./lib/types/types.js" },
+    "./request-projection": { "types": "./lib/types/request-projection.d.ts", "default": "./lib/request-projection.js" },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -25,11 +26,13 @@
   "peerDependencies": {
     "@maple/brand": "workspace:^",
     "@maple/invariants": "workspace:^",
+    "@maple/session": "workspace:^",
     "@maple/cordis": "workspace:^"
   },
   "devDependencies": {
     "@maple/brand": "workspace:^",
     "@maple/invariants": "workspace:^",
+    "@maple/session": "workspace:^",
     "@maple/cordis": "workspace:^"
   }
 }

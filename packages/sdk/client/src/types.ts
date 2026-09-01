@@ -6,7 +6,8 @@
  */
 
 import type { ContentBlock } from '@maple/llm'
-import type { SessionEvent } from '@maple/session'
+import type { SessionEvent, TurnEndReason } from '@maple/session'
+import type { SdkPromptStatus } from '@maple/sdk-protocol'
 
 /** One server-to-client notification as received off the wire. */
 export interface HarnessNotification {
@@ -58,12 +59,16 @@ export interface DeepSeekHarnessOptions {
   maxTokens?: number
 }
 
-/** One owned session activity interval, from enqueue receipt through idle. */
+/** One owned session activity interval through prompt settlement. */
 export interface RunResult {
   /** The session the activity ran on. */
   sessionId: string
   /** Concatenated text of the interval's last assistant message (empty when none). */
   finalResponse: string
+  /** Deployment-mapped turn outcome from the prompt response. */
+  status: SdkPromptStatus
+  /** Provider-reported turn end reason from the prompt response. */
+  reason: TurnEndReason
   /** Every `session.event` payload for the root session, in wire order. */
   events: SessionEvent[]
   /** Every notification for the root session and discovered descendants, in wire order. */

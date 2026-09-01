@@ -12,7 +12,7 @@ import type { Context } from '@maple/cordis'
 import { installModelSelection } from '@maple/agent'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@maple/agent'
 import type {} from '@maple/agent-presets/types'
-import { AttachmentError, admitEncodedImages } from '@maple/attachment'
+import { AttachmentError, admitEncodedImages, recoverQuarantinedAttachment } from '@maple/attachment'
 import type { ImageAttachmentRef } from '@maple/attachment'
 import { createUserMessage, freezeMessage, ReasoningEffortId } from '@maple/llm'
 import { errorChain } from '@maple/llm'
@@ -62,6 +62,8 @@ import {
 import type {} from '@maple/session-projection'
 // Type-only: resolves `ctx.get('tasks')` to the background job registry.
 import type {} from '@maple/jobs'
+// Type-only: resolves `ctx.taskSurface` to the Task Surface host service.
+import type {} from '@maple/task-surface'
 import type { JobSnapshot } from '@maple/jobs'
 // Type-only: resolves `ctx.get('sessionProjectionCache')` (the cold listing column).
 import type {} from '@maple/session-projection-cache'
@@ -85,6 +87,11 @@ import { credentialRef } from '@maple/credentials'
 // Value edge: the rename impl narrows the title service's validation failure; the import also resolves `ctx.get('sessionTitle')`.
 import { SessionTitleInvalidError } from '@maple/session-title'
 import type { CallId } from '@maple/llm/brand'
+import type {
+  GetActiveTaskSurfaceResult,
+  SubmitTaskSurfaceResult,
+  TaskSurfaceId,
+} from '@maple/task-surface/types'
 import type { ScopeKey } from '@maple/scope'
 import type { ApprovalOutcome, ApprovalRequestId } from '@maple/user-approval'
 // Side-effect type import: resolves the `approval/request` waterfall and
@@ -1861,6 +1868,34 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     return defaults.openPath !== undefined || canOpenNativePath()
   }
 
+  /** Missing-service report shared by the Task Surface domain. */
+  function taskSurfaceAbsent(): RpcError {
+    return {
+      code: 'internal',
+      message: 'task surface service is absent: this deployment does not mount @maple/task-surface in its composition',
+      details: {},
+    }
+  }
+
+  /** Resolve one session's live log for Task Surface reads and dismissals. */
+  async function sessionFor(
+    request: RpcRequest<unknown>, sessionId: SessionId,
+  ): Promise<{ session: Session } | { refused: RpcResponse<never> }> {
+    const found = await agentFor(sessionId)
+    if ('error' in found) return { refused: err(request, found.error) }
+    return { session: found.agent.session }
+  }
+
+  /** Pin one active surface id against a getActive result. */
+  function pinActiveSurface(
+    surfaceId: TaskSurfaceId | undefined,
+    result: GetActiveTaskSurfaceResult,
+  ): GetActiveTaskSurfaceResult {
+    if (surfaceId === undefined) return result
+    if (!result.active || result.surfaceId !== surfaceId) return { active: false, reason: 'not-open' }
+    return result
+  }
+
   /** Missing-service report shared by the credentials domain. */
   function credentialsAbsent(): RpcError {
     return { code: 'internal', message: 'credentials service is absent: this deployment does not mount a credential provider (e.g. @maple/credentials-local) in its composition', details: {} }
@@ -2417,7 +2452,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       },
 
       async attachment(request) {
-        const { sessionId, attachmentId } = request.payload
+        const { sessionId, attachmentId, recover } = request.payload
         let state: SessionReadState
         try {
           state = await readSessionState(sessionId)
@@ -2442,6 +2477,36 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             message: 'Image is not referenced by this session.',
             details: { reason: 'ATTACHMENT_NOT_REFERENCED' },
           })
+        }
+        if (recover === true) {
+          const live = ctx.agents.get(sessionId)?.session ?? ctx.sessions.get(sessionId)
+          if (live === undefined) {
+            return err(request, {
+              code: 'attachment-error',
+              message: 'Attachment recovery requires a live session.',
+              details: { reason: 'ATTACHMENT_RECOVERY_UNAVAILABLE' },
+            })
+          }
+          try {
+            const stored = await recoverQuarantinedAttachment(live, ctx.attachments, ref)
+            return ok(request, {
+              attachment: stored.ref,
+              data: Buffer.from(stored.data).toString('base64'),
+            })
+          } catch (error: unknown) {
+            if (error instanceof AttachmentError) {
+              return err(request, {
+                code: 'attachment-error',
+                message: error.message,
+                details: { reason: error.code },
+              })
+            }
+            return err(request, {
+              code: 'internal',
+              message: 'Unable to recover image attachment.',
+              details: {},
+            })
+          }
         }
         try {
           const stored = await ctx.attachments.readImage(ref)
@@ -2956,6 +3021,51 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         } catch (error: unknown) {
           return goalError(request, error)
         }
+      },
+    },
+
+    taskSurface: {
+      async getActive(request) {
+        const { sessionId, surfaceId } = request.payload
+        const taskSurface = ctx.get('taskSurface')
+        if (taskSurface === undefined) return err(request, taskSurfaceAbsent())
+        const resolved = await sessionFor(request, sessionId)
+        if ('refused' in resolved) return resolved.refused
+        const result = pinActiveSurface(surfaceId, taskSurface.getActive({ session: resolved.session }))
+        return ok(request, result)
+      },
+
+      async submit(request) {
+        const { sessionId, surfaceId, submissionId, values, note } = request.payload
+        const taskSurface = ctx.get('taskSurface')
+        if (taskSurface === undefined) return err(request, taskSurfaceAbsent())
+        const resolved = await turnAgentFor<SubmitTaskSurfaceResult>(request, sessionId)
+        if ('refused' in resolved) return resolved.refused
+        const result = await taskSurface.submit({
+          session: resolved.agent.session,
+          agent: resolved.agent,
+          sessionId,
+          surfaceId,
+          submissionId,
+          values: values as Record<string, JsonValue>,
+          ...(note !== undefined ? { note } : {}),
+        })
+        return ok(request, result)
+      },
+
+      async dismiss(request) {
+        const { sessionId, surfaceId, dismissalId } = request.payload
+        const taskSurface = ctx.get('taskSurface')
+        if (taskSurface === undefined) return err(request, taskSurfaceAbsent())
+        const resolved = await sessionFor(request, sessionId)
+        if ('refused' in resolved) return resolved.refused
+        const result = taskSurface.dismiss({
+          session: resolved.session,
+          sessionId,
+          surfaceId,
+          dismissalId,
+        })
+        return ok(request, result)
       },
     },
 

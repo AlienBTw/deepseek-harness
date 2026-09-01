@@ -205,6 +205,12 @@ export class FakeApiClient implements IApiClient {
     clear: payload => this.record('goal.clear', payload, Promise.resolve(ok({ cleared: true as const }))),
   }
 
+  readonly taskSurface: IApiClient['taskSurface'] = {
+    getActive: payload => this.record('taskSurface.getActive', payload, Promise.resolve(ok({ active: false, reason: 'not-open' }))),
+    submit: payload => this.record('taskSurface.submit', payload, Promise.resolve(ok({ accepted: true, messageId: 'fake-message' as never, phase: 'queued' }))),
+    dismiss: payload => this.record('taskSurface.dismiss', payload, Promise.resolve(ok({ dismissed: false, reason: 'not-open' }))),
+  }
+
   readonly settings: IApiClient['settings'] = {
     describe: payload => this.record('settings.describe', payload, Promise.resolve(ok({ writable: true, hasDocument: false, namespaces: [] }))),
     openDocument: payload => this.record('settings.openDocument', payload, Promise.resolve(ok({ opened: true as const }))),

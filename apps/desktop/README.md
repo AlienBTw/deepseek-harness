@@ -28,18 +28,23 @@ pnpm desktop:dev    # debug shell + host launched from source through tsx
 A packaged build runs the built CLI instead of the source tree, so build first:
 
 ```sh
-pnpm run build      # produces apps/cli/lib/bin.js
-pnpm desktop:build  # NSIS installer under src-tauri/target/release/bundle
+pnpm run build              # produces apps/cli/lib/bin.js
+pnpm desktop:build          # stages sidecar resources, then NSIS installer
 ```
+
+`pnpm desktop:build` runs `scripts/prepare-sidecar.mjs`, which copies `apps/cli/lib/bin.js` and a Node binary into `src-tauri/sidecar/` before Tauri bundles them as resources. Override the Node copy with `NODE_SIDECAR=/absolute/path/to/node`.
+
+Release installs prefer the bundled sidecar (`sidecar/node` + `sidecar/cli/bin.js`); unpackaged `cargo build --release` without those resources falls back to system `node` plus `apps/cli/lib/bin.js` in the resolved checkout.
 
 The repository root is located by walking up from the working directory and the executable, then by reading the `repo-root.txt` hint file under this app's data directory (`%APPDATA%\app.maple.desktop\`) or a `maple-desktop.repo` file beside the executable; `MAPLE_DESKTOP_REPO_ROOT` overrides everything. Double-clicking an installed binary works once either hint file names a checkout.
 
 ### Launch plane
 
-Debug builds launch the CLI from source through the tsx ESM hook; release builds run `apps/cli/lib/bin.js`. Set `MAPLE_DESKTOP_LAUNCH=built` or `=source` to override either default. The override matters when the tsx hook stalls under a deeply nested process tree (observed in agent sandboxes): after `pnpm run build`, `MAPLE_DESKTOP_LAUNCH=built pnpm desktop:dev` boots from the bundle instead.
+Debug builds launch the CLI from source through the tsx ESM hook; release builds prefer the bundled sidecar when present, otherwise `apps/cli/lib/bin.js` with a system `node`. Set `MAPLE_DESKTOP_LAUNCH=source`, `=built`, or `=bundled` to override. The override matters when the tsx hook stalls under a deeply nested process tree (observed in agent sandboxes): after `pnpm run build`, `MAPLE_DESKTOP_LAUNCH=built pnpm desktop:dev` boots from the bundle instead.
 
 ## Known Limitations and Deferred Work
 
-- A packaged binary still resolves the repository checkout and a system `node`: true standalone bundling (sidecar Node runtime plus the built CLI as Tauri resources) is not implemented.
+- A packaged binary still resolves the repository checkout for plugin composition; the sidecar carries Node and the built CLI, but not the full workspace tree.
+- On Unix, the host child runs in its own session so signals to the desktop shell do not fan out to the Node tree; Windows uses a kill-on-close job object instead.
 - Window close terminates the host through `TerminateProcess`, which skips the harness's graceful disposal (config watchers, telemetry drain); sessions are lazily persisted so durable content is unaffected.
 - macOS and Linux are untested: the job-object guard is Windows-only, and other platforms rely solely on explicit cleanup.

@@ -34,6 +34,6 @@ The section is computed once per turn start from the same snapshot, so its bytes
 
 ## Known Limitations and Deferred Work
 
-- **Token counts use a chars/4 sampling heuristic** — accurate within ~15% for typical code and English but not byte-exact; swap `estimateTokensExact` for a real BPE tokenizer (js-tiktoken) if budgeting demands it.
+- **Token counts use cl100k_base through js-tiktoken** — long maps still sample lines before counting so the binary-search budget loop stays fast.
 - **Grammar coverage is fixed at build time** — the shipped `tree-sitter-wasms` set bounds the supported languages; files in unsupported languages fall back to bare-line rendering via `renderBareLois`.
 - **Mentioned-ident boosting is partial** — the port skips Aider's path-component personalization matching and applies mentioned identifiers through the ×10 edge multiplier instead.

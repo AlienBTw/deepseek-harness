@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@maple/cordis'
-import { AttachmentId, ImageVariantId } from '@maple/attachment'
+import { AttachmentError, AttachmentId, ImageVariantId } from '@maple/attachment'
 import type { AttachmentStore, ImageAttachmentRef, RequestImageAttachment } from '@maple/attachment'
 import { createLaunchEnvironmentSnapshot } from '@maple/launch-environment'
 import LlmRuntime, { CallId, createUserMessage,
@@ -17,6 +17,7 @@ import LlmRuntime, { CallId, createUserMessage,
 import { MAX_TIMER_DELAY_MS } from '@maple/timeout'
 import { getOrCreateAnonymousUserId, type AnonymousUserId } from '@maple/anonymous-user-id'
 import { SessionId } from '@maple/session'
+import SessionStore from '@maple/session'
 import * as LlmDeepSeek from '@maple/llm-deepseek'
 import { DeepSeekAdapter, PUBLIC_BASE_URL, resolveAdapterOptions } from '@maple/llm-deepseek'
 import { httpErrorCode, resolveRequestImagePolicy } from '../src/adapter.ts'
@@ -226,6 +227,41 @@ describe('DeepSeekAdapter against a mock server', () => {
     }])
     expect(signalSeen[0]).toBeInstanceOf(AbortSignal)
     expect(policies).toEqual([{ maxPixels: 640_000, maxBytes: 1024 * 1024 }])
+  })
+
+  it('quarantines unreadable durable images and sends placeholders when a session is present', async () => {
+    const server = await mockServer([{ kind: 'sse', events: textEvents }])
+    const attachmentMocks = attachmentStoreOf(() => Promise.reject(
+      new AttachmentError('missing', 'ATTACHMENT_NOT_FOUND'),
+    ))
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    const session = ctx.sessions.create(SessionId('deepseek-quarantine'))
+    const adapter = new DeepSeekAdapter({
+      options: () => resolveAdapterOptions({
+        baseURL: server.url,
+        models: [{ id: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] }],
+      }),
+      resolveApiKey: () => Promise.resolve('k'),
+      resolveUserId: () => TEST_USER_ID,
+      resolveAttachments: () => attachmentMocks.store,
+      resolveSession: () => session,
+    })
+
+    await drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      sessionId: session.id,
+      messages: [createUserMessage({
+        content: [{ type: 'image', attachment: imageRef }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(JSON.stringify(server.requests[0])).toContain('[quarantined image attachment')
+    expect(JSON.stringify(server.requests[0])).not.toContain('file_id')
+    expect(attachmentMocks.readImageRequest).toHaveBeenCalledOnce()
+    expect(session.events.some(event => event.type === 'attachment/quarantine')).toBe(true)
   })
 
   it('falls back to one all-base64 request when Files API resolution fails', async () => {

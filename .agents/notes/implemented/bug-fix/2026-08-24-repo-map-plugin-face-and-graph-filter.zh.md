@@ -2,7 +2,7 @@
 
 Status: implemented
 
-English | [2026-08-24-repo-map-plugin-face-and-graph-filter.md](2026-08-24-repo-map-plugin-face-and-graph-filter.md)
+[English](2026-08-24-repo-map-plugin-face-and-graph-filter.md) | 中文
 
 ## Problem
 

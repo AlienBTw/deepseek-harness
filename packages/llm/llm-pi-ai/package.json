@@ -39,6 +39,7 @@
     "@maple/invariants": "workspace:^",
     "@maple/llm": "workspace:^",
     "@maple/settings": "workspace:^",
+    "@maple/session": "workspace:^",
     "@maple/timeout": "workspace:^",
     "@maple/cordis": "workspace:^"
   },
@@ -55,6 +56,7 @@
     "@maple/llm": "workspace:^",
     "@maple/llm-deepseek": "workspace:^",
     "@maple/settings": "workspace:^",
+    "@maple/session": "workspace:^",
     "@maple/timeout": "workspace:^",
     "@maple/cordis": "workspace:^"
   }

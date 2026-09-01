@@ -1,0 +1,72 @@
+{
+  "name": "@maple/compaction-recallable",
+  "description": "Recallable compaction backend with deterministic checkpoint footers and inflation guard",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
+    "directory": "packages/compaction/compaction-recallable"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@maple/agent": "workspace:^",
+    "@maple/compaction": "workspace:^",
+    "@maple/compaction-basic": "workspace:^",
+    "@maple/commands": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/token-meter": "workspace:^",
+    "@maple/compaction-tool-result-pruner": "workspace:^",
+    "@maple/cordis": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@maple/compaction-tool-result-pruner": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@maple/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@maple/cordis-plugin-include": "workspace:^",
+    "@maple/cordis-plugin-loader": "workspace:^",
+    "@maple/agent": "workspace:^",
+    "@maple/agent-loop": "workspace:^",
+    "@maple/agent-loop-testkit": "workspace:^",
+    "@maple/compaction": "workspace:^",
+    "@maple/compaction-basic": "workspace:^",
+    "@maple/commands": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/llm-retry": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/token-meter": "workspace:^",
+    "@maple/compaction-tool-result-pruner": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/cordis": "workspace:^"
+  }
+}

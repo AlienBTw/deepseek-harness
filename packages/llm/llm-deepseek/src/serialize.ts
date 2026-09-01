@@ -9,6 +9,13 @@
 import { contentHasImage, LlmError, offloadRequestImagesWithPolicy, requestImageHandleText } from '@maple/llm'
 import type { ContentBlock, GenerateOptions, Message } from '@maple/llm'
 import type { ImageAttachmentRef, RequestImageAttachment } from '@maple/attachment'
+import {
+  isQuarantinedRequestImage,
+  requestImageEntryBytes,
+  requestImageEntryText,
+  resolvedRequestImage,
+  type RequestImageEntry,
+} from '@maple/attachment'
 import type {
   WireImageContentPart,
   WireMessage,
@@ -47,7 +54,7 @@ export interface ImageSerializationOptions {
   /** One representation used for every retained image in this request. */
   representation: ImageRequestRepresentation
   /** Request versions prepared for the conservatively retained normalized attachments, keyed by attachment id. */
-  requestImages: ReadonlyMap<ImageAttachmentRef['attachmentId'], RequestImageAttachment>
+  requestImages: ReadonlyMap<ImageAttachmentRef['attachmentId'], RequestImageEntry>
   /** Positive bound on accumulated represented image bytes. */
   maxRequestImageBytes: number
   /** Maximum represented images in one request. */
@@ -140,14 +147,21 @@ async function imageParts(
   images: ImageSerializationOptions,
   location: ImageWireLocation,
   precededByContent: boolean,
-): Promise<[WireTextContentPart, WireImageContentPart]> {
-  const version = images.requestImages.get(block.attachment.attachmentId)
-  if (version === undefined) {
+): Promise<WireUserContentPart[]> {
+  const entry = images.requestImages.get(block.attachment.attachmentId)
+  if (entry === undefined) {
     throw new LlmError(
       `DeepSeek request image ${block.attachment.attachmentId} was not prepared.`,
       'INVALID_REQUEST',
     )
   }
+  if (isQuarantinedRequestImage(entry)) {
+    return [{
+      type: 'text',
+      text: `${precededByContent ? '\n' : ''}${requestImageEntryText(entry)}`,
+    }]
+  }
+  const version = resolvedRequestImage(entry)
   const image: WireImageContentPart = images.representation.kind === 'file'
     ? { type: 'file', file_id: await images.representation.resolveFileId(version, block, location) }
     : {
@@ -405,11 +419,11 @@ export async function serializeRequestWithImages(
   const requestMessages = offloadRequestImagesWithPolicy(options.messages, {
     representation: images.representation.kind === 'file' ? 'raw' : 'base64',
     byteLength: (ref) => {
-      const version = images.requestImages.get(ref.attachmentId)
-      if (version === undefined) {
+      const entry = images.requestImages.get(ref.attachmentId)
+      if (entry === undefined) {
         throw new LlmError(`DeepSeek request image ${ref.attachmentId} was not prepared.`, 'INVALID_REQUEST')
       }
-      return version.bytes
+      return requestImageEntryBytes(entry)
     },
     maxBytes: images.maxRequestImageBytes,
     ...images.maxImagesPerRequest === undefined ? {} : { maxImages: images.maxImagesPerRequest },

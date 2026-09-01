@@ -2923,6 +2923,11 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         ),
       ),
     },
+    taskSurface: {
+      getActive: request => ok(request, { active: false, reason: 'not-open' }),
+      submit: request => ok(request, { accepted: false, reason: 'not-open' }),
+      dismiss: request => ok(request, { dismissed: false, reason: 'not-open' }),
+    },
     events: {
       async *mux(_request, signal) {
         const conn = new FxInbox<MuxFrame>()
@@ -3216,6 +3221,9 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'goal.resume': return this.api.goals.resume(request)
       case 'goal.complete': return this.api.goals.complete(request)
       case 'goal.clear': return this.api.goals.clear(request)
+      case 'taskSurface.getActive': return this.api.taskSurface.getActive(request)
+      case 'taskSurface.submit': return this.api.taskSurface.submit(request)
+      case 'taskSurface.dismiss': return this.api.taskSurface.dismiss(request)
       case 'settings.describe': return this.api.settings.describe(request)
       case 'settings.openDocument': return this.api.settings.openDocument(request, signal)
       case 'settings.update': return this.api.settings.update(request)

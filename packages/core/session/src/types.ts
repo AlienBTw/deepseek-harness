@@ -1,3 +1,4 @@
+import type { AttachmentId, AttachmentQuarantineReason } from '@maple/attachment'
 import type { Branded } from '@maple/brand'
 import type {
   AssistantMessage,
@@ -334,6 +335,23 @@ export interface SessionEventMap {
    * so tolerating concurrent writers needs a signal beyond the log.
    */
   'session/end-seed': Record<string, never>
+  /**
+   * Records one unreadable durable image reference for request projection.
+   * Owned by `@maple/attachment`; merged here because `session` already
+   * depends on `@maple/attachment` through `@maple/llm`.
+   * @mode log-only
+   */
+  'attachment/quarantine': {
+    attachmentId: AttachmentId
+    reason: AttachmentQuarantineReason
+  }
+  /**
+   * Clears quarantine for one attachment after verified `readImage` recovery.
+   * @mode log-only
+   */
+  'attachment/recovered': {
+    attachmentId: AttachmentId
+  }
 }
 
 /** The appendable event-type keys of {@link SessionEventMap}, plugin-merged extensions included. */

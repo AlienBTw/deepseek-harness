@@ -357,7 +357,7 @@ export interface SessionsApi {
   Promise<RpcResponse<{ accepted: true; command?: { kind: 'success'; text?: string } }>>
 
   /** Reads one durable image after proving that this session's log references its id. */
-  attachment(request: RpcRequest<{ sessionId: SessionId; attachmentId: AttachmentIdType }>):
+  attachment(request: RpcRequest<{ sessionId: SessionId; attachmentId: AttachmentIdType; recover?: boolean }>):
   Promise<RpcResponse<{ attachment: ImageAttachmentRef; data: string }>>
 
   /**

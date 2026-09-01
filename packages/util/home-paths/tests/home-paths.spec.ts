@@ -27,7 +27,7 @@ describe('dsh path helpers', () => {
   it('expands tilde paths without changing non-tilde paths', () => {
     expect(expandHomePath('~')).toBe(homedir())
     expect(expandHomePath('~/.maple')).toBe(join(homedir(), '.maple'))
-    expect(expandHomePath('~\\.dsh')).toBe(join(homedir(), '.maple'))
+    expect(expandHomePath('~\\.maple')).toBe(join(homedir(), '.maple'))
     expect(expandHomePath('/tmp/.dsh')).toBe('/tmp/.dsh')
     expect(expandHomePath('~other/.dsh')).toBe('~other/.dsh')
   })

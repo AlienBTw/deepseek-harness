@@ -51,6 +51,7 @@
     "@maple/command-goal": "workspace:^",
     "@maple/commands": "workspace:^",
     "@maple/compaction-basic": "workspace:^",
+    "@maple/compaction-recallable": "workspace:^",
     "@maple/compaction-tool-result-pruner": "workspace:^",
     "@maple/credentials-local": "workspace:^",
     "@maple/fs-local": "workspace:^",
@@ -104,6 +105,7 @@
     "@maple/tool-subagent-report": "workspace:^",
     "@maple/tool-jobs": "workspace:^",
     "@maple/tool-todo": "workspace:^",
+    "@maple/tool-recall": "workspace:^",
     "@maple/tool-web": "workspace:^",
     "@maple/tool-workflow": "workspace:^",
     "@maple/tools": "workspace:^",
@@ -114,7 +116,7 @@
     "@maple/web": "workspace:^",
     "@maple/web-search-deepseek": "workspace:^",
     "@maple/workflow-worker-thread": "workspace:^",
-    "@maple/agent-instructions": "workspace:^"
+    "@maple/agent-team": "workspace:^"
   },
   "peerDependencies": {
     "@maple/invariants": "workspace:^",

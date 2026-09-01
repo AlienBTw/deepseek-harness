@@ -31,6 +31,7 @@ npm scope 为 `@maple/*`；Cordis `Service` 子类和函数插件通过 `ctx.eff
 | [`context/`](context/README.zh.md) | 模型可见请求上下文，包括 workspace 指令和时间上下文 | 产品：稳定 API |
 | [`subagent/`](subagent/README.zh.md) | subagent 能力系列：提供方注册表约定和面向模型的委托工具 | 产品：稳定 API |
 | [`jobs/`](jobs/README.zh.md) | 通用后台任务运行时和面向模型的 `job_*` 控制工具 | 产品：稳定 API |
+| [`agent-team/`](agent-team/README.zh.md) | 隐式 Root Agent Teams roster、mailbox、任务 DAG 与 scoped 工具 | 产品 — 稳定 API |
 | [`experimental/`](experimental/README.zh.md) | 私有原型与内部专用插件 | 不发布 |
 | [`workflow/`](workflow/README.zh.md) | 工作流 seam、worker 线程引擎和面向模型的 `workflow`/`ralph` 工具 | 产品：稳定 API |
 | [`web/`](web/README.zh.md) | Web 能力系列：seam、搜索／获取提供方实现和面向模型的 Web 工具 | 产品：稳定 API |

@@ -4,12 +4,12 @@
  * env vars — no model, no network, no harness imports. Speaks the runtime's
  * newline-delimited JSON-RPC protocol on stdio: answers `initialize`,
  * `session/prompt` (streaming scripted `session.event` notifications, then
- * `session.finished`, then the response), and `shutdown`.
+ * the settled prompt response), and `shutdown`.
  *
  * Script vocabulary (all optional):
  * - `FAKE_TEXT`: assistant text for each turn (default `hello from fake runtime`).
- * - `FAKE_STATUS`: the `session.finished` status (default `ok`).
- * - `FAKE_REASON_KIND`: the `session.finished` reason kind (default `completed`; `none` omits the reason).
+ * - `FAKE_STATUS`: the prompt response status (default `ok`).
+ * - `FAKE_REASON_KIND`: the prompt response reason kind (default `completed`; `none` omits the reason).
  * - `FAKE_SUBAGENT`: also emit a child session (subagent.started + child event + subagent.finished).
  * - `FAKE_ECHO_CWD`: prefix the assistant text with the process cwd.
  * - `FAKE_ECHO_ENV`: comma-separated env names to echo as `name=value` lines in the assistant text.
@@ -24,7 +24,7 @@
  * - `FAKE_MALFORMED_EVENT`: the turn's `session.event` carries a number as
  *   the event; `FAKE_MALFORMED_MESSAGE`: assistant/message content is not an
  *   array; `FAKE_MESSAGE_WITHOUT_DATA`: assistant/message with no data
- *   member; `FAKE_MALFORMED_REASON`: `session.finished` reason is a bare
+ *   member; `FAKE_MALFORMED_REASON`: prompt `reason` is a bare
  *   string (wire-validation probes).
  * - `FAKE_EMPTY_MESSAGE`: the turn streams a text chunk, then records an empty
  *   assistant/message for a usage-only max-tokens step.
@@ -219,7 +219,25 @@ reader.on('line', (line) => {
       }
       runTurn(sessionId)
       notify('session.status', { sessionId, status: 'idle' })
-      respond({ messageId })
+      const reasonKind = env.FAKE_REASON_KIND ?? 'completed'
+      const status = env.FAKE_STATUS ?? 'ok'
+      if (env.FAKE_MALFORMED_REASON !== undefined) {
+        respond({ messageId, status, reason: reasonKind })
+        return
+      }
+      respond({
+        messageId,
+        status,
+        reason: reasonKind === 'none' ? {} : { kind: reasonKind },
+      })
+      return
+    }
+    case 'session/cancel': {
+      if (env.FAKE_MALFORMED_CANCEL !== undefined) {
+        respond({})
+        return
+      }
+      respond({ canceled: true })
       return
     }
     case 'shutdown':

@@ -141,6 +141,62 @@ class UserQuestionError extends HarnessError {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxtasksurface--tasksurfaceservice"></a>
+
+### `ctx.taskSurface` — `TaskSurfaceService`
+
+Service managing active Task Surface state, idempotent submissions, and dismissals.
+
+```ts cordis-catalog
+/**
+ * Retrieve active surface for a session.
+ * @param input - query containing target session.
+ * @returns active surface information or not-open status.
+ */
+getActive(input: { session: Session }): GetActiveTaskSurfaceResult
+
+/**
+ * Submit values for an active Task Surface.
+ * @param input - submission request with field values, target session, and live agent.
+ * @returns submission outcome and queued message ID.
+ */
+submit(input: SubmitTaskSurfaceRequest & { session: Session; agent: Agent }): Promise<SubmitTaskSurfaceResult>
+
+/**
+ * Dismiss an active Task Surface.
+ * @param input - dismissal request with target session.
+ * @returns dismissal outcome and appended event sequence number.
+ */
+dismiss(input: DismissTaskSurfaceRequest & { session: Session }): DismissTaskSurfaceResult
+
+/**
+ * Retrieve the active Task Surface for one session through the remote boundary.
+ * @param request - session to inspect.
+ * @returns active surface information or not-open status.
+ */
+@Remote('getActive') remoteGetActive(request: GetActiveTaskSurfaceRemoteRequest): GetActiveTaskSurfaceResult
+
+/**
+ * Submit values for the active Task Surface through the remote boundary.
+ * @param agent - live agent resolved from the wire session identity.
+ * @param request - submission payload without the resolved session id.
+ * @returns submission outcome and queued message id when accepted.
+ */
+@Remote('submit') remoteSubmit(agent: Agent, request: SubmitTaskSurfaceRemoteRequest): Promise<SubmitTaskSurfaceResult>
+
+/**
+ * Dismiss the active Task Surface through the remote boundary.
+ * @param agent - live agent resolved from the wire session identity.
+ * @param request - dismissal payload without the resolved session id.
+ * @returns dismissal outcome and appended event sequence when dismissed.
+ */
+@Remote('dismiss') remoteDismiss(agent: Agent, request: DismissTaskSurfaceRemoteRequest): DismissTaskSurfaceResult
+```
+
+Types: [Agent](core.md) · [Session](session.md)
+
+Source: [`packages/task-surface/task-surface/src/service.ts`](../../packages/task-surface/task-surface/src/service.ts)
+
 <a id="ctxuserquestions--userquestionservice"></a>
 
 ### `ctx.userQuestions` — `UserQuestionService`

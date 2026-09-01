@@ -72,13 +72,16 @@
 
 # Summarize an older range after measured pressure or a canonical provider overflow.
 # Ratios scale against the routed model's context window.
-- id: compaction-basic
-  name: '@maple/compaction-basic'
+- id: compaction-recallable
+  name: '@maple/compaction-recallable'
   config:
     thresholdRatio: 0.8
     retainRatio: 0.08
     maxTokens: 8192
     compactionRetries: 1
+
+- id: tool-recall
+  name: '@maple/tool-recall'
 
 # Projection registry: subagent catalog identity (mode/label) folds through
 # its registered units; the catalog surfaces (`list_agents`, subagent listing)

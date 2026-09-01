@@ -319,6 +319,7 @@ export const imageAttachmentRefSchema = z.object({
 export const sessionAttachmentRequestSchema = z.object({
   sessionId: sessionIdSchema,
   attachmentId: attachmentIdSchema,
+  recover: z.boolean().optional(),
 }) satisfies z.ZodType<Wire<RequestPayload<'session.attachment'>>>
 
 /** session.attachment response value. */

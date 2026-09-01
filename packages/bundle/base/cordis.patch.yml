@@ -55,6 +55,9 @@
     - id: user-questions
       name: '@maple/user-questions'
 
+    - id: task-surface
+      name: '@maple/task-surface'
+
     - id: agent
       name: '@maple/agent'
 
@@ -281,8 +284,15 @@
     - id: token-meter
       name: '@maple/token-meter'
 
-    - id: compaction-basic
-      name: '@maple/compaction-basic'
+    - id: compaction-recallable
+      name: '@maple/compaction-recallable'
+
+    # Reference backend retained for deployments that prefer the basic single-head checkpoint.
+    # - id: compaction-basic
+    #   name: '@maple/compaction-basic'
+
+    - id: tool-recall
+      name: '@maple/tool-recall'
 
     # Human `/compact`: one useful reduction below the automatic threshold. Backend
     # independent, so it follows whichever compaction service this leaf mounts.
@@ -291,6 +301,9 @@
 
     - id: subagent
       name: '@maple/subagent'
+
+    - id: agent-team
+      name: '@maple/agent-team'
 
     - id: subagent-spawn-in-process
       name: '@maple/subagent-spawn-in-process'

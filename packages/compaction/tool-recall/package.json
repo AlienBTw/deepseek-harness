@@ -1,0 +1,58 @@
+{
+  "name": "@maple/tool-recall",
+  "description": "Model-facing history_read and history_search recall tools for shadowed session history",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
+    "directory": "packages/compaction/tool-recall"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/types/**/*.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@maple/schemastery": "workspace:^",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@maple/agent": "workspace:^",
+    "@maple/compaction": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@maple/cordis-plugin-include": "workspace:^",
+    "@maple/cordis-plugin-loader": "workspace:^",
+    "@maple/agent": "workspace:^",
+    "@maple/agent-loop": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/system-prompt": "workspace:^",
+    "@maple/tools": "workspace:^",
+    "@maple/cordis": "workspace:^"
+  }
+}

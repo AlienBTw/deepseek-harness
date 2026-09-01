@@ -41,6 +41,7 @@
     "@maple/llm": "workspace:^",
     "@maple/home-paths": "workspace:^",
     "@maple/settings": "workspace:^",
+    "@maple/session": "workspace:^",
     "@maple/timeout": "workspace:^",
     "@maple/anonymous-user-id": "workspace:^",
     "@maple/cordis": "workspace:^"
@@ -59,6 +60,7 @@
     "@maple/llm": "workspace:^",
     "@maple/home-paths": "workspace:^",
     "@maple/settings": "workspace:^",
+    "@maple/session": "workspace:^",
     "@maple/timeout": "workspace:^",
     "@maple/anonymous-user-id": "workspace:^",
     "@maple/cordis": "workspace:^"

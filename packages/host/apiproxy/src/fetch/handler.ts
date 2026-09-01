@@ -57,6 +57,11 @@ import {
   goalClearRequestSchema,
 } from '../api/goals.schema.ts'
 import {
+  taskSurfaceDismissRequestSchema,
+  taskSurfaceGetActiveRequestSchema,
+  taskSurfaceSubmitRequestSchema,
+} from '../api/task-surface.schema.ts'
+import {
   settingsDescribeRequestSchema, settingsMutateRequestSchema, settingsOpenDocumentRequestSchema,
   settingsReplaceRequestSchema, settingsUpdateRequestSchema,
 } from '../api/settings.schema.ts'
@@ -129,6 +134,9 @@ const UNARY_ROUTES: UnaryRoutes = {
   'goal.resume': { schema: goalResumeRequestSchema, invoke: (api, r) => api.goals.resume(r) },
   'goal.complete': { schema: goalCompleteRequestSchema, invoke: (api, r) => api.goals.complete(r) },
   'goal.clear': { schema: goalClearRequestSchema, invoke: (api, r) => api.goals.clear(r) },
+  'taskSurface.getActive': { schema: taskSurfaceGetActiveRequestSchema, invoke: (api, r) => api.taskSurface.getActive(r) },
+  'taskSurface.submit': { schema: taskSurfaceSubmitRequestSchema, invoke: (api, r) => api.taskSurface.submit(r) },
+  'taskSurface.dismiss': { schema: taskSurfaceDismissRequestSchema, invoke: (api, r) => api.taskSurface.dismiss(r) },
   'settings.describe': { schema: settingsDescribeRequestSchema, invoke: (api, r) => api.settings.describe(r) },
   'settings.openDocument': { schema: settingsOpenDocumentRequestSchema, invoke: (api, r, signal) => api.settings.openDocument(r, signal) },
   'settings.update': { schema: settingsUpdateRequestSchema, invoke: (api, r) => api.settings.update(r) },

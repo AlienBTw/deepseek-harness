@@ -296,6 +296,30 @@ Depends on: [`AgentLoopConfig`](#mapleagent-loop) · [`GoalDomainConfig`](#maple
 
 ???[`packages/examples/agent-spine-demo/src/index.ts:92`](../packages/examples/agent-spine-demo/src/index.ts)
 
+<a id="mapleagent-team"></a>
+
+## `@maple/agent-team`
+
+???`agents` · `sessions` · `sessionPersistence` · `subagents`
+
+```ts config-catalog
+/** Team-service deployment limits. */
+export interface Config {
+  /** Maximum immutable teammate names retained by one Team. */
+  readonly maxMembers?: number
+  /** Maximum non-deleted tasks retained by one Team. */
+  readonly maxTasks?: number
+  /** Maximum queued-minus-delivered messages for one target member. */
+  readonly maxPendingMessagesPerMember?: number
+  /** Maximum UTF-8 bytes in one complete sender-framed delivery. */
+  readonly maxMessageBytes?: number
+  /** Maximum milliseconds allowed for Team-owned runtime disposal. */
+  readonly disposalTimeoutMs?: number
+}
+```
+
+???[`packages/agent-team/agent-team/src/types.ts:125`](../packages/agent-team/agent-team/src/types.ts)
+
 <a id="mapleagent-tool-presentation"></a>
 
 ## `@maple/agent-tool-presentation`
@@ -521,6 +545,21 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 
 ???[`packages/compaction/compaction-basic/src/types.ts:38`](../packages/compaction/compaction-basic/src/types.ts)
 
+<a id="maplecompaction-recallable"></a>
+
+## `@maple/compaction-recallable`
+
+???`llm` · `tokenMeter` · `sessions`
+
+```ts config-catalog
+/** Recallable compaction configuration; same policy surface as basic compaction. */
+export interface RecallableCompactionConfig extends BasicCompactionConfig {}
+```
+
+Depends on: `BasicCompactionConfig` (`@maple/compaction-basic/src/types.ts`)
+
+???[`packages/compaction/compaction-recallable/src/types.ts:17`](../packages/compaction/compaction-recallable/src/types.ts)
+
 <a id="maplecompaction-tool-result-pruner"></a>
 
 ## `@maple/compaction-tool-result-pruner`
@@ -616,48 +655,6 @@ export interface Config {
 ```
 
 ???[`packages/e2b/e2b/src/index.ts:43`](../packages/e2b/e2b/src/index.ts)
-
-<a id="mapleexperimental-agent-team"></a>
-
-## `@maple/experimental-agent-team`
-
-???`agents` · `sessions` · `sessionPersistence` · `subagents`
-
-```ts config-catalog
-/** Team-service deployment limits. */
-export interface Config {
-  /** Maximum immutable teammate names retained by one Team. */
-  readonly maxMembers?: number
-  /** Maximum non-deleted tasks retained by one Team. */
-  readonly maxTasks?: number
-  /** Maximum queued-minus-delivered messages for one target member. */
-  readonly maxPendingMessagesPerMember?: number
-  /** Maximum UTF-8 bytes in one complete sender-framed delivery. */
-  readonly maxMessageBytes?: number
-  /** Maximum milliseconds allowed for Team-owned runtime disposal. */
-  readonly disposalTimeoutMs?: number
-}
-```
-
-???[`packages/experimental/agent-team/src/types.ts:125`](../packages/experimental/agent-team/src/types.ts)
-
-<a id="mapleexperimental-tool-agent-team"></a>
-
-## `@maple/experimental-tool-agent-team`
-
-???`agents` · `agentTeams` · `tools` · `systemPrompt`
-
-```ts config-catalog
-/** Tool routing configuration. */
-export interface Config {
-  /** Continuable-subagent provider used for fresh teammates. */
-  readonly freshProvider?: string
-  /** Continuable-subagent provider used for completed-prefix fork teammates. */
-  readonly forkProvider?: string
-}
-```
-
-???[`packages/experimental/tool-agent-team/src/index.ts:17`](../packages/experimental/tool-agent-team/src/index.ts)
 
 <a id="maplefile-reference-local"></a>
 
@@ -2529,6 +2526,24 @@ export type TokenMeterConfig = Record<string, never>
 
 ???[`packages/llm/token-meter/src/types.ts:12`](../packages/llm/token-meter/src/types.ts)
 
+<a id="mapletool-agent-team"></a>
+
+## `@maple/tool-agent-team`
+
+???`agents` · `agentTeams` · `tools` · `systemPrompt`
+
+```ts config-catalog
+/** Tool routing configuration. */
+export interface Config {
+  /** Continuable-subagent provider used for fresh teammates. */
+  readonly freshProvider?: string
+  /** Continuable-subagent provider used for completed-prefix fork teammates. */
+  readonly forkProvider?: string
+}
+```
+
+???[`packages/agent-team/tool-agent-team/src/index.ts:17`](../packages/agent-team/tool-agent-team/src/index.ts)
+
 <a id="mapletool-bash"></a>
 
 ## `@maple/tool-bash`
@@ -2753,6 +2768,24 @@ export interface Config {
 ```
 
 ???[`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.ts)
+
+<a id="mapletool-recall"></a>
+
+## `@maple/tool-recall`
+
+Requires: `tools`
+
+```ts config-catalog
+/** Recall tool configuration. */
+export interface Config {
+  /** Maximum lines returned per history_read page. */
+  maxPageLines?: number
+  /** Default search result snippet limit. */
+  defaultSearchLimit?: number
+}
+```
+
+???[`packages/compaction/tool-recall/src/index.ts:18`](../packages/compaction/tool-recall/src/index.ts)
 
 <a id="mapletool-session-query"></a>
 
@@ -3254,6 +3287,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@maple/client-modules` — requires `webServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts))
 - `@maple/client-runtime` ([`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.ts))
 - `@maple/client-ui-agent-preset` ([`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.ts))
+- `@maple/client-ui-agent-team` ([`packages/client/ui-agent-team/src/index.ts`](../packages/client/ui-agent-team/src/index.ts))
 - `@maple/client-ui-attachment` ([`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.ts))
 - `@maple/client-ui-brand-official` ([`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts))
 - `@maple/client-ui-commands` ([`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts))
@@ -3280,6 +3314,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@maple/client-ui-sidebar` ([`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts))
 - `@maple/client-ui-skill` ([`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts))
 - `@maple/client-ui-subagent` ([`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts))
+- `@maple/client-ui-task-surface` ([`packages/client/ui-task-surface/src/index.ts`](../packages/client/ui-task-surface/src/index.ts))
 - `@maple/client-ui-theme` ([`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.ts))
 - `@maple/client-ui-tool` ([`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts))
 - `@maple/client-ui-trajectory` ([`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts))
@@ -3309,11 +3344,13 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@maple/storage` ([`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts))
 - `@maple/subagent` ([`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts))
 - `@maple/subprocess-local` ([`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.ts))
+- `@maple/task-surface` ([`packages/task-surface/task-surface/src/index.ts`](../packages/task-surface/task-surface/src/index.ts))
 - `@maple/terminal` ([`packages/terminal/terminal/src/index.ts`](../packages/terminal/terminal/src/index.ts))
 - `@maple/tool-ask-user` — requires `tools` · `userQuestions` ([`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts))
 - `@maple/tool-call-timeout-policy` — requires `tools` ([`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts))
 - `@maple/tool-cordis` — requires `tools` · `systemPrompt` · `dynamicCordisRunner` · `cordisInspect` ([`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts))
 - `@maple/tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts))
+- `@maple/tool-task-surface` — requires `tools` ([`packages/task-surface/tool-task-surface/src/index.ts`](../packages/task-surface/tool-task-surface/src/index.ts))
 - `@maple/user-questions` ([`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts))
 - `@maple/workspace` — requires `storageDomain` · `sessionPersistence` ([`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts))
 

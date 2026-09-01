@@ -226,6 +226,9 @@
 - id: tool-ask-user
   name: '@maple/tool-ask-user'
 
+- id: tool-task-surface
+  name: '@maple/tool-task-surface'
+
 - id: tool-todo
   name: '@maple/tool-todo'
   config:

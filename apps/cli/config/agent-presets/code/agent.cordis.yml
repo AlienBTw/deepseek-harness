@@ -146,7 +146,7 @@
 # keys every fold by Session, and owns the context-meter projection units the
 # browser reads for every session — behind a realm those units would come and go
 # with whichever presets happen to be mounted. What a preset chooses is whether
-# its agent compacts at all, which is `compaction-basic` below.
+# its agent compacts at all, which is `compaction-recallable` below.
 - id: compaction
   name: cordis:group
   group: true
@@ -154,11 +154,14 @@
     compaction: true
     toolResultPruner: true
   config:
-    - id: compaction-basic
-      name: '@maple/compaction-basic'
+    - id: compaction-recallable
+      name: '@maple/compaction-recallable'
 
     - id: command-compact
       name: '@maple/command-compact'
+
+    - id: tool-recall
+      name: '@maple/tool-recall'
 
     - id: tool-result-pruner
       name: '@maple/compaction-tool-result-pruner'
@@ -244,6 +247,9 @@
 
 - id: tool-ask-user
   name: '@maple/tool-ask-user'
+
+- id: tool-task-surface
+  name: '@maple/tool-task-surface'
 
 - id: tool-todo
   name: '@maple/tool-todo'

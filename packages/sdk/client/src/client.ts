@@ -18,7 +18,9 @@ import {
   JsonRpcResponseError,
   type InitializeParams,
   type InitializeResult,
+  type SessionCancelParams,
   type SessionPromptParams,
+  type SessionPromptResult,
 } from '@maple/sdk-protocol'
 import type { ContentBlock } from '@maple/llm'
 import { disposeRuntimeProcess } from './dispose.ts'
@@ -54,7 +56,7 @@ export class RequestTimeoutError extends Error {
 
 /**
  * The runtime answered outside its documented protocol (for example a
- * `session/prompt` response without `accepted: true`).
+ * `session/prompt` response without `status` and `reason`).
  */
 export class SdkProtocolError extends Error {
   /** @param message - the protocol violation description. */
@@ -275,18 +277,35 @@ export class HarnessClient {
   }
 
   /**
-   * Queue one prompt and return its durable inbox identity.
+   * Queue one prompt and settle when the agent next becomes idle.
    * @param sessionId - target session; an unknown id creates it.
    * @param contentBlocks - the user message, sent verbatim.
-   * @returns the queued message id.
+   * @returns the queued message id and settled turn outcome.
    */
-  async prompt(sessionId: string, contentBlocks: ContentBlock[]): Promise<string> {
+  async prompt(sessionId: string, contentBlocks: ContentBlock[]): Promise<SessionPromptResult> {
     const params: SessionPromptParams = { sessionId, contentBlocks }
     const result = await this.request('session/prompt', { ...params })
-    if (!isRecord(result) || typeof result.messageId !== 'string') {
-      throw new SdkProtocolError(`session/prompt returned no message id: ${JSON.stringify(result)}`)
+    if (!isRecord(result) || typeof result.messageId !== 'string'
+      || (result.status !== 'ok' && result.status !== 'error' && result.status !== 'aborted')
+      || !isRecord(result.reason) || typeof result.reason.kind !== 'string') {
+      throw new SdkProtocolError(`session/prompt returned an invalid prompt result: ${JSON.stringify(result)}`)
     }
-    return result.messageId
+    return result as unknown as SessionPromptResult
+  }
+
+  /**
+   * Cancel active work on one session.
+   * @param sessionId - target session id to cancel.
+   * @param keepInbox - whether to keep unstarted inbox messages.
+   * @returns true when the cancellation was received and applied.
+   */
+  async cancel(sessionId: string, keepInbox?: boolean): Promise<boolean> {
+    const params: SessionCancelParams = { sessionId, ...(keepInbox !== undefined ? { keepInbox } : {}) }
+    const result = await this.request('session/cancel', { ...params })
+    if (!isRecord(result) || typeof result.canceled !== 'boolean') {
+      throw new SdkProtocolError(`session/cancel returned invalid response: ${JSON.stringify(result)}`)
+    }
+    return result.canceled
   }
 
   /**

@@ -58,13 +58,16 @@ import * as ToolLsp from '@maple/tool-lsp'
 import * as ToolSkill from '@maple/tool-skill'
 import * as ToolSessionQuery from '@maple/tool-session-query'
 import * as ToolTasks from '@maple/tool-jobs'
-import type TeamService from '@maple/experimental-agent-team'
-import * as ToolTeam from '@maple/experimental-tool-agent-team'
+import type TeamService from '@maple/agent-team'
+import * as ToolTeam from '@maple/tool-agent-team'
 import * as ToolTodo from '@maple/tool-todo'
 import * as ToolSubagent from '@maple/tool-subagent'
 import * as ToolWeb from '@maple/tool-web'
 import VmWorkflowEngine from '@maple/workflow-worker-thread'
 import * as ToolRalph from '@maple/tool-ralph'
+import * as ToolRecall from '@maple/tool-recall'
+import * as ToolTaskSurface from '@maple/tool-task-surface'
+import * as TaskSurface from '@maple/task-surface'
 import * as ToolWorkflow from '@maple/tool-workflow'
 import { githubSlug } from './verify-md-links.ts'
 
@@ -524,9 +527,9 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers\' `ctx.jobs.start()`.',
   },
   {
-    pkg: '@maple/experimental-tool-agent-team',
+    pkg: '@maple/tool-agent-team',
     dir: 'tool-agent-team',
-    source: 'packages/experimental/tool-agent-team/src/index.ts',
+    source: 'packages/agent-team/tool-agent-team/src/index.ts',
     requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.agentTeams', 'an exact live Team member Agent'],
     writes: ['tool/call', 'team/member', 'team/message/queued', 'team/message/delivered', 'team/task', 'tool/result'],
     async mount(ctx) {
@@ -572,6 +575,31 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task.',
+  },
+  {
+    pkg: '@maple/tool-recall',
+    dir: 'tool-recall',
+    source: 'packages/compaction/tool-recall/src/index.ts',
+    requires: ['ctx.tools', 'owning Agent session'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolRecall)
+    },
+    note:
+      'history_read and history_search retrieve compacted conversation history spans directly from the durable session log.',
+  },
+  {
+    pkg: '@maple/tool-task-surface',
+    dir: 'tool-task-surface',
+    source: 'packages/task-surface/tool-task-surface/src/index.ts',
+    requires: ['ctx.tools', 'ctx.taskSurface'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(TaskSurface)
+      await ctx.plugin(ToolTaskSurface)
+    },
+    note:
+      'show_task_surface presents interactive declarative UI panels (forms, choices, diffs, tables, metrics) and concludes the turn to await user submission.',
   },
   {
     pkg: '@maple/tool-workflow',
@@ -809,6 +837,6 @@ async function main(): Promise<void> {
 }
 
 // Run only when invoked as a script, not when imported by a test.
-if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
+if (process.argv[1] && (resolve(process.argv[1]).toLowerCase() === import.meta.filename?.toLowerCase() || resolve(process.argv[1]).toLowerCase().endsWith('gen-tool-catalog.ts'))) {
   await main()
 }

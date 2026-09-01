@@ -54,6 +54,11 @@ import {
   goalClearValueSchema,
 } from '../api/goals.schema.ts'
 import {
+  taskSurfaceDismissValueSchema,
+  taskSurfaceGetActiveValueSchema,
+  taskSurfaceSubmitValueSchema,
+} from '../api/task-surface.schema.ts'
+import {
   settingsDescribeValueSchema, settingsMutateValueSchema, settingsOpenDocumentValueSchema,
   settingsReplaceValueSchema, settingsUpdateValueSchema,
 } from '../api/settings.schema.ts'
@@ -144,6 +149,11 @@ export interface IApiClient {
     complete(payload: RequestPayload<'goal.complete'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'goal.complete'>>>
     clear(payload: RequestPayload<'goal.clear'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'goal.clear'>>>
   }
+  taskSurface: {
+    getActive(payload: RequestPayload<'taskSurface.getActive'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'taskSurface.getActive'>>>
+    submit(payload: RequestPayload<'taskSurface.submit'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'taskSurface.submit'>>>
+    dismiss(payload: RequestPayload<'taskSurface.dismiss'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'taskSurface.dismiss'>>>
+  }
   settings: {
     describe(payload: RequestPayload<'settings.describe'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'settings.describe'>>>
     openDocument(payload: RequestPayload<'settings.openDocument'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'settings.openDocument'>>>
@@ -211,6 +221,9 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'goal.resume': goalResumeValueSchema,
   'goal.complete': goalCompleteValueSchema,
   'goal.clear': goalClearValueSchema,
+  'taskSurface.getActive': taskSurfaceGetActiveValueSchema,
+  'taskSurface.submit': taskSurfaceSubmitValueSchema,
+  'taskSurface.dismiss': taskSurfaceDismissValueSchema,
   'settings.describe': settingsDescribeValueSchema,
   'settings.openDocument': settingsOpenDocumentValueSchema,
   'settings.update': settingsUpdateValueSchema,
@@ -478,6 +491,12 @@ export abstract class AbstractApiClient implements IApiClient {
     resume: (payload, signal) => this.callUnary('goal.resume', payload, signal),
     complete: (payload, signal) => this.callUnary('goal.complete', payload, signal),
     clear: (payload, signal) => this.callUnary('goal.clear', payload, signal),
+  }
+
+  readonly taskSurface: IApiClient['taskSurface'] = {
+    getActive: (payload, signal) => this.callUnary('taskSurface.getActive', payload, signal),
+    submit: (payload, signal) => this.callUnary('taskSurface.submit', payload, signal),
+    dismiss: (payload, signal) => this.callUnary('taskSurface.dismiss', payload, signal),
   }
 
   readonly settings: IApiClient['settings'] = {

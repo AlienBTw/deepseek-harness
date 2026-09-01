@@ -18,7 +18,8 @@
     },
     "scripts":  {
                     "dev":  "tauri dev",
-                    "build":  "tauri build",
+                    "prepare-sidecar":  "node scripts/prepare-sidecar.mjs",
+                    "build":  "node scripts/prepare-sidecar.mjs && tauri build",
                     "check":  "cargo check --manifest-path src-tauri/Cargo.toml"
                 },
     "devDependencies":  {

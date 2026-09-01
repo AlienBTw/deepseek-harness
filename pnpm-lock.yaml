@@ -156,6 +156,9 @@ importers:
       '@maple/compaction-basic':
         specifier: workspace:^
         version: link:../../packages/compaction/compaction-basic
+      '@maple/compaction-recallable':
+        specifier: workspace:^
+        version: link:../../packages/compaction/compaction-recallable
       '@maple/compaction-tool-result-pruner':
         specifier: workspace:^
         version: link:../../packages/compaction/compaction-tool-result-pruner
@@ -246,6 +249,9 @@ importers:
       '@maple/token-meter':
         specifier: workspace:^
         version: link:../../packages/llm/token-meter
+      '@maple/tool-agent-team':
+        specifier: workspace:^
+        version: link:../../packages/agent-team/tool-agent-team
       '@maple/tool-ask-user':
         specifier: workspace:^
         version: link:../../packages/interaction/tool-ask-user
@@ -279,6 +285,9 @@ importers:
       '@maple/tool-ralph':
         specifier: workspace:^
         version: link:../../packages/workflow/tool-ralph
+      '@maple/tool-recall':
+        specifier: workspace:^
+        version: link:../../packages/compaction/tool-recall
       '@maple/tool-skill':
         specifier: workspace:^
         version: link:../../packages/skill/tool-skill
@@ -439,6 +448,9 @@ importers:
       '@maple/agent-spine-demo':
         specifier: workspace:*
         version: link:../packages/examples/agent-spine-demo
+      '@maple/agent-team':
+        specifier: workspace:*
+        version: link:../packages/agent-team/agent-team
       '@maple/app-boot':
         specifier: workspace:*
         version: link:../packages/boot/app-boot
@@ -469,6 +481,9 @@ importers:
       '@maple/compaction-basic':
         specifier: workspace:*
         version: link:../packages/compaction/compaction-basic
+      '@maple/compaction-recallable':
+        specifier: workspace:*
+        version: link:../packages/compaction/compaction-recallable
       '@maple/compaction-tool-result-pruner':
         specifier: workspace:*
         version: link:../packages/compaction/compaction-tool-result-pruner
@@ -493,12 +508,6 @@ importers:
       '@maple/e2b':
         specifier: workspace:*
         version: link:../packages/e2b/e2b
-      '@maple/experimental-agent-team':
-        specifier: workspace:*
-        version: link:../packages/experimental/agent-team
-      '@maple/experimental-tool-agent-team':
-        specifier: workspace:*
-        version: link:../packages/experimental/tool-agent-team
       '@maple/fs-e2b':
         specifier: workspace:*
         version: link:../packages/e2b/fs-e2b
@@ -670,6 +679,9 @@ importers:
       '@maple/token-meter':
         specifier: workspace:*
         version: link:../packages/llm/token-meter
+      '@maple/tool-agent-team':
+        specifier: workspace:*
+        version: link:../packages/agent-team/tool-agent-team
       '@maple/tool-ask-user':
         specifier: workspace:*
         version: link:../packages/interaction/tool-ask-user
@@ -709,6 +721,9 @@ importers:
       '@maple/tool-ralph':
         specifier: workspace:*
         version: link:../packages/workflow/tool-ralph
+      '@maple/tool-recall':
+        specifier: workspace:*
+        version: link:../packages/compaction/tool-recall
       '@maple/tool-session-query':
         specifier: workspace:*
         version: link:../packages/session-query/tool-session-query
@@ -826,6 +841,113 @@ importers:
         specifier: workspace:^
         version: link:../../interaction/user-approval
 
+  packages/agent-team/agent-team:
+    dependencies:
+      '@maple/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@maple/agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@maple/agent-loop':
+        specifier: workspace:^
+        version: link:../../core/agent-loop
+      '@maple/agent-loop-testkit':
+        specifier: workspace:^
+        version: link:../../test-support/agent-loop-testkit
+      '@maple/brand':
+        specifier: workspace:^
+        version: link:../../util/brand
+      '@maple/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@maple/invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@maple/llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@maple/session-persistence':
+        specifier: workspace:^
+        version: link:../../session/session-persistence
+      '@maple/session-persistence-jsonl':
+        specifier: workspace:^
+        version: link:../../session/session-persistence-jsonl
+      '@maple/session-persistence-sqlite':
+        specifier: workspace:^
+        version: link:../../session/session-persistence-sqlite
+      '@maple/session-projection':
+        specifier: workspace:^
+        version: link:../../session/session-projection
+      '@maple/subagent':
+        specifier: workspace:^
+        version: link:../../subagent/subagent
+      '@maple/subagent-fork-in-process':
+        specifier: workspace:^
+        version: link:../../subagent/subagent-fork-in-process
+      '@maple/subagent-spawn-in-process':
+        specifier: workspace:^
+        version: link:../../subagent/subagent-spawn-in-process
+
+  packages/agent-team/tool-agent-team:
+    dependencies:
+      '@maple/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@maple/agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@maple/agent-loop':
+        specifier: workspace:^
+        version: link:../../core/agent-loop
+      '@maple/agent-loop-testkit':
+        specifier: workspace:^
+        version: link:../../test-support/agent-loop-testkit
+      '@maple/agent-team':
+        specifier: workspace:^
+        version: link:../agent-team
+      '@maple/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@maple/invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@maple/scope':
+        specifier: workspace:^
+        version: link:../../core/scope
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@maple/session-persistence-jsonl':
+        specifier: workspace:^
+        version: link:../../session/session-persistence-jsonl
+      '@maple/subagent':
+        specifier: workspace:^
+        version: link:../../subagent/subagent
+      '@maple/subagent-fork-in-process':
+        specifier: workspace:^
+        version: link:../../subagent/subagent-fork-in-process
+      '@maple/subagent-spawn-in-process':
+        specifier: workspace:^
+        version: link:../../subagent/subagent-spawn-in-process
+      '@maple/system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
+      '@maple/tool-subagent-control':
+        specifier: workspace:^
+        version: link:../../subagent/tool-subagent-control
+      '@maple/tools':
+        specifier: workspace:^
+        version: link:../../core/tools
+
   packages/api/gateway:
     dependencies:
       '@maple/typert-protocol':
@@ -908,6 +1030,9 @@ importers:
       '@maple/settings':
         specifier: workspace:^
         version: link:../../settings/settings
+      '@maple/task-surface':
+        specifier: workspace:^
+        version: link:../../task-surface/task-surface
       '@maple/typert-registry':
         specifier: workspace:^
         version: link:../../typert/registry
@@ -923,6 +1048,9 @@ importers:
       '@maple/invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
 
   packages/attachment/attachment-local:
     dependencies:
@@ -1012,12 +1140,12 @@ importers:
       '@maple/agent-default-model':
         specifier: workspace:^
         version: link:../../core/agent-default-model
-      '@maple/agent-instructions':
-        specifier: workspace:^
-        version: link:../../context/agent-instructions
       '@maple/agent-loop':
         specifier: workspace:^
         version: link:../../core/agent-loop
+      '@maple/agent-team':
+        specifier: workspace:^
+        version: link:../../agent-team/agent-team
       '@maple/api-gateway':
         specifier: workspace:^
         version: link:../../api/gateway
@@ -1042,6 +1170,9 @@ importers:
       '@maple/compaction-basic':
         specifier: workspace:^
         version: link:../../compaction/compaction-basic
+      '@maple/compaction-recallable':
+        specifier: workspace:^
+        version: link:../../compaction/compaction-recallable
       '@maple/compaction-tool-result-pruner':
         specifier: workspace:^
         version: link:../../compaction/compaction-tool-result-pruner
@@ -1189,6 +1320,9 @@ importers:
       '@maple/tool-ralph':
         specifier: workspace:^
         version: link:../../workflow/tool-ralph
+      '@maple/tool-recall':
+        specifier: workspace:^
+        version: link:../../compaction/tool-recall
       '@maple/tool-skill':
         specifier: workspace:^
         version: link:../../skill/tool-skill
@@ -1311,6 +1445,9 @@ importers:
       '@maple/client-ui-agent-preset':
         specifier: workspace:^
         version: link:../../client/ui-agent-preset
+      '@maple/client-ui-agent-team':
+        specifier: workspace:^
+        version: link:../../client/ui-agent-team
       '@maple/client-ui-attachment':
         specifier: workspace:^
         version: link:../../client/ui-attachment
@@ -1389,6 +1526,9 @@ importers:
       '@maple/client-ui-subagent':
         specifier: workspace:^
         version: link:../../client/ui-subagent
+      '@maple/client-ui-task-surface':
+        specifier: workspace:^
+        version: link:../../client/ui-task-surface
       '@maple/client-ui-theme':
         specifier: workspace:^
         version: link:../../client/ui-theme
@@ -1724,6 +1864,42 @@ importers:
       '@maple/client-ui-settings':
         specifier: workspace:^
         version: link:../ui-settings
+      '@maple/client-ui-slots':
+        specifier: workspace:^
+        version: link:../ui-slots
+      '@maple/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@maple/invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+
+  packages/client/ui-agent-team:
+    devDependencies:
+      '@maple/agent-team':
+        specifier: workspace:^
+        version: link:../../agent-team/agent-team
+      '@maple/client-locale':
+        specifier: workspace:^
+        version: link:../locale
+      '@maple/client-runtime':
+        specifier: workspace:^
+        version: link:../runtime
+      '@maple/client-test-runtime':
+        specifier: workspace:^
+        version: link:../../test-support/client-runtime
+      '@maple/client-ui-conversation':
+        specifier: workspace:^
+        version: link:../ui-conversation
+      '@maple/client-ui-primitives':
+        specifier: workspace:^
+        version: link:../ui-primitives
       '@maple/client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
@@ -2910,6 +3086,51 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
 
+  packages/client/ui-task-surface:
+    devDependencies:
+      '@maple/api-remotes':
+        specifier: workspace:^
+        version: link:../../api/remotes
+      '@maple/client-locale':
+        specifier: workspace:^
+        version: link:../locale
+      '@maple/client-runtime':
+        specifier: workspace:^
+        version: link:../runtime
+      '@maple/client-test-runtime':
+        specifier: workspace:^
+        version: link:../../test-support/client-runtime
+      '@maple/client-ui-conversation':
+        specifier: workspace:^
+        version: link:../ui-conversation
+      '@maple/client-ui-primitives':
+        specifier: workspace:^
+        version: link:../ui-primitives
+      '@maple/client-ui-slots':
+        specifier: workspace:^
+        version: link:../ui-slots
+      '@maple/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@maple/invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@maple/task-surface':
+        specifier: workspace:^
+        version: link:../../task-surface/task-surface
+      '@testing-library/react':
+        specifier: ^16.1.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
+
   packages/client/ui-theme:
     dependencies:
       '@maple/schemastery':
@@ -3385,6 +3606,61 @@ importers:
         specifier: workspace:^
         version: link:../../core/tools
 
+  packages/compaction/compaction-recallable:
+    dependencies:
+      '@maple/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@maple/agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@maple/agent-loop':
+        specifier: workspace:^
+        version: link:../../core/agent-loop
+      '@maple/agent-loop-testkit':
+        specifier: workspace:^
+        version: link:../../test-support/agent-loop-testkit
+      '@maple/commands':
+        specifier: workspace:^
+        version: link:../../interaction/commands
+      '@maple/compaction':
+        specifier: workspace:^
+        version: link:../compaction
+      '@maple/compaction-basic':
+        specifier: workspace:^
+        version: link:../compaction-basic
+      '@maple/compaction-tool-result-pruner':
+        specifier: workspace:^
+        version: link:../compaction-tool-result-pruner
+      '@maple/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@maple/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@maple/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@maple/invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@maple/llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@maple/llm-retry':
+        specifier: workspace:^
+        version: link:../../llm/llm-retry
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@maple/token-meter':
+        specifier: workspace:^
+        version: link:../../llm/token-meter
+      '@maple/tools':
+        specifier: workspace:^
+        version: link:../../core/tools
+
   packages/compaction/compaction-tool-result-pruner:
     dependencies:
       '@maple/schemastery':
@@ -3415,6 +3691,49 @@ importers:
       '@maple/token-meter':
         specifier: workspace:^
         version: link:../../llm/token-meter
+
+  packages/compaction/tool-recall:
+    dependencies:
+      '@maple/compaction':
+        specifier: workspace:^
+        version: link:../compaction
+      '@maple/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@maple/agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@maple/agent-loop':
+        specifier: workspace:^
+        version: link:../../core/agent-loop
+      '@maple/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@maple/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@maple/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@maple/invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@maple/llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@maple/system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
+      '@maple/tools':
+        specifier: workspace:^
+        version: link:../../core/tools
 
   packages/context/agent-instructions:
     dependencies:
@@ -3514,6 +3833,9 @@ importers:
       '@maple/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      js-tiktoken:
+        specifier: 1.0.21
+        version: 1.0.21
       tree-sitter-wasms:
         specifier: 0.1.13
         version: 0.1.13
@@ -4141,110 +4463,6 @@ importers:
       '@maple/invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
-
-  packages/experimental/agent-team:
-    dependencies:
-      '@maple/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
-      zod:
-        specifier: ^4.4.3
-        version: 4.4.3
-    devDependencies:
-      '@maple/agent':
-        specifier: workspace:^
-        version: link:../../core/agent
-      '@maple/agent-loop':
-        specifier: workspace:^
-        version: link:../../core/agent-loop
-      '@maple/agent-loop-testkit':
-        specifier: workspace:^
-        version: link:../../test-support/agent-loop-testkit
-      '@maple/brand':
-        specifier: workspace:^
-        version: link:../../util/brand
-      '@maple/cordis':
-        specifier: workspace:^
-        version: link:../../../vendor/cordis
-      '@maple/invariants':
-        specifier: workspace:^
-        version: link:../../runtime-diagnostics/invariants
-      '@maple/llm':
-        specifier: workspace:^
-        version: link:../../llm/llm
-      '@maple/session':
-        specifier: workspace:^
-        version: link:../../core/session
-      '@maple/session-persistence':
-        specifier: workspace:^
-        version: link:../../session/session-persistence
-      '@maple/session-persistence-jsonl':
-        specifier: workspace:^
-        version: link:../../session/session-persistence-jsonl
-      '@maple/session-persistence-sqlite':
-        specifier: workspace:^
-        version: link:../../session/session-persistence-sqlite
-      '@maple/subagent':
-        specifier: workspace:^
-        version: link:../../subagent/subagent
-      '@maple/subagent-fork-in-process':
-        specifier: workspace:^
-        version: link:../../subagent/subagent-fork-in-process
-      '@maple/subagent-spawn-in-process':
-        specifier: workspace:^
-        version: link:../../subagent/subagent-spawn-in-process
-
-  packages/experimental/tool-agent-team:
-    dependencies:
-      '@maple/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
-    devDependencies:
-      '@maple/agent':
-        specifier: workspace:^
-        version: link:../../core/agent
-      '@maple/agent-loop':
-        specifier: workspace:^
-        version: link:../../core/agent-loop
-      '@maple/agent-loop-testkit':
-        specifier: workspace:^
-        version: link:../../test-support/agent-loop-testkit
-      '@maple/cordis':
-        specifier: workspace:^
-        version: link:../../../vendor/cordis
-      '@maple/experimental-agent-team':
-        specifier: workspace:^
-        version: link:../agent-team
-      '@maple/invariants':
-        specifier: workspace:^
-        version: link:../../runtime-diagnostics/invariants
-      '@maple/scope':
-        specifier: workspace:^
-        version: link:../../core/scope
-      '@maple/session':
-        specifier: workspace:^
-        version: link:../../core/session
-      '@maple/session-persistence-jsonl':
-        specifier: workspace:^
-        version: link:../../session/session-persistence-jsonl
-      '@maple/subagent':
-        specifier: workspace:^
-        version: link:../../subagent/subagent
-      '@maple/subagent-fork-in-process':
-        specifier: workspace:^
-        version: link:../../subagent/subagent-fork-in-process
-      '@maple/subagent-spawn-in-process':
-        specifier: workspace:^
-        version: link:../../subagent/subagent-spawn-in-process
-      '@maple/system-prompt':
-        specifier: workspace:^
-        version: link:../../core/system-prompt
-      '@maple/tool-subagent-control':
-        specifier: workspace:^
-        version: link:../../subagent/tool-subagent-control
-      '@maple/tools':
-        specifier: workspace:^
-        version: link:../../core/tools
 
   packages/extensions/cordis-client-runner:
     devDependencies:
@@ -5075,6 +5293,9 @@ importers:
       '@maple/subagent':
         specifier: workspace:^
         version: link:../../subagent/subagent
+      '@maple/task-surface':
+        specifier: workspace:^
+        version: link:../../task-surface/task-surface
       '@maple/tools':
         specifier: workspace:^
         version: link:../../core/tools
@@ -5565,6 +5786,9 @@ importers:
       '@maple/llm':
         specifier: workspace:^
         version: link:../llm
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
       '@maple/settings':
         specifier: workspace:^
         version: link:../../settings/settings
@@ -5605,6 +5829,9 @@ importers:
       '@maple/llm-deepseek':
         specifier: workspace:^
         version: link:../llm-deepseek
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
       '@maple/settings':
         specifier: workspace:^
         version: link:../../settings/settings
@@ -7925,6 +8152,86 @@ importers:
       '@maple/timeout':
         specifier: workspace:^
         version: link:../../util/timeout
+
+  packages/task-surface/task-surface:
+    dependencies:
+      '@maple/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@maple/agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@maple/brand':
+        specifier: workspace:^
+        version: link:../../util/brand
+      '@maple/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@maple/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@maple/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@maple/invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@maple/llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@maple/session-projection':
+        specifier: workspace:^
+        version: link:../../session/session-projection
+      '@maple/typert-protocol':
+        specifier: workspace:^
+        version: link:../../typert/protocol
+
+  packages/task-surface/tool-task-surface:
+    dependencies:
+      '@maple/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@maple/agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@maple/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@maple/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@maple/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@maple/invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@maple/llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@maple/session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@maple/system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
+      '@maple/task-surface':
+        specifier: workspace:^
+        version: link:../task-surface
+      '@maple/tools':
+        specifier: workspace:^
+        version: link:../../core/tools
 
   packages/terminal/terminal:
     devDependencies:
@@ -13147,6 +13454,9 @@ packages:
 
   jose@6.2.3:
     resolution: {integrity: sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==}
+
+  js-tiktoken@1.0.21:
+    resolution: {integrity: sha512-biOj/6M5qdgx5TKjDnFT1ymSpM5tbd3ylwDtrQvFQSu0Z7bBYko2dF+W/aUkXUPuk6IVpRxk/3Q2sHOzGlS36g==}
 
   js-tokens@10.0.0:
     resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
@@ -18487,6 +18797,10 @@ snapshots:
   jiti@2.7.0: {}
 
   jose@6.2.3: {}
+
+  js-tiktoken@1.0.21:
+    dependencies:
+      base64-js: 1.5.1
 
   js-tokens@10.0.0: {}
 

@@ -15,6 +15,27 @@ export { AttachmentId, ImageVariantId } from './brand.ts'
 export { AttachmentError, isImageAdmissionError } from './error.ts'
 export type { AttachmentErrorCode, ImageAdmissionErrorCode } from './error.ts'
 export { admitEncodedImages } from './admission.ts'
+export {
+  classifyAttachmentQuarantineReason,
+  formatQuarantinedImagePlaceholder,
+} from './quarantine.ts'
+export type { AttachmentQuarantineReason } from './quarantine.ts'
+export type {
+  AttachmentQuarantineSession,
+  RequestImageContentBlock,
+  RequestImageEntry,
+  RequestImageMessage,
+} from './request-projection.ts'
+export {
+  collectRequestImageRefs,
+  foldAttachmentQuarantine,
+  isQuarantinedRequestImage,
+  prepareRequestImages,
+  recoverQuarantinedAttachment,
+  requestImageEntryBytes,
+  requestImageEntryText,
+  resolvedRequestImage,
+} from './request-projection.ts'
 export type {
   AttachmentId as AttachmentIdType,
   EncodedImageAttachment,

@@ -3,26 +3,24 @@
  *
  * Ported from Aider's `RepoMap.token_count` (repomap.py lines 89–101).
  *
- * Aider uses the model's real tokenizer (tiktoken, cl100k_base / o200k_base). For a
- * dependency-light, portable module we use a chars/4 heuristic — accurate to within
- * ~15% for typical English/code text — BUT we keep Aider's critical sampling
- * optimization: for long text, sample every (num_lines // 100)-th line, tokenize the
- * sample, then extrapolate by char ratio. This keeps the binary-search loop fast.
- *
- * Swap `estimateTokensExact` for a real BPE tokenizer (js-tiktoken) if you need
- * byte-exact counts; the sampling wrapper stays the same.
+ * Uses cl100k_base through js-tiktoken. For long text we keep Aider's
+ * sampling optimization: sample every (num_lines // 100)-th line, tokenize the
+ * sample, then extrapolate by char ratio so the binary-search loop stays fast.
  */
 
+import { getEncoding } from 'js-tiktoken'
+
+/** Shared cl100k_base encoder for repo-map budgeting. */
+const encoder = getEncoding('cl100k_base')
+
 /**
- * Rough token estimate for a short string (no sampling). ~chars/4.
+ * Exact token count for a short string (no sampling).
  * @param text - the text to size.
- * @returns the conservative ceiling-style estimate.
+ * @returns the cl100k_base token count.
  */
 export function estimateTokensExact(text: string): number {
   if (text.length === 0) return 0
-  // Chars/4 is the standard GPT-family approximation for English/code.
-  // Whitespace-heavy code averages slightly below 4, so this is conservative.
-  return Math.ceil(text.length / 4)
+  return encoder.encode(text).length
 }
 
 /**

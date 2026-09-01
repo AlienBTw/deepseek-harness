@@ -136,9 +136,16 @@ export function buildGraph(input: BuildGraphInput): BuildGraphOutput {
       // max, not add (chat+mentioned caps at personalize).
       currentPers = Math.max(currentPers, personalize)
     }
-    // mentioned_idents matched against path components / basenames.
-    // (We skip the path-component matching here for simplicity; it only adds
-    //  a `+ personalize` boost. Mentioned idents are handled via the x10 mul.)
+    // mentioned_idents matched against path components / basenames (repomap.py line 408-412).
+    if (mentionedIdents.size > 0) {
+      const parts = fname.split(/[\\/.]/).map(p => p.toLowerCase())
+      for (const ident of mentionedIdents) {
+        if (parts.includes(ident.toLowerCase())) {
+          currentPers += personalize
+          break
+        }
+      }
+    }
     if (currentPers > 0) personalization.set(fname, currentPers)
   }
 

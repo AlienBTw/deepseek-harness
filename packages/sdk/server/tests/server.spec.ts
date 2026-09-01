@@ -13,7 +13,7 @@ import * as agentCore from '@maple/agent-spine-demo'
 import JsonlSessionPersistence from '@maple/session-persistence-jsonl'
 import * as LlmDeepSeek from '@maple/llm-deepseek'
 import SubagentRuntime, { type SubagentResult, type SubagentRunEndInfo } from '@maple/subagent'
-import type { JsonRpcTransportPeer } from '@maple/sdk-protocol'
+import type { JsonRpcTransportPeer, SessionPromptResult } from '@maple/sdk-protocol'
 import { HarnessSdkJsonRpcServer } from '../src/index.ts'
 
 class FakeTransport implements JsonRpcTransportPeer {
@@ -130,8 +130,10 @@ describe('HarnessSdkJsonRpcServer', () => {
       const receipt = await server.handleRequest('session/prompt', {
         sessionId: 'main',
         contentBlocks: [{ type: 'text', text: 'fix it' }],
-      })
-      expect((receipt as { messageId?: unknown }).messageId).toBeTypeOf('string')
+      }) as SessionPromptResult
+      expect(receipt.messageId).toBeTypeOf('string')
+      expect(receipt.status).toBeTypeOf('string')
+      expect(receipt.reason).toBeTypeOf('object')
 
       await vi.waitFor(() => { expect(llmServer.requests).toHaveLength(1) })
       const body = llmServer.requests[0] as { model: string; messages: { role: string }[]; max_tokens?: number }
@@ -171,17 +173,39 @@ describe('HarnessSdkJsonRpcServer', () => {
     }
   })
 
-  it('queues overlapping prompts for one session without blocking other sessions', async () => {
-    const mainFollowup = vi.fn<Agent['followup']>()
-    const mainAgent = ({
+  it('rejects overlapping prompts for one session without blocking other sessions', async () => {
+    let releaseFirst: (() => void) | undefined
+    const firstIdle = new Promise<void>((resolve) => { releaseFirst = resolve })
+    const mainEvents: Array<{ type: string; seq: number; time: number; data: Record<string, unknown> }> = []
+    const mainFollowup = vi.fn(() => {
+      mainEvents.push({
+        type: 'turn/end',
+        seq: mainEvents.length,
+        time: 0,
+        data: { turn: 0, reason: { kind: 'completed' } },
+      })
+    })
+    const mainAgent = {
       id: SessionId('main'),
       followup: mainFollowup,
-    } satisfies Pick<Agent, 'id' | 'followup'>) as unknown as Agent
-    const otherFollowup = vi.fn<Agent['followup']>()
-    const otherAgent = ({
+      whenIdle: vi.fn(() => firstIdle),
+      session: { events: mainEvents },
+    } as unknown as Agent
+    const otherEvents: Array<{ type: string; seq: number; time: number; data: Record<string, unknown> }> = []
+    const otherFollowup = vi.fn(() => {
+      otherEvents.push({
+        type: 'turn/end',
+        seq: otherEvents.length,
+        time: 0,
+        data: { turn: 0, reason: { kind: 'completed' } },
+      })
+    })
+    const otherAgent = {
       id: SessionId('other'),
       followup: otherFollowup,
-    } satisfies Pick<Agent, 'id' | 'followup'>) as unknown as Agent
+      whenIdle: vi.fn(() => Promise.resolve()),
+      session: { events: otherEvents },
+    } as unknown as Agent
     const mainHandle = { agent: mainAgent, dispose: vi.fn(() => Promise.resolve()) }
     const otherHandle = { agent: otherAgent, dispose: vi.fn(() => Promise.resolve()) }
     const create = vi.fn(async (options: { sessionId: SessionId }) =>
@@ -198,11 +222,14 @@ describe('HarnessSdkJsonRpcServer', () => {
       contentBlocks: [{ type: 'text', text }],
     })
 
-    expect((await prompt('main', 'first')).messageId).toBeTypeOf('string')
-    expect((await prompt('main', 'overlap')).messageId).toBeTypeOf('string')
-    expect((await prompt('other', 'independent')).messageId).toBeTypeOf('string')
+    const first = prompt('main', 'first')
+    await expect(prompt('main', 'overlap')).rejects.toThrow('session already has an active prompt: main')
+    const independent = prompt('other', 'independent')
+    releaseFirst?.()
+    expect((await first).status).toBe('ok')
+    expect((await independent).status).toBe('ok')
 
-    expect(mainFollowup).toHaveBeenCalledTimes(2)
+    expect(mainFollowup).toHaveBeenCalledOnce()
     expect(otherFollowup).toHaveBeenCalledOnce()
     await server.shutdown()
     expect(mainHandle.dispose).toHaveBeenCalledOnce()
@@ -210,12 +237,21 @@ describe('HarnessSdkJsonRpcServer', () => {
   })
 
   it('rejects a prompt for a session whose agent was disposed outside the server', async () => {
-    const followup = vi.fn<Agent['followup']>()
-    const agent = ({
+    const events: Array<{ type: string; seq: number; time: number; data: Record<string, unknown> }> = []
+    const followup = vi.fn(() => {
+      events.push({
+        type: 'turn/end',
+        seq: 1,
+        time: 0,
+        data: { turn: 0, reason: { kind: 'completed' } },
+      })
+    })
+    const agent = {
       id: SessionId('zombie'),
       followup,
       whenIdle: vi.fn(() => Promise.resolve()),
-    } satisfies Pick<Agent, 'id' | 'followup' | 'whenIdle'>) as unknown as Agent
+      session: { events },
+    } as unknown as Agent
     const handle = { agent, dispose: vi.fn(() => Promise.resolve()) }
     // The registry drops the agent after creation, modelling an agent-loop-only
     // reload that leaves the server's SessionRecord pointing at a detached agent.
@@ -234,7 +270,7 @@ describe('HarnessSdkJsonRpcServer', () => {
       contentBlocks: [{ type: 'text', text }],
     })
 
-    expect((await prompt('while live')).messageId).toBeTypeOf('string')
+    expect((await prompt('while live')).status).toBe('ok')
     live = false
     await expect(prompt('after detach')).rejects.toThrow('session agent was disposed outside the server: zombie')
     // The detached agent was never driven by the rejected prompt.
@@ -937,11 +973,11 @@ describe('HarnessSdkJsonRpcServer', () => {
       get: () => undefined,
     } as unknown as Context
     const server = new HarnessSdkJsonRpcServer(ctx, new FakeTransport()) as unknown as {
-      sessions: Map<string, { handle: AgentHandle; lastTurnEnd: undefined; activePrompt: boolean }>
+      sessions: Map<string, { handle: AgentHandle; promptInFlight: boolean }>
       shutdown(): Promise<Record<string, never>>
     }
-    server.sessions.set('first', { handle: { agent: {} as Agent, dispose: firstDispose }, lastTurnEnd: undefined, activePrompt: false })
-    server.sessions.set('second', { handle: { agent: {} as Agent, dispose: secondDispose }, lastTurnEnd: undefined, activePrompt: false })
+    server.sessions.set('first', { handle: { agent: {} as Agent, dispose: firstDispose }, promptInFlight: false })
+    server.sessions.set('second', { handle: { agent: {} as Agent, dispose: secondDispose }, promptInFlight: false })
 
     await expect(server.shutdown()).rejects.toThrow('SDK server teardown failed')
     expect(firstDispose).toHaveBeenCalledOnce()
@@ -964,5 +1000,58 @@ describe('HarnessSdkJsonRpcServer', () => {
 
     await expect(server.shutdown()).rejects.toBe(listenerFailure)
     expect(on).toHaveBeenCalledTimes(4)
+  })
+
+  it('cancels an active session and reports status', async () => {
+    const cancelMock = vi.fn()
+    const events: Array<{ type: string; seq: number; time: number; data: Record<string, unknown> }> = []
+    const followup = vi.fn((message: { id: string }) => {
+      events.push({
+        type: 'agent/inbox/spliced',
+        seq: events.length,
+        time: 0,
+        data: {
+          target: 'next-turn',
+          start: 0,
+          inserted: [{ id: message.id, role: 'user', content: [], source: { kind: 'user' } }],
+        },
+      })
+      events.push({
+        type: 'turn/end',
+        seq: events.length,
+        time: 0,
+        data: { turn: 0, reason: { kind: 'completed' } },
+      })
+    })
+    const mockAgent = {
+      id: SessionId('sess-cancel'),
+      cancel: cancelMock,
+      followup,
+      whenIdle: vi.fn(() => Promise.resolve()),
+      get session() { return { events } },
+    } as unknown as Agent
+    const mockHandle = { agent: mockAgent, dispose: vi.fn(() => Promise.resolve()) }
+    const create = vi.fn().mockResolvedValue(mockHandle)
+    const ctx = {
+      on: vi.fn(() => () => undefined),
+      agents: { create, get: (id: unknown) => id === 'sess-cancel' ? mockAgent : undefined },
+      get: () => ({ listProviders: () => [{ id: 'mock', name: 'Mock' }] }),
+    } as unknown as Context
+    const server = new HarnessSdkJsonRpcServer(ctx, new FakeTransport())
+
+    await server.initialize({ cwd: '.', provider: 'mock', model: 'mock' })
+    // Before session created, cancel returns false
+    const uncreatedRes = await server.handleRequest('session/cancel', { sessionId: 'sess-cancel' })
+    expect(uncreatedRes).toEqual({ canceled: false })
+
+    // Prompt to create session
+    await server.handleRequest('session/prompt', { sessionId: 'sess-cancel', contentBlocks: [{ type: 'text', text: 'hi' }] })
+
+    // Cancel existing active session
+    const cancelRes = await server.handleRequest('session/cancel', { sessionId: 'sess-cancel', keepInbox: true })
+    expect(cancelRes).toEqual({ canceled: true })
+    expect(cancelMock).toHaveBeenCalledWith({ kind: 'user' }, { keepInbox: true })
+
+    await server.shutdown()
   })
 })

@@ -27,6 +27,7 @@ test = ["pytest>=8.0"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+pythonpath = ["src"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/maple_harness"]

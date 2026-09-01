@@ -45,7 +45,7 @@ describe('release families', () => {
     const members = releaseFamily('dsh').members(resolve(import.meta.dirname, '../..'))
 
     expect(members.some(member => member.directory.startsWith('packages/experimental/'))).toBe(false)
-    expect(members.map(member => member.name)).not.toContain('@maple/experimental-agent-team')
+    expect(members.map(member => member.name)).toContain('@maple/agent-team')
   })
 
   it('bumps private dsh packages without adding release tags', () => {

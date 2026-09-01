@@ -73,6 +73,7 @@
     "@maple/session": "workspace:^",
     "@maple/session-persistence": "workspace:^",
     "@maple/session-reference": "workspace:^",
+    "@maple/task-surface": "workspace:^",
     "@maple/settings": "workspace:^",
     "@maple/typert-registry": "workspace:^",
     "@maple/cordis": "workspace:^"
@@ -93,6 +94,7 @@
     "@maple/session": "workspace:^",
     "@maple/session-persistence": "workspace:^",
     "@maple/session-reference": "workspace:^",
+    "@maple/task-surface": "workspace:^",
     "@maple/settings": "workspace:^",
     "@maple/typert-registry": "workspace:^",
     "@maple/cordis": "workspace:^"
