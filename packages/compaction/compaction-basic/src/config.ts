@@ -50,12 +50,16 @@ const MODEL_POLICY_KEYS: ReadonlySet<string> = new Set([
 
 /** Target-specific pressure configuration failure eligible for warning suppression. */
 export class TargetPressureConfigError extends Error {
+  /** Exact provider/model route used as the warning key. */
+  readonly targetKey: string
+
   /**
    * @param targetKey - exact provider/model route used as the warning key.
    * @param message - actionable configuration failure detail.
    */
-  constructor(readonly targetKey: string, message: string) {
+  constructor(targetKey: string, message: string) {
     super(message)
+    this.targetKey = targetKey
   }
 }
 

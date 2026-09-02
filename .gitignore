@@ -42,3 +42,12 @@ apps/desktop/dist/
 worktrees/
 .agents/worktrees/
 .typert-*/
+# Accidental tsc emit beside TypeScript sources (build output belongs in lib/).
+packages/**/src/**/*.js
+packages/**/src/**/*.d.ts
+packages/**/src/**/*.js.map
+packages/**/src/**/*.d.ts.map
+vendor/**/src/**/*.js
+vendor/**/src/**/*.d.ts
+vendor/**/src/**/*.js.map
+vendor/**/src/**/*.d.ts.map

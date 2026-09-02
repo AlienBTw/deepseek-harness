@@ -251,6 +251,7 @@ export async function runScenario(input: InputScript, opts: RunOptions): Promise
       MAPLE_SNAPSHOT: opts.mode,
       MAPLE_SNAPSHOT_FILE: opts.fixtureFile,
       MAPLE_SNAPSHOT_SESSIONS_ROOT: sessionsRoot,
+      DSH_SNAPSHOT_SESSIONS_ROOT: sessionsRoot,
       MAPLE_SNAPSHOT_SPILL_ROOT: spillRoot,
       MAPLE_HOME: join(cwd, '.maple'),
       MAPLE_AGENTS_HOME: join(cwd, '.agents'),

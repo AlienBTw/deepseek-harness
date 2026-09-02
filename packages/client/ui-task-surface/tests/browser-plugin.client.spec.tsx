@@ -43,14 +43,14 @@ async function bench(options: {
 } = {}) {
   const ctx = new Context()
   const calls: { method: string; args: unknown[] }[] = []
-  const getActive = vi.fn(async (...args: unknown[]) => {
-    calls.push({ method: 'getActive', args })
-    return options.getActive ?? { active: false, reason: 'not-open' } satisfies GetActiveTaskSurfaceResult
-  })
-  const submit = vi.fn(async (...args: unknown[]) => {
-    calls.push({ method: 'submit', args })
-    return options.submit ?? { accepted: true, messageId: 'msg-1' as never, phase: 'queued' } satisfies SubmitTaskSurfaceResult
-  })
+  function answer<T>(method: string, value: T) {
+    return (...args: unknown[]) => {
+      calls.push({ method, args })
+      return Promise.resolve({ ok: true as const, value })
+    }
+  }
+  const getActive = vi.fn(answer('getActive', options.getActive ?? { active: false, reason: 'not-open' } satisfies GetActiveTaskSurfaceResult))
+  const submit = vi.fn(answer('submit', options.submit ?? { accepted: true, messageId: 'msg-1' as never, phase: 'queued' } satisfies SubmitTaskSurfaceResult))
   class RemoteService extends Service {
     constructor(serviceCtx: Context) {
       super(serviceCtx, 'remote')

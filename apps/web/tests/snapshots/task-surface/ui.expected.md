@@ -1,0 +1,3 @@
+- region "Task panel":
+  - text: Choose Environment
+  - button "Continue"
