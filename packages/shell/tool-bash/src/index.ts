@@ -367,9 +367,15 @@ export function apply(ctx: Context, config: Config = {}): void {
           label: args.command,
           ...exec.agent ? { owner: exec.agent } : {},
           run: () => {
-            const proc = ctx.shell.start(ctx.shell.resolve(request))
+            // After jobs.start commits, this controller owns cancellation —
+            // not the tool invocation signal, which may abort when the turn ends.
+            const lifecycle = new AbortController()
+            const proc = ctx.shell.start(ctx.shell.resolve({ ...request, signal: lifecycle.signal }))
             return {
-              cancel: () => void proc.kill(),
+              cancel: () => {
+                lifecycle.abort()
+                void proc.kill()
+              },
               done: proc.done.then(() => processOutcome(proc)),
               readOutput: () => renderProcessRead(proc.readOutput(), proc.sandbox, escalationModes),
             }

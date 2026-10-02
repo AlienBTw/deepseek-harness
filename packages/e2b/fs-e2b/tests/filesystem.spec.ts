@@ -15,6 +15,8 @@ import * as E2BFsInvariant from '../src/invariant.ts'
 import InvariantRegistry from '@maple/invariants'
 import { describe, expect, it, vi } from 'vitest'
 
+const LIVE = new AbortController().signal
+
 interface RemoteNode {
   type: FileType
   data: Uint8Array
@@ -330,16 +332,16 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     remote.symlink('/workspace/link.txt', '/workspace/a.txt')
     const { fs } = await setup(remote)
 
-    const link = await fs.resolve('link.txt')
+    const link = await fs.resolve('link.txt', { signal: LIVE })
     expect(link).toEqual({ targetKey: '/workspace/a.txt', displayPath: '/workspace/link.txt' })
-    await expect(fs.lstat('link.txt')).resolves.toMatchObject({ type: 'symlink', size: 1 })
-    await expect(fs.lstat('a.txt')).resolves.toMatchObject({ type: 'file', size: 1 })
-    await expect(fs.lstat('dir')).resolves.toEqual(expect.objectContaining({ type: 'directory' }))
-    await expect(fs.lstat('special')).resolves.toEqual(expect.objectContaining({ type: 'other' }))
-    await expect(fs.lstat('missing')).resolves.toBeUndefined()
-    await expect(fs.stat(link)).resolves.toMatchObject({ type: 'file', size: 1 })
-    const directory = await fs.resolve('.')
-    const listed = await fs.listDir(directory)
+    await expect(fs.lstat('link.txt', undefined, LIVE)).resolves.toMatchObject({ type: 'symlink', size: 1 })
+    await expect(fs.lstat('a.txt', undefined, LIVE)).resolves.toMatchObject({ type: 'file', size: 1 })
+    await expect(fs.lstat('dir', undefined, LIVE)).resolves.toEqual(expect.objectContaining({ type: 'directory' }))
+    await expect(fs.lstat('special', undefined, LIVE)).resolves.toEqual(expect.objectContaining({ type: 'other' }))
+    await expect(fs.lstat('missing', undefined, LIVE)).resolves.toBeUndefined()
+    await expect(fs.stat(link, LIVE)).resolves.toMatchObject({ type: 'file', size: 1 })
+    const directory = await fs.resolve('.', { signal: LIVE })
+    const listed = await fs.listDir(directory, LIVE)
     expect(listed.map(entry => entry.name)).toEqual(['a.txt', 'dir', 'link.txt', 'special', 'z.txt'])
     expect(listed.find(entry => entry.name === 'dir')).toMatchObject({ type: 'directory' })
     expect(listed.find(entry => entry.name === 'link.txt')).toMatchObject({
@@ -355,9 +357,9 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     remote.file('/workspace/nested/multibyte # file.ts', 'text')
     remote.file('/outside.ts', 'outside')
     const { fs } = await setup(remote)
-    const workspace = await fs.resolve('/workspace')
-    const nested = await fs.resolve('/workspace/nested/multibyte # file.ts')
-    const outside = await fs.resolve('/outside.ts')
+    const workspace = await fs.resolve('/workspace', { signal: LIVE })
+    const nested = await fs.resolve('/workspace/nested/multibyte # file.ts', { signal: LIVE })
+    const outside = await fs.resolve('/outside.ts', { signal: LIVE })
 
     expect(fs.processPath(nested)).toBe('/workspace/nested/multibyte # file.ts')
     expect(fs.fileUrl(nested)).toBe('file:///workspace/nested/multibyte%20%23%20file.ts')
@@ -375,7 +377,7 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     remote.file(path, 'text')
     const { fs } = await setup(remote)
 
-    await expect(fs.resolve(path)).resolves.toEqual({ targetKey: path, displayPath: path })
+    await expect(fs.resolve(path, { signal: LIVE })).resolves.toEqual({ targetKey: path, displayPath: path })
   })
 
   it.each([
@@ -388,7 +390,7 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     const remote = new FakeRemote()
     remote.canonicalOutput = output
     const { fs } = await setup(remote)
-    await expectCode(fs.resolve('file'), 'FS_IO_ERROR')
+    await expectCode(fs.resolve('file', { signal: LIVE }), 'FS_IO_ERROR')
   })
 
   it('reads whole and streamed UTF-8 across chunk boundaries', async () => {
@@ -396,15 +398,15 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     remote.file('/workspace/text.txt', 'A€B')
     remote.streamChunks = [bytes([65, 0xe2]), bytes([0x82, 0xac, 66])]
     const { fs } = await setup(remote)
-    const target = await fs.resolve('text.txt')
-    await expect(fs.readText(target)).resolves.toBe('A€B')
+    const target = await fs.resolve('text.txt', { signal: LIVE })
+    await expect(fs.readText(target, LIVE)).resolves.toBe('A€B')
     let streamed = ''
-    for await (const chunk of await fs.streamText(target)) streamed += chunk
+    for await (const chunk of await fs.streamText(target, LIVE)) streamed += chunk
     expect(streamed).toBe('A€B')
 
     remote.streamChunks = [bytes([0xe2]), bytes([0x82, 0xac])]
     let initiallyBuffered = ''
-    for await (const chunk of await fs.streamText(target)) initiallyBuffered += chunk
+    for await (const chunk of await fs.streamText(target, LIVE)) initiallyBuffered += chunk
     expect(initiallyBuffered).toBe('€')
   })
 
@@ -413,7 +415,7 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     remote.file('/workspace/empty.txt', '')
     const { fs } = await setup(remote)
     let streamed = ''
-    for await (const chunk of await fs.streamText(await fs.resolve('empty.txt'))) streamed += chunk
+    for await (const chunk of await fs.streamText(await fs.resolve('empty.txt', { signal: LIVE }), LIVE)) streamed += chunk
     expect(streamed).toBe('')
   })
 
@@ -423,7 +425,7 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     remote.streamChunks = [bytes('a'), bytes('b')]
     remote.streamKeepOpen = true
     const { fs } = await setup(remote)
-    const stream = await fs.streamText(await fs.resolve('text.txt'))
+    const stream = await fs.streamText(await fs.resolve('text.txt', { signal: LIVE }), LIVE)
 
     for await (const chunk of stream) {
       expect(chunk).toBe('a')
@@ -437,13 +439,13 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     const remote = new FakeRemote()
     remote.file('/workspace/late-nul.txt', `${'a'.repeat(8192)}\0tail`)
     const { fs } = await setup(remote)
-    const target = await fs.resolve('late-nul.txt')
-    await expect(fs.readText(target)).resolves.toContain('\0tail')
+    const target = await fs.resolve('late-nul.txt', { signal: LIVE })
+    await expect(fs.readText(target, LIVE)).resolves.toContain('\0tail')
     remote.streamChunks = [bytes('a'.repeat(8192)), bytes([0, 116])]
     let streamed = ''
-    for await (const chunk of await fs.streamText(target)) streamed += chunk
+    for await (const chunk of await fs.streamText(target, LIVE)) streamed += chunk
     expect(streamed).toBe(`${'a'.repeat(8192)}\0t`)
-    await expectCode(fs.editText(target, { oldString: 'tail', newString: 'end', replaceAll: false }), 'FS_NOT_TEXT')
+    await expectCode(fs.editText(target, { oldString: 'tail', newString: 'end', replaceAll: false }, undefined, LIVE), 'FS_NOT_TEXT')
   })
 
   it('maps binary, invalid UTF-8, missing, and non-regular read failures', async () => {
@@ -452,25 +454,25 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     remote.file('/workspace/invalid', [0xff])
     remote.dir('/workspace/directory')
     const { fs } = await setup(remote)
-    await expectCode(fs.readText(await fs.resolve('binary')), 'FS_NOT_TEXT')
-    await expectCode(fs.readText(await fs.resolve('invalid')), 'FS_NOT_TEXT')
-    await expectCode(fs.readText(await fs.resolve('missing')), 'FS_NOT_FOUND')
-    await expectCode(fs.readText(await fs.resolve('directory')), 'FS_NOT_REGULAR_FILE')
+    await expectCode(fs.readText(await fs.resolve('binary', { signal: LIVE }), LIVE), 'FS_NOT_TEXT')
+    await expectCode(fs.readText(await fs.resolve('invalid', { signal: LIVE }), LIVE), 'FS_NOT_TEXT')
+    await expectCode(fs.readText(await fs.resolve('missing', { signal: LIVE }), LIVE), 'FS_NOT_FOUND')
+    await expectCode(fs.readText(await fs.resolve('directory', { signal: LIVE }), LIVE), 'FS_NOT_REGULAR_FILE')
 
     remote.streamChunks = [bytes([0xff])]
-    const invalid = await fs.streamText(await fs.resolve('invalid'))
+    const invalid = await fs.streamText(await fs.resolve('invalid', { signal: LIVE }), LIVE)
     await expect((async () => { for await (const _chunk of invalid) void _chunk })()).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
     remote.streamChunks = [bytes([0])]
-    const binary = await fs.streamText(await fs.resolve('binary'))
+    const binary = await fs.streamText(await fs.resolve('binary', { signal: LIVE }), LIVE)
     await expect((async () => { for await (const _chunk of binary) void _chunk })()).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
 
     remote.streamChunks = [bytes([0xe2])]
-    const incomplete = await fs.streamText(await fs.resolve('invalid'))
+    const incomplete = await fs.streamText(await fs.resolve('invalid', { signal: LIVE }), LIVE)
     await expect((async () => { for await (const _chunk of incomplete) void _chunk })()).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
 
-    const raced = await fs.resolve('invalid')
+    const raced = await fs.resolve('invalid', { signal: LIVE })
     remote.nextReadError = new FileNotFoundError('gone after stat')
-    await expectCode(fs.streamText(raced), 'FS_NOT_FOUND')
+    await expectCode(fs.streamText(raced, LIVE), 'FS_NOT_FOUND')
   })
 
   it('readBytes returns raw content, enforces the byte cap, and maps failures', async () => {
@@ -478,19 +480,19 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     remote.file('/workspace/img.bin', [0x89, 0, 0xff, 0x47])
     remote.dir('/workspace/directory')
     const { fs } = await setup(remote)
-    const target = await fs.resolve('img.bin')
-    expect(Array.from(await fs.readBytes(target, undefined, 4))).toEqual([0x89, 0, 0xff, 0x47])
+    const target = await fs.resolve('img.bin', { signal: LIVE })
+    expect(Array.from(await fs.readBytes(target, LIVE, 4))).toEqual([0x89, 0, 0xff, 0x47])
     expect(remote.reads).toEqual([{ path: '/workspace/img.bin', format: 'stream' }])
     remote.reads.length = 0
-    await expectCode(fs.readBytes(target, undefined, 3), 'FS_TOO_LARGE')
+    await expectCode(fs.readBytes(target, LIVE, 3), 'FS_TOO_LARGE')
     expect(remote.reads).toEqual([])
-    await expectCode(fs.readBytes(await fs.resolve('missing'), undefined, 4), 'FS_NOT_FOUND')
-    await expectCode(fs.readBytes(await fs.resolve('directory'), undefined, 4), 'FS_NOT_REGULAR_FILE')
+    await expectCode(fs.readBytes(await fs.resolve('missing', { signal: LIVE }), LIVE, 4), 'FS_NOT_FOUND')
+    await expectCode(fs.readBytes(await fs.resolve('directory', { signal: LIVE }), LIVE, 4), 'FS_NOT_REGULAR_FILE')
 
     const live = new AbortController()
     expect((await fs.readBytes(target, live.signal, 4)).byteLength).toBe(4)
     remote.nextReadError = new DOMException('aborted', 'AbortError')
-    await expectCode(fs.readBytes(target, undefined, 4), 'FS_ABORTED')
+    await expectCode(fs.readBytes(target, LIVE, 4), 'FS_ABORTED')
   })
 
   it('readBytes bounds a post-stat grower mid-stream and reads an empty file through the SDK quirk', async () => {
@@ -501,12 +503,12 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
 
     remote.streamChunks = [bytes([1, 1, 1]), bytes([1, 2, 2])]
     remote.streamKeepOpen = true
-    await expectCode(fs.readBytes(await fs.resolve('grow.bin'), undefined, 4), 'FS_TOO_LARGE')
+    await expectCode(fs.readBytes(await fs.resolve('grow.bin', { signal: LIVE }), LIVE, 4), 'FS_TOO_LARGE')
     expect(remote.streamCancel).toHaveBeenCalledOnce()
 
     remote.streamChunks = undefined
     remote.streamKeepOpen = false
-    expect((await fs.readBytes(await fs.resolve('empty.bin'), undefined, 4)).byteLength).toBe(0)
+    expect((await fs.readBytes(await fs.resolve('empty.bin', { signal: LIVE }), LIVE, 4)).byteLength).toBe(0)
   })
 
   it('honors aborts before and during remote reads', async () => {
@@ -515,29 +517,29 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     const { fs } = await setup(remote)
     await expectCode(fs.resolve('a', { signal: AbortSignal.abort() }), 'FS_ABORTED')
     await expectCode(fs.lstat('a', undefined, AbortSignal.abort()), 'FS_ABORTED')
-    await expectCode(fs.stat(await fs.resolve('a'), AbortSignal.abort()), 'FS_ABORTED')
+    await expectCode(fs.stat(await fs.resolve('a', { signal: LIVE }), AbortSignal.abort()), 'FS_ABORTED')
     remote.nextReadError = new DOMException('aborted', 'AbortError')
-    await expectCode(fs.readText(await fs.resolve('a')), 'FS_ABORTED')
+    await expectCode(fs.readText(await fs.resolve('a', { signal: LIVE }), LIVE), 'FS_ABORTED')
   })
 
   it('rejects empty paths and directory-listing type errors', async () => {
     const remote = new FakeRemote()
     remote.file('/workspace/file', 'x')
     const { fs } = await setup(remote)
-    await expectCode(fs.resolve('   '), 'FS_NOT_FOUND')
-    await expectCode(fs.lstat(''), 'FS_NOT_FOUND')
-    await expectCode(fs.listDir(await fs.resolve('missing')), 'FS_NOT_FOUND')
-    await expectCode(fs.listDir(await fs.resolve('/workspace/file')), 'FS_NOT_DIRECTORY')
+    await expectCode(fs.resolve('   ', { signal: LIVE }), 'FS_NOT_FOUND')
+    await expectCode(fs.lstat('', undefined, LIVE), 'FS_NOT_FOUND')
+    await expectCode(fs.listDir(await fs.resolve('missing', { signal: LIVE }), LIVE), 'FS_NOT_FOUND')
+    await expectCode(fs.listDir(await fs.resolve('/workspace/file', { signal: LIVE }), LIVE), 'FS_NOT_DIRECTORY')
     remote.nextListError = new Error('listing transport failed')
-    await expectCode(fs.listDir(await fs.resolve('/workspace')), 'FS_IO_ERROR')
+    await expectCode(fs.listDir(await fs.resolve('/workspace', { signal: LIVE }), LIVE), 'FS_IO_ERROR')
   })
 })
 
 describe('E2BFileSystem atomic writes and edits', () => {
   it('creates owner-only files and returns metadata after the committed move', async () => {
     const { fs, remote } = await setup()
-    const target = await fs.resolve('new.txt')
-    const outcome = await fs.writeText(target, 'one\r\ntwo\rthree', { kind: 'createIfAbsent' })
+    const target = await fs.resolve('new.txt', { signal: LIVE })
+    const outcome = await fs.writeText(target, 'one\r\ntwo\rthree', { kind: 'createIfAbsent' }, LIVE)
     expect(outcome).toMatchObject({ operation: 'create', before: null, after: 'one\ntwo\rthree' })
     expect(remote.nodes.get('/workspace/new.txt')?.mode).toBe(0o600)
     expect(remote.nodes.get('/workspace/new.txt')?.metadata?.['dsh-version']).toBeDefined()
@@ -546,38 +548,38 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const stagingDirectory = posix.dirname(remote.writes[0]!.path)
     expect(posix.dirname(stagingDirectory)).toBe('/workspace')
     expect(remote.removals).toContain(stagingDirectory)
-    await expect(fs.stat(target)).resolves.toMatchObject({ version: outcome.version, size: 14 })
+    await expect(fs.stat(target, LIVE)).resolves.toMatchObject({ version: outcome.version, size: 14 })
   })
 
   it('preserves replacement mode, normalizes only CRLF for diffs, and changes version on external writes', async () => {
     const remote = new FakeRemote()
     remote.file('/workspace/file.txt', 'old\r\nline\rlone', 0o640)
     const { fs } = await setup(remote)
-    const target = await fs.resolve('file.txt')
-    const before = (await fs.stat(target))!.version
-    const outcome = await fs.writeText(target, 'new', { kind: 'replaceIfVersion', version: before })
+    const target = await fs.resolve('file.txt', { signal: LIVE })
+    const before = (await fs.stat(target, LIVE))!.version
+    const outcome = await fs.writeText(target, 'new', { kind: 'replaceIfVersion', version: before }, LIVE)
     expect(outcome).toMatchObject({ operation: 'update', before: 'old\nline\rlone', after: 'new' })
     expect(remote.nodes.get('/workspace/file.txt')?.mode).toBe(0o640)
     const committed = outcome.version
     remote.mutate('/workspace/file.txt', 'external')
-    expect((await fs.stat(target))!.version).not.toBe(committed)
+    expect((await fs.stat(target, LIVE))!.version).not.toBe(committed)
   })
 
   it('returns null as the overwrite diff basis for binary or invalid prior content', async () => {
     const remote = new FakeRemote()
     remote.file('/workspace/file.txt', [0xff])
     const { fs } = await setup(remote)
-    const target = await fs.resolve('file.txt')
-    await expect(fs.writeText(target, 'valid')).resolves.toMatchObject({ before: null, after: 'valid' })
+    const target = await fs.resolve('file.txt', { signal: LIVE })
+    await expect(fs.writeText(target, 'valid', undefined, LIVE)).resolves.toMatchObject({ before: null, after: 'valid' })
   })
 
   it('fails an overwrite when reading its text diff basis fails for another reason', async () => {
     const remote = new FakeRemote()
     remote.file('/workspace/file.txt', 'prior')
     const { fs } = await setup(remote)
-    const target = await fs.resolve('file.txt')
+    const target = await fs.resolve('file.txt', { signal: LIVE })
     remote.nextReadError = new Error('read transport failed')
-    await expectCode(fs.writeText(target, 'replacement'), 'FS_IO_ERROR')
+    await expectCode(fs.writeText(target, 'replacement', undefined, LIVE), 'FS_IO_ERROR')
     expect(new TextDecoder().decode(remote.nodes.get('/workspace/file.txt')?.data)).toBe('prior')
   })
 
@@ -585,14 +587,14 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const remote = new FakeRemote()
     remote.file('/workspace/file.txt', 'v1')
     const { fs } = await setup(remote)
-    const target = await fs.resolve('file.txt')
-    const version = (await fs.stat(target))!.version
-    await expectCode(fs.writeText(target, 'blind', { kind: 'createIfAbsent' }), 'FS_NOT_OBSERVED')
+    const target = await fs.resolve('file.txt', { signal: LIVE })
+    const version = (await fs.stat(target, LIVE))!.version
+    await expectCode(fs.writeText(target, 'blind', { kind: 'createIfAbsent' }, LIVE), 'FS_NOT_OBSERVED')
     remote.mutate('/workspace/file.txt', 'v2')
-    await expectCode(fs.writeText(target, 'stale', { kind: 'replaceIfVersion', version }), 'FS_STALE_VERSION')
-    await expectCode(fs.writeText(await fs.resolve('missing'), 'stale', { kind: 'replaceIfVersion', version }), 'FS_STALE_VERSION')
+    await expectCode(fs.writeText(target, 'stale', { kind: 'replaceIfVersion', version }, LIVE), 'FS_STALE_VERSION')
+    await expectCode(fs.writeText(await fs.resolve('missing', { signal: LIVE }), 'stale', { kind: 'replaceIfVersion', version }, LIVE), 'FS_STALE_VERSION')
     remote.dir('/workspace/dir')
-    await expectCode(fs.writeText(await fs.resolve('dir'), 'x'), 'FS_NOT_REGULAR_FILE')
+    await expectCode(fs.writeText(await fs.resolve('dir', { signal: LIVE }), 'x', undefined, LIVE), 'FS_NOT_REGULAR_FILE')
   })
 
   it('preserves a competitor created after the guarded-create probe', async () => {
@@ -601,7 +603,7 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const { fs } = await setup(remote)
 
     await expectCode(
-      fs.writeText(await fs.resolve('race.txt'), 'ours', { kind: 'createIfAbsent' }),
+      fs.writeText(await fs.resolve('race.txt', { signal: LIVE }), 'ours', { kind: 'createIfAbsent' }, LIVE),
       'FS_NOT_OBSERVED',
     )
     expect(new TextDecoder().decode(remote.nodes.get('/workspace/race.txt')?.data)).toBe('competitor')
@@ -615,7 +617,7 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const { fs } = await setup(remote)
 
     await expectCode(
-      fs.writeText(await fs.resolve('race-dir'), 'ours', { kind: 'createIfAbsent' }),
+      fs.writeText(await fs.resolve('race-dir', { signal: LIVE }), 'ours', { kind: 'createIfAbsent' }, LIVE),
       'FS_NOT_OBSERVED',
     )
     expect(remote.nodes.get('/workspace/race-dir')?.type).toBe(FileType.DIR)
@@ -630,7 +632,7 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const { fs } = await setup(remote)
 
     await expectCode(
-      fs.writeText(await fs.resolve('invalid.txt'), 'ours', { kind: 'createIfAbsent' }),
+      fs.writeText(await fs.resolve('invalid.txt', { signal: LIVE }), 'ours', { kind: 'createIfAbsent' }, LIVE),
       'FS_IO_ERROR',
     )
     expect(remote.nodes.has('/workspace/invalid.txt')).toBe(false)
@@ -642,7 +644,7 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const controller = new AbortController()
     remote.abortAfterRename = controller
     const { fs } = await setup(remote)
-    await expect(fs.writeText(await fs.resolve('committed'), 'yes', undefined, controller.signal))
+    await expect(fs.writeText(await fs.resolve('committed', { signal: LIVE }), 'yes', undefined, controller.signal))
       .resolves.toMatchObject({ operation: 'create' })
     expect(controller.signal.aborted).toBe(true)
   })
@@ -652,8 +654,7 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const controller = new AbortController()
     remote.abortAfterRename = controller
     const { fs } = await setup(remote)
-    await expect(fs.writeText(
-      await fs.resolve('committed-create'),
+    await expect(fs.writeText(await fs.resolve('committed-create', { signal: LIVE }),
       'yes',
       { kind: 'createIfAbsent' },
       controller.signal,
@@ -665,7 +666,7 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const remote = new FakeRemote()
     remote.nextRemoveError = new Error('empty staging cleanup failed')
     const { fs } = await setup(remote)
-    await expect(fs.writeText(await fs.resolve('committed'), 'yes'))
+    await expect(fs.writeText(await fs.resolve('committed', { signal: LIVE }), 'yes', undefined, LIVE))
       .resolves.toMatchObject({ operation: 'create' })
     expect(new TextDecoder().decode(remote.nodes.get('/workspace/committed')?.data)).toBe('yes')
   })
@@ -675,7 +676,7 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const getInfo = vi.spyOn(remote.sandbox.files, 'getInfo')
     const { fs } = await setup(remote)
 
-    await expect(fs.writeText(await fs.resolve('committed'), 'yes'))
+    await expect(fs.writeText(await fs.resolve('committed', { signal: LIVE }), 'yes', undefined, LIVE))
       .resolves.toMatchObject({ operation: 'create' })
     expect(getInfo).toHaveBeenCalledTimes(1)
     expect(remote.renames).toHaveLength(1)
@@ -684,20 +685,20 @@ describe('E2BFileSystem atomic writes and edits', () => {
   it('cleans staging files and maps command, permission, and abort failures', async () => {
     const remote = new FakeRemote()
     const { fs } = await setup(remote)
-    const commandTarget = await fs.resolve('command')
+    const commandTarget = await fs.resolve('command', { signal: LIVE })
     remote.nextCommandError = commandError(1, 'chmod failed')
-    await expectCode(fs.writeText(commandTarget, 'x'), 'FS_IO_ERROR')
+    await expectCode(fs.writeText(commandTarget, 'x', undefined, LIVE), 'FS_IO_ERROR')
     expect(remote.removals).toHaveLength(1)
 
     remote.nextRenameError = new Error('permission denied')
-    await expectCode(fs.writeText(await fs.resolve('permission'), 'x'), 'FS_PERMISSION_DENIED')
+    await expectCode(fs.writeText(await fs.resolve('permission', { signal: LIVE }), 'x', undefined, LIVE), 'FS_PERMISSION_DENIED')
     remote.nextRemoveError = new Error('cleanup also failed')
     remote.nextRenameError = new DOMException('aborted', 'AbortError')
-    await expectCode(fs.writeText(await fs.resolve('abort'), 'x'), 'FS_ABORTED')
+    await expectCode(fs.writeText(await fs.resolve('abort', { signal: LIVE }), 'x', undefined, LIVE), 'FS_ABORTED')
 
     const removalsBeforeCollision = remote.removals.length
     remote.nextMakeDirResult = false
-    await expectCode(fs.writeText(await fs.resolve('collision'), 'x'), 'FS_IO_ERROR')
+    await expectCode(fs.writeText(await fs.resolve('collision', { signal: LIVE }), 'x', undefined, LIVE), 'FS_IO_ERROR')
     expect(remote.removals).toHaveLength(removalsBeforeCollision)
   })
 
@@ -705,13 +706,10 @@ describe('E2BFileSystem atomic writes and edits', () => {
     const remote = new FakeRemote()
     remote.file('/workspace/file.txt', 'one\r\ntwo\r\nthree\n')
     const { fs } = await setup(remote)
-    const target = await fs.resolve('file.txt')
-    const version = (await fs.stat(target))!.version
-    const outcome = await fs.editText(
-      target,
-      { oldString: 'two\r\n', newString: 'TWO\r\n', replaceAll: false },
-      { version },
-    )
+    const target = await fs.resolve('file.txt', { signal: LIVE })
+    const version = (await fs.stat(target, LIVE))!.version
+    const outcome = await fs.editText(target, { oldString: 'two\r\n', newString: 'TWO\r\n', replaceAll: false },
+      { version }, LIVE)
     expect(outcome).toMatchObject({ before: 'one\ntwo\nthree\n', after: 'one\nTWO\nthree\n' })
     expect(new TextDecoder().decode(remote.nodes.get('/workspace/file.txt')?.data)).toBe('one\r\nTWO\r\nthree\r\n')
   })
@@ -721,26 +719,26 @@ describe('E2BFileSystem atomic writes and edits', () => {
     remote.file('/workspace/file.txt', 'a a')
     remote.dir('/workspace/dir')
     const { fs } = await setup(remote)
-    const target = await fs.resolve('file.txt')
-    await expectCode(fs.editText(target, { oldString: '', newString: 'x', replaceAll: false }), 'FS_EDIT_NOT_FOUND')
-    await expectCode(fs.editText(target, { oldString: 'z', newString: 'x', replaceAll: false }), 'FS_EDIT_NOT_FOUND')
-    await expectCode(fs.editText(target, { oldString: 'a', newString: 'x', replaceAll: false }), 'FS_AMBIGUOUS_EDIT')
-    await expect(fs.editText(target, { oldString: 'a', newString: 'x', replaceAll: true }))
+    const target = await fs.resolve('file.txt', { signal: LIVE })
+    await expectCode(fs.editText(target, { oldString: '', newString: 'x', replaceAll: false }, undefined, LIVE), 'FS_EDIT_NOT_FOUND')
+    await expectCode(fs.editText(target, { oldString: 'z', newString: 'x', replaceAll: false }, undefined, LIVE), 'FS_EDIT_NOT_FOUND')
+    await expectCode(fs.editText(target, { oldString: 'a', newString: 'x', replaceAll: false }, undefined, LIVE), 'FS_AMBIGUOUS_EDIT')
+    await expect(fs.editText(target, { oldString: 'a', newString: 'x', replaceAll: true }, undefined, LIVE))
       .resolves.toMatchObject({ after: 'x x' })
-    await expectCode(fs.editText(target, { oldString: 'x', newString: 'y', replaceAll: false }, { version: FsVersion('stale') }), 'FS_STALE_VERSION')
-    await expectCode(fs.editText(await fs.resolve('missing'), { oldString: 'x', newString: 'y', replaceAll: false }), 'FS_STALE_VERSION')
-    await expectCode(fs.editText(await fs.resolve('dir'), { oldString: 'x', newString: 'y', replaceAll: false }), 'FS_NOT_REGULAR_FILE')
+    await expectCode(fs.editText(target, { oldString: 'x', newString: 'y', replaceAll: false }, { version: FsVersion('stale') }, LIVE), 'FS_STALE_VERSION')
+    await expectCode(fs.editText(await fs.resolve('missing', { signal: LIVE }), { oldString: 'x', newString: 'y', replaceAll: false }, undefined, LIVE), 'FS_STALE_VERSION')
+    await expectCode(fs.editText(await fs.resolve('dir', { signal: LIVE }), { oldString: 'x', newString: 'y', replaceAll: false }, undefined, LIVE), 'FS_NOT_REGULAR_FILE')
   })
 
   it('serializes guarded mutations so only one stale version can win', async () => {
     const remote = new FakeRemote()
     remote.file('/workspace/file.txt', 'base')
     const { fs } = await setup(remote)
-    const target = await fs.resolve('file.txt')
-    const version = (await fs.stat(target))!.version
+    const target = await fs.resolve('file.txt', { signal: LIVE })
+    const version = (await fs.stat(target, LIVE))!.version
     const results = await Promise.allSettled([
-      fs.writeText(target, 'one', { kind: 'replaceIfVersion', version }),
-      fs.editText(target, { oldString: 'base', newString: 'two', replaceAll: false }, { version }),
+      fs.writeText(target, 'one', { kind: 'replaceIfVersion', version }, LIVE),
+      fs.editText(target, { oldString: 'base', newString: 'two', replaceAll: false }, { version }, LIVE),
     ])
     expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
     expect(results.filter(result => result.status === 'rejected')).toHaveLength(1)
@@ -752,19 +750,19 @@ describe('E2B filesystem adapter integration edges', () => {
     const remote = new FakeRemote()
     const { fs } = await setup(remote)
     remote.nextCommandError = commandError(1, 'not a directory')
-    await expectCode(fs.resolve('bad'), 'FS_IO_ERROR')
+    await expectCode(fs.resolve('bad', { signal: LIVE }), 'FS_IO_ERROR')
     remote.nextCommandError = commandError(1)
-    await expectCode(fs.resolve('bad-again'), 'FS_IO_ERROR')
+    await expectCode(fs.resolve('bad-again', { signal: LIVE }), 'FS_IO_ERROR')
     remote.nextCommandError = new Error('canonical transport failed')
-    await expectCode(fs.resolve('bad-transport'), 'FS_IO_ERROR')
+    await expectCode(fs.resolve('bad-transport', { signal: LIVE }), 'FS_IO_ERROR')
     remote.file('/workspace/a', 'a')
-    const target = await fs.resolve('a')
+    const target = await fs.resolve('a', { signal: LIVE })
     remote.nextInfoError = new Error('metadata transport failed')
-    await expectCode(fs.stat(target), 'FS_IO_ERROR')
+    await expectCode(fs.stat(target, LIVE), 'FS_IO_ERROR')
     remote.nextReadError = new Error('operation not permitted')
-    await expectCode(fs.readText(target), 'FS_PERMISSION_DENIED')
+    await expectCode(fs.readText(target, LIVE), 'FS_PERMISSION_DENIED')
     remote.nextReadError = 'transport vanished'
-    await expectCode(fs.readText(target), 'FS_IO_ERROR')
+    await expectCode(fs.readText(target, LIVE), 'FS_IO_ERROR')
   })
 
   it('uses listing metadata directly and canonicalizes only symbolic links', async () => {
@@ -776,11 +774,11 @@ describe('E2B filesystem adapter integration edges', () => {
     remote.symlink('/workspace/vanished-link', '/workspace/gone')
     remote.disappearOnInfo.add('/workspace/gone')
     const { fs } = await setup(remote)
-    const directory = await fs.resolve('/workspace')
+    const directory = await fs.resolve('/workspace', { signal: LIVE })
     const commandsBefore = remote.commands.length
     const getInfo = vi.spyOn(remote.sandbox.files, 'getInfo')
 
-    const listed = await fs.listDir(directory)
+    const listed = await fs.listDir(directory, LIVE)
 
     expect(listed.find(entry => entry.name === 'a')).toMatchObject({
       type: 'file', target: { targetKey: '/workspace/a' }, size: 1,

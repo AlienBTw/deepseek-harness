@@ -40,6 +40,16 @@ export interface KvFacet {
    * @returns the opened unit.
    */
   open(descriptor: KvUnitDescriptor): Promise<KvUnit>
+
+  /**
+   * Remove this unit's medium entirely so a later {@link open} materializes
+   * empty. Facility-owned: the declared-reset recovery path is the only
+   * caller. Idempotent when the unit has no medium. Rejects when the unit is
+   * currently open (caller bug) or the backend is closed.
+   * @param descriptor - Static identity of the unit whose medium to destroy.
+   * @returns resolution after the medium is gone.
+   */
+  destroy(descriptor: KvUnitDescriptor): Promise<void>
 }
 
 /** Static identity and shape of one KV unit, projected from its owner's spec. */

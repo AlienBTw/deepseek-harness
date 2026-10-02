@@ -1,0 +1,40 @@
+{
+  "patches": [
+    {
+      "id": "05-tsdown-configs",
+      "logEntry": 5,
+      "files": [
+        "05-schemastery-tsdown.config.ts.patch",
+        "05-logger-console-tsdown.config.ts.patch"
+      ],
+      "appliesTo": ["schemastery", "logger-console"],
+      "kind": "add-file"
+    },
+    {
+      "id": "13-include-writeTask-type",
+      "logEntry": 13,
+      "files": ["13-include-writeTask-type.patch"],
+      "appliesTo": ["include"],
+      "kind": "source"
+    }
+  ],
+  "unpatchedLogEntries": {
+    "1": "hmr locale/YAML removal needs the private upstream tree to emit a reverse-applicable patch; generate during local sync.",
+    "2": "package.json files are regenerated wholesale; not represented as line patches.",
+    "3": "tsconfig.json files are regenerated wholesale; not represented as line patches.",
+    "4": "Relative `.ts` specifier rewrite is mechanical across many files; capture during local sync.",
+    "6": "cordis fiber lifecycle hardening is a large source delta; capture during local sync.",
+    "7": "cordis JSDoc enrichment is comment-only and large; capture during local sync.",
+    "8": "Transactional Loader/Include reconciliation spans multiple packages; capture during local sync.",
+    "9": "hmr exact config watching is a large source delta; capture during local sync.",
+    "10": "Erased-import annotations are scattered; capture during local sync.",
+    "11": "include applyEntryPatches extraction needs upstream base; capture during local sync.",
+    "12": "include/hmr concurrency serialization needs upstream base; capture during local sync.",
+    "14": "include durable debounced writes need upstream base; capture during local sync.",
+    "15": "Lazy Loader config resolution ports an upstream PR across packages; capture during local sync.",
+    "16": "cordis package.json files-list edit is covered by regenerated manifests (entry 2).",
+    "17": "Rescope is re-applied by `pnpm run rescope-vendor --apply`, not stored as a source patch.",
+    "18": "loader disabled interpolation needs upstream base; capture during local sync."
+  },
+  "localAgentJob": "pnpm run verify-vendor-drift"
+}

@@ -262,10 +262,12 @@ export async function reconcileInstructionContext(
   const effective = visibleInstructionChanges(agent, options.authorityMessages)
   /* v8 ignore next -- normal agents carry an absolute session cwd. */
   const cwd = session.header.cwd ?? process.cwd()
+  // Lookup may omit cancellation; this reconciliation owns a controller for FS probes.
+  const signal = options.signal ?? new AbortController().signal
   // TODO(frozen-project-root): retain the baseline root for the loop instance;
   // recomputing it after marker edits reinterprets the existing relative scope keys.
   const projectRoot = options.projectRoot
-    ?? await findProjectRoot(cwd, resolved.projectRootMarkers, fileSystem, options.signal)
+    ?? await findProjectRoot(cwd, resolved.projectRootMarkers, fileSystem, signal)
   const scopes = new Set<string>()
   const baselineScopes = new Set<string>()
   const addDirScopes = (target: Set<string>, directory: string): void => {
@@ -347,7 +349,7 @@ export async function reconcileInstructionContext(
     const priorVersions = new Map(probedScopes.map(scope => [scope, versions.get(scope)]))
     for (const scope of probedScopes) {
       const previous = effective.get(scope)
-      const probe = await probeScopeInstruction(scope, projectRoot, resolved, fileSystem, options.signal)
+      const probe = await probeScopeInstruction(scope, projectRoot, resolved, fileSystem, signal)
       if (probe.kind === 'unavailable') {
         if (previous === undefined || previous.action === 'remove') continue
         // Same-directory candidates form one deduplicated authority group. If an
@@ -388,7 +390,7 @@ export async function reconcileInstructionContext(
         continue
       }
 
-      const file = await readScopeInstruction(probedFile, resolved.maxSourceBytes, fileSystem, options.signal)
+      const file = await readScopeInstruction(probedFile, resolved.maxSourceBytes, fileSystem, signal)
       if (file === undefined) continue
       const currentDigest = instructionContentSha1(file.content)
       const trimmedDigest = trimmedInstructionDigest(file.content)

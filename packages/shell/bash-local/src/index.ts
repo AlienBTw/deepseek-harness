@@ -24,7 +24,7 @@ import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@maple/ti
  * merged first into the spawn's explicit env, so a trusted caller's own entry
  * still wins; the subprocess service applies its credential scrub independently.
  */
-export const ENV_OVERRIDES = {
+const ENV_OVERRIDES = {
   NO_COLOR: '1',
   TERM: 'dumb',
   PAGER: 'cat',
@@ -80,7 +80,7 @@ function assertPositiveFinite(name: string, value: number): void {
  * @param config - the resolved section, schema-valid by construction.
  * @throws Error naming the field that cannot be used.
  */
-export function assertServiceableBashConfig(config: Config): void {
+function assertServiceableBashConfig(config: Config): void {
   const resolved = config as ResolvedConfig
   assertPositiveFinite('timeoutMs', resolved.timeoutMs)
   assertPositiveFinite('maxTimeoutMs', resolved.maxTimeoutMs)
@@ -157,7 +157,7 @@ export class LocalBashExecutor extends ShellExecutor {
       workdir: request.workdir ?? this.config.cwd ?? process.cwd(),
       timeoutMs,
       stdoutMaxBytes,
-      ...request.signal ? { signal: request.signal } : {},
+      signal: request.signal,
       // Carry stdin/ordinary env/trusted mapleEnv through verbatim — optional,
       // no config default. The subprocess service owns the scrub and merge order.
       ...request.stdin !== undefined ? { stdin: request.stdin } : {},
@@ -176,7 +176,7 @@ export class LocalBashExecutor extends ShellExecutor {
     spec: ShellExecSpec,
     argv: readonly string[],
     stdoutMaxBytes: number,
-    signal: AbortSignal | undefined,
+    signal: AbortSignal,
   ): SubprocessSpawnSpec {
     const collect = (maxBytes: number): SubprocessCollect =>
       ({ maxBytes, spill: { maxBytes: this.config.maxSpillBytes } })
@@ -275,7 +275,7 @@ export class LocalBashExecutor extends ShellExecutor {
       done: running.done.then((outcome) => {
         // Any signal termination is killed, including a command signaling itself.
         if (proc.status === 'running') {
-          proc.status = spec.signal?.aborted === true || outcome.signal !== null ? 'killed' : 'completed'
+          proc.status = spec.signal.aborted || outcome.signal !== null ? 'killed' : 'completed'
         }
         proc.exitCode = outcome.exitCode
         proc.signal = outcome.signal

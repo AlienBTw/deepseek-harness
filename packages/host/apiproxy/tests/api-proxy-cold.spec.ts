@@ -114,8 +114,9 @@ describe('sessions.list cold merge', () => {
     // A stale true hint cannot hide the turn found in the bounded read.
     expect(byId['small-conversation']).toMatchObject({ blank: false, updatedAt: 1200 })
     expect(byId['large-unknown']).toMatchObject({ blank: false, updatedAt: 300 })
-    // false is monotonic, so this row skips stat/read and keeps cached recency.
-    expect(byId['cached-nonblank']).toMatchObject({ blank: false, updatedAt: 1000 })
+    // false is monotonic, so this row skips stat/read; recency comes from the
+    // durable index (absent here → createdAt), not the projection-cache hint.
+    expect(byId['cached-nonblank']).toMatchObject({ blank: false, updatedAt: 400 })
     expect(byId['locationless']).toMatchObject({
       blank: false,
       updatedAt: 500,
@@ -155,6 +156,76 @@ describe('sessions.list cold merge', () => {
       expect.objectContaining({ sessionId: meta.id, blank: false, updatedAt: meta.createdAt }),
     ])
     expect(readFrom).not.toHaveBeenCalled()
+  })
+
+  it('orders cold Sessions from the durable index even when the projection cache is missing or stale', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(UserQuestionService)
+    // Older creation, recent human prompt on the persistence index.
+    const recent = header('indexed-recent', 100, { lastPromptAt: 5_000 })
+    // Newer creation, but no human prompt and a stale/missing cache row.
+    const abandoned = header('abandoned-resume', 2_000)
+    // Cache claims a huge lastPromptAt for abandoned — must not beat the index.
+    ctx.provide('sessionPersistence', {
+      list: () => Promise.resolve([recent, abandoned]),
+      locate: () => undefined,
+      readFrom: () => Promise.reject(new Error('cold list must not open logs')),
+    } as never)
+    ctx.provide('sessionProjectionCache', {
+      cachedSnapshot: (meta: SessionHeader) => {
+        if (meta.id === sid('abandoned-resume')) {
+          return { asOfSeq: 0, values: { sessionListMetadata: { blank: false, lastPromptAt: 9_999 } } }
+        }
+        // Missing cache for the indexed recent Session.
+        return undefined
+      },
+    } as never)
+    const api = createApiProxy(ctx, {
+      defaultModelSelection: () => ({ provider: 'p', model: 'm' }),
+      cwd: '/tmp',
+      coldBlankProbeMaxBytes: 0,
+    })
+
+    const response = await api.sessions.list(request({}))
+    if (!response.result.ok) throw new Error('list failed')
+    expect(response.result.value.items.map(item => item.sessionId)).toEqual([
+      'indexed-recent',
+      'abandoned-resume',
+    ])
+    expect(response.result.value.items[0]).toMatchObject({
+      sessionId: 'indexed-recent',
+      updatedAt: 5_000,
+    })
+    // Pre-field / missing index falls back to createdAt; a delayed cache must
+    // not reorder above an indexed peer.
+    expect(response.result.value.items[1]).toMatchObject({
+      sessionId: 'abandoned-resume',
+      updatedAt: 2_000,
+    })
+  })
+
+  it('falls back to createdAt when the durable index field is absent', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(UserQuestionService)
+    const meta = header('pre-field', 1_500)
+    ctx.provide('sessionPersistence', {
+      list: () => Promise.resolve([meta]),
+      locate: () => undefined,
+      readFrom: () => Promise.reject(new Error('must not read')),
+    } as never)
+    const api = createApiProxy(ctx, {
+      defaultModelSelection: () => ({ provider: 'p', model: 'm' }),
+      cwd: '/tmp',
+      coldBlankProbeMaxBytes: 0,
+    })
+    const response = await api.sessions.list(request({}))
+    if (!response.result.ok) throw new Error('list failed')
+    expect(response.result.value.items[0]).toMatchObject({
+      sessionId: 'pre-field',
+      updatedAt: 1_500,
+    })
   })
 
   it('replaces a probed cold row with the live Session that attached during the read', async () => {
@@ -285,6 +356,7 @@ describe('cold history recovery view', () => {
       appendBatch: () => Promise.resolve(),
       commitRepair: () => Promise.resolve(),
       list: () => Promise.resolve([structuredClone(meta)]),
+      delete: () => Promise.resolve(),
     }
     const coordinator = new PersistenceCoordinator(ctx, backend)
     ctx.provide('sessionPersistence', {

@@ -12,7 +12,6 @@
 |---|---|
 | `run(request)` | 针对请求的绑定执行一段程序。**所有程序失败结果都通过 resolve 结果中的 error 字段报告**：包括解析／转换失败、抛出异常、无效完成值、输出溢出、预算到期、中止或执行基底终止（由 `CodeRunFailure` 的正交 `kind` 分类表示）；只有调用方误用 Service Definition 约定时才 reject（例如 dispose（资源释放）后仍提交运行）。程序作为异步函数的函数体运行，因此顶层 `await`／`return` 可用，无损 JSON 完成值会成为 `result.value`。 |
 | `language` | 只读描述符：`run` 期望的源语言。已知值为 `'typescript'` 与 `'python'`——`dsh-tools` 能呈现的那些；其中只有 `'typescript'` 有已发布的后端。仅供参考，不作门禁；生成语言专用呈现的消费方会根据该值选择分支，遇到无法呈现的语言时明确失败。 |
-| `isolation` | 只读描述符：执行基底（`'worker-thread'`、`'process'`、`'container'`）。供部署与诊断使用，**不构成安全声明**。 |
 
 每个实现都必须遵守以下语义（完整约定见类 JSDoc）：绑定调用会桥接完整的无损 JSON 参数与 resolve 值，seam 层不设字节上限；程序被视为敌对对等方（任意绑定名称都会成为自有属性，格式错误的通信绝不能使宿主崩溃）；不同运行之间不保留任何状态；dispose 会终止进行中的运行，并且在完成前等待其退出。
 
@@ -34,5 +33,5 @@ binding-global 与 error-class 名称是**语言可移植**的：必须匹配标
 
 - **`run()` 是一次性的**：`logs` 只有在 `CodeRunResult` resolve 后才能获得；seam 不提供正在运行的程序所产生输出的流式日志或进度接口。
 - **持久 REPL 风格内核已记录为未来工作**：在持久内核后端带来自己的日志方案前，运行之间不保留状态的约定继续有效（参见 [Code Mode Agent Note](../../../.agents/notes/implemented/feature/2026-06-15-code-mode.zh.md)）。
-- **目前只提供 worker 线程后端**：`'process'`／`'container'` 是已经声明但没有实现的已知 `isolation` 值；强安全边界需要等待容器后端。
+- **目前只提供 worker 线程后端**：强安全边界需要等待容器后端。
 - **中间绑定值没有字节上限**：实现仍受 structured-clone 成本与进程内存约束，而提供方或执行器可能已经应用自己的获取上限。

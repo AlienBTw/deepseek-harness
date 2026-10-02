@@ -18,7 +18,7 @@ Runtime ownership is the authority. A lineage-bearing session resumed without an
 
 The shared failure text is consumer-neutral and actionable: the child includes the unresolved question or decision in its final result. The parent already receives that result through the delegation contract and can decide whether to ask the human. Neither the service nor a child claims an upward messaging or answer-forwarding capability that does not exist.
 
-This safety boundary is independent of the browser's composer election. The proposed [semantic composer phases](../../proposed/architecture/2026-08-08-semantic-composer-chain-phases.md) address how an already-pending interaction and a read-only subagent surface should be ordered; they do not weaken this runtime guard.
+This safety boundary is independent of the browser's composer election. The [semantic composer phases](../architecture/2026-08-08-semantic-composer-chain-phases.md) decision owns how an already-pending interaction and a read-only subagent surface are ordered; they do not weaken this runtime guard.
 
 ## Alternatives considered
 

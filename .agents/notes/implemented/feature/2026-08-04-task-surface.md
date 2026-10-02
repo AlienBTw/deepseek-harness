@@ -18,10 +18,12 @@ Packages:
 |---|---|
 | `@maple/task-surface` | Parser, limits, projection fold, `task-surface/dismissed`, and Host `taskSurface` service (`getActive`, `submit`, `dismiss`) |
 | `@maple/tool-task-surface` | `show_task_surface` with presentation metadata and `concludeTurn()` |
-| `@maple/client-ui-task-surface` | `conversation.input.dock` Task Surface panel and Remote-backed submit face |
+| `@maple/client-ui-task-surface` | `conversation.input.dock` Task Surface panel (sections/fields + dismiss), keyed `show_task_surface` transcript row, and Remote-backed submit/dismiss face |
 | `@maple/host/apiproxy` | `taskSurface.getActive`, `taskSurface.submit`, `taskSurface.dismiss` RPC |
 
 `maple-base` mounts `@maple/task-surface`; the `standard` preset mounts `@maple/tool-task-surface`; `maple-web-app` mounts `@maple/client-ui-task-surface`. One open Surface per session; duplicate opens, nested calls, and submit while pending fail loud.
+
+The Web dock renders declarative sections (`markdown`, `metric`, `diff`, `table`) and fields (`choice`, `text`, `order`) from the authoritative `getActive` model, captures values into `submit`, and exposes dismiss without a queued prompt. The keyed transcript row summarizes the open surface from the durable call/result slice (title + awaiting settlement); interactive capture stays in the dock.
 
 ## Alternatives considered
 
@@ -39,5 +41,5 @@ Structured UI is replayable from `presentationMeta` on `tool/result` plus the `t
 
 - `packages/task-surface/task-surface/tests/` — parser, projection, service submit/dismiss, loader composition.
 - `packages/task-surface/tool-task-surface/tests/` — tool registration and invariant companion.
-- `packages/client/ui-task-surface/tests/browser-plugin.client.spec.tsx` — dock registration and Remote verb forwarding.
-- `apps/web/tests/task-surface.e2e.ts` — keyless seeded composition shows the dock over a logged `show_task_surface` result.
+- `packages/client/ui-task-surface/tests/browser-plugin.client.spec.tsx` — dock registration, Remote verb forwarding (getActive/submit/dismiss), section/field render, keyed row.
+- `apps/web/tests/task-surface.e2e.ts` — keyless seeded composition shows the dock (sections, choice field, dismiss, submit) over a logged `show_task_surface` result.

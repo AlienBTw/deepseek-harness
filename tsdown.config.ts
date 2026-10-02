@@ -4,7 +4,7 @@ import { typertPlugin } from './packages/typert/generator/lib/types/tsdown-plugi
 function isBuildFaceClient(value: unknown): boolean {
   if (value === undefined || value === 'host') return false
   if (value === 'client') return true
-  throw new Error(`tsdown: --env.DSH_BUILD_FACE must be host or client, received ${String(value)}`)
+  throw new Error(`tsdown: --env.MAPLE_BUILD_FACE must be host or client, received ${String(value)}`)
 }
 
 /**
@@ -14,9 +14,14 @@ function isBuildFaceClient(value: unknown): boolean {
  * their Node loader entry and browser artifact.
  */
 export default defineConfig(({ env }) => {
-  const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
+  const client = isBuildFaceClient(env?.MAPLE_BUILD_FACE)
   return {
-    workspace: ['vendor/*', 'packages/*/*', 'apps/cli'],
+    workspace: {
+      include: ['vendor/*', 'packages/*/*', 'apps/cli'],
+      // Patch file tree only — not an npm package. Including it makes tsdown
+      // resolve the monorepo root package name and fail the lib/types entry glob.
+      exclude: ['**/node_modules/**', '**/dist/**', '**/test?(s)/**', '**/t?(e)mp/**', 'vendor/patches'],
+    },
     entry: client ? '' : ['lib/types/{index,invariant,startup}.js'],
     outDir: 'lib',
     format: ['esm'],

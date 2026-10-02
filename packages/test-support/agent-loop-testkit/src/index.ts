@@ -1,7 +1,7 @@
 /**
- * Shared mounting for the services required before tests load the concrete
- * agent loop. The caller retains ownership of the context, loop, adapters,
- * optional plugins, and teardown.
+ * Shared mounting, event-driven waits, and session-replay assertions for tests
+ * that exercise the concrete agent loop. The caller retains ownership of the
+ * context, loop, adapters, optional plugins, and teardown.
  * @module @maple/agent-loop-testkit
  */
 
@@ -13,6 +13,18 @@ import SystemPrompt from '@maple/system-prompt'
 import type { Config as SystemPromptConfig } from '@maple/system-prompt'
 import ToolRuntime from '@maple/tools'
 import type { Config as ToolRuntimeConfig } from '@maple/tools'
+
+export {
+  assertDeriveMessagesReplay,
+  SessionReplayTracker,
+  withDeriveMessagesReplay,
+} from './replay.ts'
+export {
+  waitForIdle,
+  waitForSessionEvent,
+  waitForStatus,
+  type SessionEventMatch,
+} from './waits.ts'
 
 /** Configuration forwarded to the prerequisite service plugins. */
 export interface AgentLoopTestDependenciesOptions {

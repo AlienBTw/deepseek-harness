@@ -113,7 +113,7 @@ class RecordingSandboxExecutor extends ShellExecutor {
       workdir: request.workdir ?? process.cwd(),
       stdoutMaxBytes: request.stdoutMaxBytes ?? 64_000,
       timeoutMs: request.timeoutMs ?? 1000,
-      ...request.signal ? { signal: request.signal } : {},
+      signal: request.signal,
       sandboxPolicy: request.sandboxPolicy ?? { mode: 'read-only', workspaceRoot: process.cwd() },
     }
   }
@@ -162,6 +162,7 @@ class CountingStartExecutor extends ShellExecutor {
       workdir: request.workdir ?? '/x',
       timeoutMs: request.timeoutMs ?? 0,
       stdoutMaxBytes: request.stdoutMaxBytes ?? 64_000,
+      signal: request.signal,
       sandboxPolicy: request.sandboxPolicy,
     }
   }
@@ -1075,7 +1076,7 @@ describe('the model-facing bash tool builds its request from named args only (no
         workdir: request.workdir ?? process.cwd(),
         timeoutMs: request.timeoutMs ?? 0,
         stdoutMaxBytes: request.stdoutMaxBytes ?? 64_000,
-        ...request.signal ? { signal: request.signal } : {},
+        signal: request.signal,
         ...request.stdin !== undefined ? { stdin: request.stdin } : {},
         ...request.env !== undefined ? { env: request.env } : {},
         ...request.mapleEnv !== undefined ? { mapleEnv: request.mapleEnv } : {},

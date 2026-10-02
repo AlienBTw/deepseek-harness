@@ -3,8 +3,9 @@
  * extension points. It supports SessionStart, prompt/tool pre/post, Stop, and subagent
  * start/stop. It owns Claude payloads, environment, substitution, and decision
  * mapping; shared execution and parsing live in `dsh-hook-protocol`.
- * `updatedInput` is logged and warned but not honored. Bespoke behavior should
- * use typed native plugins on the same extension points; see the
+ * `updatedInput` is honored via `tools/pre-rewrite` before durable tool/call
+ * commit. Bespoke behavior should use typed native plugins on the same
+ * extension points; see the
  * [hook-bridges Agent Note](../../../../.agents/notes/implemented/feature/2026-06-30-hook-bridges.md).
  * @module @maple/hooks-claude-code
  */
@@ -17,7 +18,14 @@ import { createUserMessage } from '@maple/llm'
 import type { ContentBlock, MessageSource } from '@maple/llm'
 import type { UserMessage } from '@maple/session'
 import type {} from '@maple/session-persistence'
-import type { PostToolDecision, PreToolDecision, ToolExecution, ToolExecutionResult } from '@maple/tools'
+import type {
+  PostToolDecision,
+  PreToolDecision,
+  ToolExecution,
+  ToolExecutionResult,
+  ToolRewriteDecision,
+  ToolRewriteRequest,
+} from '@maple/tools'
 import {
   appendHookInvoked,
   appendHookResult,
@@ -172,9 +180,6 @@ export function apply(ctx: Context, config: Config): void {
           expectedEventName: point,
         }, () => performance.now())
         outputs.push(output)
-        if (output.updatedInput !== undefined) {
-          ctx.logger.warn(`hooks-claude-code: ${point} hook requested updatedInput, which is not yet honored (ignored)`)
-        }
         if (output.systemMessage !== undefined) {
           ctx.logger.warn(`hooks-claude-code: ${point} hook emitted a systemMessage, which is not yet surfaced (ignored)`)
         }
@@ -234,10 +239,38 @@ export function apply(ctx: Context, config: Config): void {
     }
   })
 
-  // --- PreToolUse → PreToolDecision. Matcher subject is the tool name. ---
+  // PreToolUse runs once at tools/pre-rewrite (rewrite + permission), then the
+  // cached outcome drives tools/pre-execute so allow/deny/ask do not re-run hooks.
+  const preToolCache = new Map<string, MergedHookOutcome>()
+  const preToolKey = (agent: Agent | undefined, callId: string): string =>
+    `${agent?.session.id ?? ''}:${callId}`
+
+  // --- PreToolUse → tools/pre-rewrite (updatedInput) + cached PreToolDecision. ---
+  ctx.on('tools/pre-rewrite', async (pending: ToolRewriteRequest, next): Promise<ToolRewriteDecision> => {
+    const turn = lastTurn(pending.agent)
+    const merged = await runPoint('PreToolUse', pending.name, preToolPayload(ctx, pending), {
+      agent: pending.agent, turn, signal: pending.signal,
+    })
+    preToolCache.set(preToolKey(pending.agent, String(pending.callId)), merged)
+    const downstream = await next()
+    if (merged.updatedInput !== undefined) {
+      return { kind: 'rewrite', arguments: merged.updatedInput }
+    }
+    return downstream
+  })
+
   ctx.on('tools/pre-execute', async (exec, next): Promise<PreToolDecision> => {
-    const turn = lastTurn(exec.agent)
-    const merged = await runPoint('PreToolUse', exec.name, preToolPayload(ctx, exec), { ...exec.agent ? { agent: exec.agent } : {}, turn, signal: exec.signal })
+    const key = preToolKey(exec.agent, String(exec.callId))
+    let merged = preToolCache.get(key)
+    if (merged !== undefined) {
+      preToolCache.delete(key)
+    } else {
+      // Direct execute() has no rewrite phase; run PreToolUse here for deny/ask.
+      const turn = lastTurn(exec.agent)
+      merged = await runPoint('PreToolUse', exec.name, preToolPayload(ctx, exec), {
+        ...exec.agent ? { agent: exec.agent } : {}, turn, signal: exec.signal,
+      })
+    }
     if (merged.decision === 'deny') return { kind: 'deny', reason: merged.reason ?? 'blocked by PreToolUse hook' }
     if (merged.decision === 'ask') return { kind: 'ask', ...merged.reason !== undefined ? { reason: merged.reason } : {} }
     return next()
@@ -336,8 +369,11 @@ function sessionStartPayload(ctx: Context, agent: Agent, source: string): Record
 function promptPayload(ctx: Context, agent: Agent, content: ContentBlock[]): Record<string, unknown> {
   return { ...base(ctx, agent, 'UserPromptSubmit'), prompt: blocksToText(content) }
 }
-function preToolPayload(ctx: Context, exec: ToolExecution): Record<string, unknown> {
-  return { ...base(ctx, exec.agent, 'PreToolUse'), tool_name: exec.name, tool_input: exec.arguments, tool_use_id: exec.callId }
+function preToolPayload(
+  ctx: Context,
+  call: { name: string; arguments: unknown; callId: unknown; agent?: Agent },
+): Record<string, unknown> {
+  return { ...base(ctx, call.agent, 'PreToolUse'), tool_name: call.name, tool_input: call.arguments, tool_use_id: call.callId }
 }
 function postToolPayload(ctx: Context, exec: ToolExecution, result: ToolExecutionResult): Record<string, unknown> {
   return { ...base(ctx, exec.agent, 'PostToolUse'), tool_name: exec.name, tool_input: exec.arguments, tool_use_id: exec.callId, tool_response: blocksToText(result.content) }

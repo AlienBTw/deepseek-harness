@@ -1,6 +1,6 @@
 {
   "name": "@maple/compaction-recallable",
-  "description": "Recallable compaction backend with deterministic checkpoint footers and inflation guard",
+  "description": "Recallable compaction backend with frozen index stubs, state rewrite, and inflation guard",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"

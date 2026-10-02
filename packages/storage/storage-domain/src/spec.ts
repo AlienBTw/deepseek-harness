@@ -31,12 +31,28 @@ export interface DomainTableSpec<K extends string = string, V = unknown> {
   readonly __key?: K
 }
 
+/**
+ * How {@link DomainFacility.open} treats a damaged medium.
+ * - `reject` (default): every open failure stays loud — correct for
+ *   authoritative domains whose records are not rebuildable.
+ * - `reset`: damage-class failures (`version-mismatch`, `malformed-medium`,
+ *   `invalid-record`) destroy the medium and reopen empty once; every other
+ *   failure stays loud. For derived domains whose whole content is rebuildable.
+ */
+export type DomainRecovery = 'reject' | 'reset'
+
 /** Static declaration of one domain: identity, version, and record layout. */
 export interface DomainSpec {
   /** Domain name; must match `UNIT_NAME_RE` (doubles as the backend unit name). */
   readonly name: string
   /** Domain format version; a medium stamped with a different version rejects at open. */
   readonly version: number
+  /**
+   * Medium-damage policy at open. Defaults to `'reject'` when omitted —
+   * authoritative domains keep fail-loud boot; derived domains opt into
+   * `'reset'`.
+   */
+  readonly recovery?: DomainRecovery
   /** Optional global singleton slot. */
   readonly global?: DomainGlobalSpec<unknown>
   /** Table declarations keyed by table name; each name must match `UNIT_NAME_RE`. */

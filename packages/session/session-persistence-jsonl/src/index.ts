@@ -8,7 +8,7 @@
 
 import { Context } from '@maple/cordis'
 import z from '@maple/schemastery'
-import { readdirSync } from 'node:fs'
+import { readdirSync, renameSync } from 'node:fs'
 import { open, mkdir, readFile, readdir, realpath, link, rm, stat, truncate } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
@@ -17,13 +17,15 @@ import { randomBytes } from 'node:crypto'
 import {
   DEFAULT_PREPARED_SESSION_CACHE_SIZE, DEFAULT_WRITE_BATCH_MAX_DELAY_MS, MAX_WRITE_BATCH_DELAY_MS,
   SessionPersistence, SessionPersistenceRevision, PersistenceCoordinator, SessionFormatUnsupportedError,
+  foldLastPromptAt,
   type PersistenceBackend, type SessionLocation, type SessionPersistenceSnapshot,
   type SessionInspection, type SessionPersistenceRevision as PersistenceRevision, type SessionRawArtifact,
+  type SessionRetentionPolicy,
   type StoredPrefix,
 } from '@maple/session-persistence'
 import type { SessionEvent, SessionId, SessionHeader, SessionPreparation } from '@maple/session'
 import {
-  encodeSegment, eventLines, logPath, logSuffix, parseHeaderMeta, projectDir, scanLog, sessionDir,
+  encodeSegment, eventLines, logPath, activityPath, logSuffix, parseHeaderMeta, projectDir, scanLog, sessionDir,
   SessionLogScanner, toHeaderLine,
   type JsonlCompression,
 } from './format.ts'
@@ -80,6 +82,10 @@ export interface Config {
   preparedSessionCacheSize?: number
   /** Fixed live-event coalescing window; not a backend completion deadline. */
   writeBatchMaxDelayMs?: number
+  /** Optional age ceiling in whole days for {@link SessionPersistence.gc}. */
+  maxAgeDays?: number
+  /** Optional newest-session count ceiling for {@link SessionPersistence.gc}. */
+  maxSessions?: number
 }
 
 /** Opaque coordinator token for replacing bytes recovered from a torn frame. */
@@ -96,6 +102,12 @@ interface FileRevisionIdentity {
   readonly ctimeNs: bigint
 }
 
+/** Durable last-activity index beside a JSONL log (`seq` matches the log tip). */
+interface ActivitySidecar {
+  readonly seq: number
+  readonly lastPromptAt: number | null
+}
+
 /** Build the source-qualified revision shared by full and lightweight reads. */
 function fileRevision(identity: FileRevisionIdentity): PersistenceRevision {
   return SessionPersistenceRevision([
@@ -110,6 +122,11 @@ function fileRevision(identity: FileRevisionIdentity): PersistenceRevision {
 /** Whether a filesystem error means absence; every non-ENOENT failure must surface. */
 function isENOENT(error: unknown): boolean {
   return (error as NodeJS.ErrnoException | null)?.code === 'ENOENT'
+}
+
+/** Attach an indexed human-prompt time without mutating the header object. */
+function withLastPromptAt(meta: SessionHeader, lastPromptAt: number): SessionHeader {
+  return meta.lastPromptAt === lastPromptAt ? meta : { ...meta, lastPromptAt }
 }
 
 /**
@@ -130,6 +147,8 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
     preparedSessionCacheSize: z.number().step(1).min(1).default(DEFAULT_PREPARED_SESSION_CACHE_SIZE),
     writeBatchMaxDelayMs: z.number().step(1).min(1).max(MAX_WRITE_BATCH_DELAY_MS)
       .default(DEFAULT_WRITE_BATCH_MAX_DELAY_MS),
+    maxAgeDays: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER),
+    maxSessions: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER),
   })
 
   /**
@@ -144,6 +163,7 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
   private compression: JsonlCompression
   private coordinator: PersistenceCoordinator<JsonlTornMarker>
   private rootEncodingCheck: Promise<void> | undefined
+  private readonly retention: SessionRetentionPolicy | undefined
 
   constructor(ctx: Context, public config: Config) {
     super(ctx)
@@ -156,6 +176,7 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
       ?? DEFAULT_WRITE_BATCH_MAX_DELAY_MS
     this.packChunks = config.packChunks ?? DEFAULT_PACK_CHUNKS
     this.compression = config.compression ?? DEFAULT_COMPRESSION
+    this.retention = retentionFromConfig(config)
     this.assertUsableRoot()
     this.coordinator = new PersistenceCoordinator<JsonlTornMarker>(this.ctx, this, {
       preparedSessionCacheSize,
@@ -341,7 +362,9 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
     signal?.throwIfAborted()
     await this.assertStoredIdentity(path, prefix.meta, expectedId, signal)
     signal?.throwIfAborted()
-    return { ...prefix, revision }
+    const meta = await this.reconcileActivity(prefix.meta, prefix.events, signal)
+    signal?.throwIfAborted()
+    return { ...prefix, meta, revision }
   }
 
   /** Decode complete frames and retain complete JSONL records from a torn final frame. */
@@ -426,6 +449,8 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
     } else {
       await this.materialize(meta, events)
     }
+    const tip = events.at(-1)
+    if (tip !== undefined) await this.writeActivity(meta, tip.seq)
   }
 
   /**
@@ -441,11 +466,38 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
     if (tornMarker !== undefined) await this.repair(meta, tornMarker.truncateTo)
     const repairedEvents = [...(tornMarker?.recoveredEvents ?? []), ...closers]
     if (repairedEvents.length > 0) await this.appendLines(meta, repairedEvents)
+    // Truncation or synthetic closers can desync the sidecar from the log tip;
+    // drop it so the next open reconciles from the log (list falls back to createdAt).
+    if (tornMarker !== undefined || repairedEvents.length > 0) {
+      await this.deleteActivity(meta)
+    }
   }
 
   /** List valid unique stored sessions' metadata (header line only — no full-log parse). */
   async list(signal?: AbortSignal): Promise<SessionHeader[]> {
     return (await this.listArtifacts(signal)).map(artifact => artifact.header)
+  }
+
+  /**
+   * Remove one session directory tree. Absent artifacts are a no-op success.
+   * Refuses while a live Session with the same id is attached.
+   * @param id - persisted session to delete.
+   * @param signal - optional cancellation for discovery and removal.
+   */
+  async delete(id: SessionId, signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted()
+    const live = this.ctx.sessions.get(id)
+    if (live !== undefined) {
+      throw new Error(`cannot delete session "${id}": a live Session is still attached`)
+    }
+    const artifact = (await this.listArtifacts(signal)).find(entry => entry.header.id === id)
+    signal?.throwIfAborted()
+    if (artifact === undefined) return
+    await rm(dirname(artifact.path), { recursive: true, force: true })
+  }
+
+  protected override retentionPolicy(): SessionRetentionPolicy | undefined {
+    return this.retention
   }
 
   /** List metadata plus a stat-derived identity for each append-only log. */
@@ -497,11 +549,13 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
         if (meta === undefined) continue // not a session header
         await this.assertStoredIdentity(path, meta, undefined, signal)
         signal?.throwIfAborted()
-        if (ids.has(meta.id)) {
-          throw new Error(`duplicate JSONL session id "${meta.id}" appears in multiple project directories`)
+        const header = await this.mergeActivityForList(meta, signal)
+        signal?.throwIfAborted()
+        if (ids.has(header.id)) {
+          throw new Error(`duplicate JSONL session id "${header.id}" appears in multiple project directories`)
         }
-        ids.add(meta.id)
-        artifacts.push({ header: meta, path })
+        ids.add(header.id)
+        artifacts.push({ header, path })
       }
     }
     signal?.throwIfAborted()
@@ -613,6 +667,126 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
       await handle.close()
     }
     return tmp
+  }
+
+  /**
+   * Atomically publish the last-activity sidecar after a successful log append.
+   * @param meta - header carrying the coordinator-computed `lastPromptAt`.
+   * @param seq - last durable event seq in the log after the append.
+   */
+  private async writeActivity(meta: SessionHeader, seq: number): Promise<void> {
+    const path = activityPath(this.root, meta.cwd, meta.id)
+    const body = `${JSON.stringify({
+      seq,
+      lastPromptAt: meta.lastPromptAt ?? null,
+    } satisfies ActivitySidecar)}\n`
+    // Temp + sync + rename (sync rename avoids the suite's `fs/promises` mock,
+    // which only overrides `stat` and can drop async `rename` from the namespace).
+    const tmp = await this.writeSyncedTempFile(path, body)
+    try {
+      renameSync(tmp, path)
+    } catch (error: unknown) {
+      try {
+        await rm(tmp, { force: true })
+      } catch {
+        // Staging cleanup must not hide the rename failure.
+      }
+      throw error
+    }
+  }
+
+  /** Remove a stale activity sidecar; missing files are ignored. */
+  private async deleteActivity(meta: SessionHeader): Promise<void> {
+    try {
+      await rm(activityPath(this.root, meta.cwd, meta.id), { force: true })
+    } catch (error: unknown) {
+      if (!isENOENT(error)) throw error
+    }
+  }
+
+  /**
+   * Read a well-formed activity sidecar, or `undefined` when absent or corrupt.
+   * Corrupt files are treated as missing so listing and open can fall back.
+   */
+  private async readActivity(
+    meta: SessionHeader,
+    signal?: AbortSignal,
+  ): Promise<ActivitySidecar | undefined> {
+    signal?.throwIfAborted()
+    const path = activityPath(this.root, meta.cwd, meta.id)
+    let text: string
+    try {
+      text = await readFile(path, { encoding: 'utf8', signal })
+    } catch (error: unknown) {
+      signal?.throwIfAborted()
+      if (isENOENT(error)) return undefined
+      throw error
+    }
+    signal?.throwIfAborted()
+    try {
+      const value = JSON.parse(text) as unknown
+      if (typeof value !== 'object' || value === null) return undefined
+      const seq = (value as { seq?: unknown }).seq
+      const lastPromptAt = (value as { lastPromptAt?: unknown }).lastPromptAt
+      if (!Number.isSafeInteger(seq) || (seq as number) < 0) return undefined
+      if (lastPromptAt !== null
+        && (typeof lastPromptAt !== 'number'
+          || !Number.isSafeInteger(lastPromptAt)
+          || lastPromptAt < 0)) {
+        return undefined
+      }
+      return { seq: seq as number, lastPromptAt: lastPromptAt as number | null }
+    } catch {
+      // Corrupt sidecar: treat as absent so open reconciles from the log.
+      return undefined
+    }
+  }
+
+  /** Merge a list-path sidecar hint into the immutable header without opening the log. */
+  private async mergeActivityForList(
+    meta: SessionHeader,
+    signal?: AbortSignal,
+  ): Promise<SessionHeader> {
+    const activity = await this.readActivity(meta, signal)
+    signal?.throwIfAborted()
+    if (activity?.lastPromptAt === null || activity === undefined) return meta
+    return withLastPromptAt(meta, activity.lastPromptAt)
+  }
+
+  /**
+   * Align the sidecar with the loaded log tip, rewriting when seq disagrees
+   * or the file is missing. A missing/corrupt sidecar falls back to folding
+   * the log (and `createdAt` when no human prompt exists).
+   */
+  private async reconcileActivity(
+    meta: SessionHeader,
+    events: readonly SessionEvent[],
+    signal?: AbortSignal,
+  ): Promise<SessionHeader> {
+    const tip = events.at(-1)?.seq
+    const activity = await this.readActivity(meta, signal)
+    signal?.throwIfAborted()
+    if (tip !== undefined && activity?.seq === tip) {
+      return activity.lastPromptAt === null ? meta : withLastPromptAt(meta, activity.lastPromptAt)
+    }
+    const folded = foldLastPromptAt(undefined, events)
+    const reconciled = folded === undefined ? meta : withLastPromptAt(meta, folded)
+    if (tip !== undefined) {
+      try {
+        await this.writeActivity(reconciled, tip)
+      } catch (error: unknown) {
+        signal?.throwIfAborted()
+        // Reconciliation is best-effort: listing can still use createdAt until
+        // the next successful write after append.
+        if (!isENOENT(error)) {
+          // Surface non-absence failures; ENOENT on parent means the session
+          // directory vanished between read and rewrite.
+          throw error
+        }
+      }
+    }
+    signal?.throwIfAborted()
+    return reconciled
   }
 
   /** Encode the header and first batch without combining their frame boundaries. */
@@ -962,6 +1136,15 @@ export class JsonlSessionPersistence extends SessionPersistence implements Persi
     }
   }
   /* v8 ignore stop */
+}
+
+/** Build an immutable retention policy from optional Config ceilings. */
+function retentionFromConfig(config: Config): SessionRetentionPolicy | undefined {
+  if (config.maxAgeDays === undefined && config.maxSessions === undefined) return undefined
+  return {
+    ...config.maxAgeDays === undefined ? {} : { maxAgeDays: config.maxAgeDays },
+    ...config.maxSessions === undefined ? {} : { maxSessions: config.maxSessions },
+  }
 }
 
 export default JsonlSessionPersistence

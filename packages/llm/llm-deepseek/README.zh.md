@@ -6,7 +6,7 @@ harness LLM（大语言模型）seam 的 DeepSeek chat-completions 适配器：�
 
 同一 seam 的第二个基于库的实现位于 `@maple/llm-pi-ai`。本包拥有 `deepseek-official` 提供方路由——刻意区别于 pi-ai 的 catalog 名称 `deepseek`，因此同一组合可以并排挂载两条 DeepSeek 路径；而为 `deepseek-official` 本身注册另一个适配器仍会抛出 `LlmError('DUPLICATE_ADAPTER')`。
 
-包根入口导出 Cordis 插件约定与 `DeepSeekAdapter`；协议序列化、SSE 解析与分片转换 helper 不属于该根约定。
+包根入口导出 Cordis 插件约定；`DeepSeekAdapter`、Files API 辅助以及协议序列化/SSE/转换模块保留在包内部。
 
 ## 配置
 

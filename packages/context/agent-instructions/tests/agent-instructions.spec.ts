@@ -66,12 +66,12 @@ class RecordingFileSystem extends FileSystem {
   readTextTargets: string[] = []
   signals: AbortSignal[] = []
 
-  override async resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal }): Promise<FsTarget> {
-    if (opts?.signal !== undefined) this.signals.push(opts.signal)
-    opts?.signal?.throwIfAborted()
+  override async resolve(path: string, opts: { cwd?: string; signal: AbortSignal }): Promise<FsTarget> {
+    this.signals.push(opts.signal)
+    opts.signal.throwIfAborted()
     // resolve(), not join(): entries are seeded with host join() keys, and on
     // Windows a joined '/'-rooted prefix would not match a resolved drive path.
-    const absolute = resolve(opts?.cwd ?? '/', path)
+    const absolute = resolve(opts.cwd ?? '/', path)
     return { targetKey: FsTargetKey(absolute), displayPath: absolute }
   }
 
@@ -84,9 +84,9 @@ class RecordingFileSystem extends FileSystem {
     return descendant === '' || (!descendant.startsWith('..') && !isAbsolute(descendant))
   }
 
-  override async stat(target: FsTarget, signal?: AbortSignal): Promise<FsInfo | undefined> {
-    if (signal !== undefined) this.signals.push(signal)
-    signal?.throwIfAborted()
+  override async stat(target: FsTarget, signal: AbortSignal): Promise<FsInfo | undefined> {
+    this.signals.push(signal)
+    signal.throwIfAborted()
     if (this.throwOnStat.has(target.targetKey)) throw new Error(`stat failed: ${target.displayPath}`)
     const entry = this.entries.get(target.targetKey)
     if (entry === undefined) return undefined
@@ -98,10 +98,10 @@ class RecordingFileSystem extends FileSystem {
     return info
   }
 
-  override async lstat(path: string, opts?: { cwd?: string }, signal?: AbortSignal): Promise<FsPathInfo | undefined> {
-    if (signal !== undefined) this.signals.push(signal)
-    signal?.throwIfAborted()
-    const target = await this.resolve(path, { ...opts, ...signal === undefined ? {} : { signal } })
+  override async lstat(path: string, opts: { cwd?: string } | undefined, signal: AbortSignal): Promise<FsPathInfo | undefined> {
+    this.signals.push(signal)
+    signal.throwIfAborted()
+    const target = await this.resolve(path, { ...opts, signal })
     const info = await this.stat(target, signal)
     if (info === undefined) return undefined
     return {
@@ -111,40 +111,50 @@ class RecordingFileSystem extends FileSystem {
     }
   }
 
-  override async readText(target: FsTarget, signal?: AbortSignal): Promise<string> {
-    if (signal !== undefined) this.signals.push(signal)
-    signal?.throwIfAborted()
+  override async readText(target: FsTarget, signal: AbortSignal): Promise<string> {
+    this.signals.push(signal)
+    signal.throwIfAborted()
     this.readTextTargets.push(target.targetKey)
     return this.entries.get(target.targetKey)?.content ?? ''
   }
 
-  override async readBytes(_target: FsTarget, _signal: AbortSignal | undefined, _maxBytes: number): Promise<Uint8Array> {
+  override async readBytes(_target: FsTarget, _signal: AbortSignal, _maxBytes: number): Promise<Uint8Array> {
     throw new Error('not needed in agent-instructions tests')
   }
 
-  override async streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>> {
-    if (signal !== undefined) this.signals.push(signal)
-    signal?.throwIfAborted()
+  override async streamText(target: FsTarget, signal: AbortSignal): Promise<AsyncIterable<string>> {
+    this.signals.push(signal)
+    signal.throwIfAborted()
     this.readTargets.push(target.targetKey)
     if (this.throwOnRead.has(target.targetKey)) throw new Error(`read failed: ${target.displayPath}`)
     const content = this.entries.get(target.targetKey)?.content ?? ''
     return (async function* () {
       const midpoint = Math.ceil(content.length / 2)
       yield content.slice(0, midpoint)
-      signal?.throwIfAborted()
+      signal.throwIfAborted()
       yield content.slice(midpoint)
     })()
   }
 
-  override async listDir(_target: FsTarget): Promise<FsDirEntry[]> {
+  override async listDir(_target: FsTarget, _signal: AbortSignal): Promise<FsDirEntry[]> {
     return []
   }
 
-  override async writeText(_target: FsTarget, _content: string, _expected?: FsWriteIntent): Promise<FsWriteOutcome> {
+  override async writeText(
+    _target: FsTarget,
+    _content: string,
+    _expected: FsWriteIntent | undefined,
+    _signal: AbortSignal,
+  ): Promise<FsWriteOutcome> {
     return { operation: 'update', version: FsVersion('unused'), before: '', after: _content }
   }
 
-  override async editText(_target: FsTarget, _edit: FsEditRequest): Promise<FsEditOutcome> {
+  override async editText(
+    _target: FsTarget,
+    _edit: FsEditRequest,
+    _expected: { version: FsVersion } | undefined,
+    _signal: AbortSignal,
+  ): Promise<FsEditOutcome> {
     return { version: FsVersion('unused'), before: '', after: '' }
   }
 }
@@ -152,8 +162,8 @@ class RecordingFileSystem extends FileSystem {
 class BlockingReadFileSystem extends RecordingFileSystem {
   readonly started = Promise.withResolvers<undefined>()
 
-  override async streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>> {
-    if (signal !== undefined) this.signals.push(signal)
+  override async streamText(target: FsTarget, signal: AbortSignal): Promise<AsyncIterable<string>> {
+    this.signals.push(signal)
     this.readTargets.push(target.targetKey)
     this.started.resolve(undefined)
     return (async function* () {

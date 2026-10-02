@@ -249,6 +249,25 @@ describe('DeepSeek e2e workflow', () => {
   })
 })
 
+describe('Supply-chain workflow', () => {
+  it('schedules lockfile audit and offline vendor checks with an isolated pnpm destination', () => {
+    const workflow = loadWorkflow('.github/workflows/supply-chain.yml')
+    expect(workflow.on).toMatchObject({
+      schedule: [{ cron: '17 3 * * *' }],
+    })
+    const audit = workflowJob(workflow, 'audit')
+    if (!Array.isArray(audit.steps)) throw new TypeError('supply-chain workflow must define audit steps')
+    const steps = audit.steps.filter(isRecord)
+    expect(steps.find(step => typeof step.uses === 'string' && step.uses.startsWith('pnpm/action-setup@'))).toMatchObject({
+      with: { dest: runnerPrivatePnpmDestination },
+    })
+    const runs = steps.filter((step): step is Record<string, unknown> & { run: string } => typeof step.run === 'string')
+    expect(runs.some(step => step.run.includes('pnpm run audit:deps'))).toBe(true)
+    expect(runs.some(step => step.run.includes('pnpm run verify-vendored-licenses'))).toBe(true)
+    expect(runs.some(step => step.run.includes('pnpm run verify-vendor-drift:offline'))).toBe(true)
+  })
+})
+
 describe('E2B e2e workflow', () => {
   it('is manual-only and fails loud before running the focused live suite', () => {
     const workflow = loadWorkflow('.github/workflows/e2b-e2e.yml')
@@ -307,8 +326,8 @@ describe('Python release workflows', () => {
     })
     expect(pythonCompat.strategy).toMatchObject({ matrix: { python: ['3.10', '3.14'] } })
     const pythonCompatSteps = JSON.stringify(pythonCompat.steps)
-    expect(pythonCompatSteps).toContain('dist/deepseek_harness_sdk-$VERSION-py3-none-any.whl')
-    expect(pythonCompatSteps).toContain('dist/deepseek_harness_runtime_bin-$VERSION-py3-none-manylinux_2_28_x86_64.whl')
+    expect(pythonCompatSteps).toContain('dist/maple_harness_sdk-$VERSION-py3-none-any.whl')
+    expect(pythonCompatSteps).toContain('dist/maple_harness_runtime_bin-$VERSION-py3-none-manylinux_2_28_x86_64.whl')
     expect(pythonCompatSteps).not.toContain('--find-links')
     const validateSteps = JSON.stringify(validate.steps)
     const authorize = validate.steps.filter(isRecord).find(step => step.name === 'Authorize publication request')

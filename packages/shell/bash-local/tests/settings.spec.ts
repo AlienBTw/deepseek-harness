@@ -9,6 +9,7 @@ import LocalSubprocessRuntime from '@maple/subprocess-local'
 import { SHELL_SETTINGS_NAMESPACE } from '@maple/shell'
 import { LocalBashExecutor } from '@maple/bash-local'
 
+const LIVE = new AbortController().signal
 /** The smallest real provider: one in-memory document, always writable. */
 class MemorySettings extends SettingsProvider {
   doc: Record<string, unknown> = {}
@@ -76,7 +77,7 @@ describe('bash settings section', () => {
     const bench = await boot()
     await bench.ctx.settings.update(SHELL_SETTINGS_NAMESPACE, { maxOutputBytes: 1_024, cwd: '/tmp' })
 
-    const spec = bench.bash.resolve({ command: 'true' })
+    const spec = bench.bash.resolve({ command: 'true', signal: LIVE })
 
     expect(spec.stdoutMaxBytes).toBe(1_024)
     expect(spec.workdir).toBe('/tmp')

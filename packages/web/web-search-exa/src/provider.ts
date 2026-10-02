@@ -93,7 +93,7 @@ export class ExaSearchProvider implements WebSearchProvider {
       && (this.options.numResults === undefined || isPositiveInteger(this.options.numResults))
   }
 
-  async search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult> {
+  async search(request: WebSearchRequest, signal: AbortSignal): Promise<WebSearchResult> {
     // A per-request bound wins over the configured default; either may be absent.
     const numResults = request.maxResults ?? this.options.numResults
     let response: Response
@@ -113,7 +113,7 @@ export class ExaSearchProvider implements WebSearchProvider {
           contents: { highlights: { highlightsPerUrl: this.options.highlightsPerResult } },
           ...numResults !== undefined ? { numResults } : {},
         }),
-        ...signal !== undefined ? { signal } : {},
+        signal,
       })
     } catch (error: unknown) {
       if (isAbortError(error)) throw new WebError('Exa search aborted', 'WEB_ABORTED', { cause: error })

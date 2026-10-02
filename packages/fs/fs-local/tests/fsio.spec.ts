@@ -37,6 +37,8 @@ afterEach(async () => {
 
 const localTarget = (path: string): LocalTarget => ({ displayPath: path, targetKey: FsTargetKey(path) })
 
+const LIVE = new AbortController().signal
+
 async function collect(chunks: AsyncIterable<string>): Promise<string> {
   let out = ''
   for await (const chunk of chunks) out += chunk
@@ -178,7 +180,7 @@ describe('listDirectory', () => {
     await writeFile(join(root, 'alpha.md'), 'alpha')
     await symlink(join(root, 'missing-target'), join(root, 'broken-link'))
 
-    const entries = await listDirectory(localTarget(root))
+    const entries = await listDirectory(localTarget(root), LIVE)
     expect(entries.map(entry => [entry.name, entry.type])).toEqual([
       ['alpha.md', 'file'],
       ['broken-link', 'other'],
@@ -205,7 +207,7 @@ describe('listDirectory', () => {
     await unlink(link)
     await symlink(realTwo, link)
 
-    const entries = await listDirectory(target)
+    const entries = await listDirectory(target, LIVE)
     expect(entries).toHaveLength(1)
     expect(entries[0]).toMatchObject({
       name: 'same.txt',
@@ -218,10 +220,10 @@ describe('listDirectory', () => {
   })
 
   it('rejects missing, non-directory, and aborted listing requests', async () => {
-    await expect(listDirectory(localTarget(join(dir, 'missing')))).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
+    await expect(listDirectory(localTarget(join(dir, 'missing')), LIVE)).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
     const file = join(dir, 'a.txt')
     await writeFile(file, 'hi')
-    await expect(listDirectory(localTarget(file))).rejects.toMatchObject({ code: 'FS_NOT_DIRECTORY' })
+    await expect(listDirectory(localTarget(file), LIVE)).rejects.toMatchObject({ code: 'FS_NOT_DIRECTORY' })
     await expect(listDirectory(localTarget(dir), AbortSignal.abort())).rejects.toMatchObject({ code: 'FS_ABORTED' })
   })
 
@@ -230,7 +232,7 @@ describe('listDirectory', () => {
     await mkdir(root)
     await chmod(root, 0o000)
     try {
-      const error = await listDirectory(localTarget(root)).then(() => undefined, (caught: unknown) => caught)
+      const error = await listDirectory(localTarget(root), LIVE).then(() => undefined, (caught: unknown) => caught)
       // Root-like environments may still be able to list mode-000 directories.
       if (error === undefined) return
       expect(error).toBeInstanceOf(FsError)
@@ -243,7 +245,7 @@ describe('listDirectory', () => {
   it('translates preflight metadata IO failures into FS_IO_ERROR', async () => {
     const loop = join(dir, 'loop')
     await symlink(loop, loop)
-    await expect(listDirectory(localTarget(loop))).rejects.toMatchObject({ code: 'FS_IO_ERROR' })
+    await expect(listDirectory(localTarget(loop), LIVE)).rejects.toMatchObject({ code: 'FS_IO_ERROR' })
   })
 
   it('translates child resolution failures into structured listing errors', async () => {
@@ -251,7 +253,7 @@ describe('listDirectory', () => {
     await mkdir(root)
     const loop = join(root, 'loop')
     await symlink(loop, loop)
-    await expect(listDirectory(localTarget(root))).rejects.toMatchObject({ code: 'FS_IO_ERROR' })
+    await expect(listDirectory(localTarget(root), LIVE)).rejects.toMatchObject({ code: 'FS_IO_ERROR' })
   })
 
   it('translates child permission failures into FS_PERMISSION_DENIED', async () => {
@@ -263,7 +265,7 @@ describe('listDirectory', () => {
     await symlink(secret, join(root, 'secret-link'))
     await chmod(protectedRoot, 0o000)
     try {
-      const error = await listDirectory(localTarget(root)).then(() => undefined, (caught: unknown) => caught)
+      const error = await listDirectory(localTarget(root), LIVE).then(() => undefined, (caught: unknown) => caught)
       // Root-like environments may still resolve through mode-000 directories.
       if (error === undefined) return
       expect(error).toBeInstanceOf(FsError)
@@ -278,19 +280,19 @@ describe('readWholeText', () => {
   it('reads a small file', async () => {
     const file = join(dir, 'a.txt')
     await writeFile(file, 'one\ntwo\nthree')
-    expect(await readWholeText(localTarget(file))).toBe('one\ntwo\nthree')
+    expect(await readWholeText(localTarget(file), LIVE)).toBe('one\ntwo\nthree')
   })
 
   it('rejects a missing file and a directory', async () => {
-    await expect(readWholeText(localTarget(join(dir, 'nope')))).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
-    await expect(readWholeText(localTarget(dir))).rejects.toMatchObject({ code: 'FS_NOT_REGULAR_FILE' })
+    await expect(readWholeText(localTarget(join(dir, 'nope')), LIVE)).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
+    await expect(readWholeText(localTarget(dir), LIVE)).rejects.toMatchObject({ code: 'FS_NOT_REGULAR_FILE' })
   })
 
   it('rejects binary and invalid UTF-8', async () => {
     await writeFile(join(dir, 'bin'), Buffer.from([0x68, 0x00, 0x69]))
-    await expect(readWholeText(localTarget(join(dir, 'bin')))).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
+    await expect(readWholeText(localTarget(join(dir, 'bin')), LIVE)).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
     await writeFile(join(dir, 'bad'), Buffer.from([0x68, 0xff, 0x69]))
-    await expect(readWholeText(localTarget(join(dir, 'bad')))).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
+    await expect(readWholeText(localTarget(join(dir, 'bad')), LIVE)).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
   })
 
   it('honors a pre-aborted signal', async () => {
@@ -321,8 +323,8 @@ describe('readTextForDiff', () => {
   it('returns normalized text only when the opened file is strictly below the limit', async () => {
     const file = join(dir, 'basis.txt')
     await writeFile(file, 'a\r\nb')
-    expect(await readTextForDiff(file, 5)).toBe('a\nb')
-    expect(await readTextForDiff(file, 4)).toBeNull()
+    expect(await readTextForDiff(file, 5, LIVE)).toBe('a\nb')
+    expect(await readTextForDiff(file, 4, LIVE)).toBeNull()
   })
 
   it('bounds the actual opened file rather than trusting an earlier path size', async () => {
@@ -331,7 +333,7 @@ describe('readTextForDiff', () => {
     const earlierSize = (await stat(file)).size
     await writeFile(file, '123456789')
     expect(earlierSize).toBeLessThan(8)
-    expect(await readTextForDiff(file, 8)).toBeNull()
+    expect(await readTextForDiff(file, 8, LIVE)).toBeNull()
   })
 
   it('returns null when the opened file shrinks after descriptor stat', async () => {
@@ -359,7 +361,7 @@ describe('readTextForDiff', () => {
 
     try {
       const { readTextForDiff: isolatedReadTextForDiff } = await import('../src/fsio.ts')
-      expect(await isolatedReadTextForDiff(file, 8)).toBeNull()
+      expect(await isolatedReadTextForDiff(file, 8, LIVE)).toBeNull()
     } finally {
       vi.doUnmock('node:fs/promises')
       vi.resetModules()
@@ -391,7 +393,7 @@ describe('readTextForDiff', () => {
 
     try {
       const { readTextForDiff: isolatedReadTextForDiff } = await import('../src/fsio.ts')
-      expect(await isolatedReadTextForDiff(file, 32)).toBeNull()
+      expect(await isolatedReadTextForDiff(file, 32, LIVE)).toBeNull()
     } finally {
       vi.doUnmock('node:fs/promises')
       vi.resetModules()
@@ -399,7 +401,7 @@ describe('readTextForDiff', () => {
   })
 
   it('returns null when the file vanishes before the basis open (deletion race)', async () => {
-    expect(await readTextForDiff(join(dir, 'deleted-after-preflight.txt'), 32)).toBeNull()
+    expect(await readTextForDiff(join(dir, 'deleted-after-preflight.txt'), 32, LIVE)).toBeNull()
   })
 
   it('returns null when the opened descriptor is no longer a regular file', async () => {
@@ -426,7 +428,7 @@ describe('readTextForDiff', () => {
 
     try {
       const { readTextForDiff: isolatedReadTextForDiff } = await import('../src/fsio.ts')
-      expect(await isolatedReadTextForDiff(file, 32)).toBeNull()
+      expect(await isolatedReadTextForDiff(file, 32, LIVE)).toBeNull()
     } finally {
       vi.doUnmock('node:fs/promises')
       vi.resetModules()
@@ -449,7 +451,7 @@ describe('readTextForDiff', () => {
 
     try {
       const { readTextForDiff: isolatedReadTextForDiff } = await import('../src/fsio.ts')
-      await expect(isolatedReadTextForDiff(file, 32)).rejects.toThrow('forged programming fault')
+      await expect(isolatedReadTextForDiff(file, 32, LIVE)).rejects.toThrow('forged programming fault')
     } finally {
       vi.doUnmock('node:fs/promises')
       vi.resetModules()
@@ -459,8 +461,8 @@ describe('readTextForDiff', () => {
   it('returns null for binary and invalid UTF-8 without blocking the caller write', async () => {
     await writeFile(join(dir, 'bin'), Buffer.from([0x68, 0x00, 0x69]))
     await writeFile(join(dir, 'bad'), Buffer.from([0x68, 0xff, 0x69]))
-    expect(await readTextForDiff(join(dir, 'bin'), 8)).toBeNull()
-    expect(await readTextForDiff(join(dir, 'bad'), 8)).toBeNull()
+    expect(await readTextForDiff(join(dir, 'bin'), 8, LIVE)).toBeNull()
+    expect(await readTextForDiff(join(dir, 'bad'), 8, LIVE)).toBeNull()
   })
 
   it('honors a pre-aborted signal', async () => {
@@ -585,23 +587,23 @@ describe('streamWholeText', () => {
   it('streams the whole file as decoded text', async () => {
     const file = join(dir, 'a.txt')
     await writeFile(file, 'one\ntwo\nthree')
-    expect(await collect(streamWholeText(localTarget(file)))).toBe('one\ntwo\nthree')
+    expect(await collect(streamWholeText(localTarget(file), LIVE))).toBe('one\ntwo\nthree')
   })
 
   it('streams a large multi-chunk file correctly', async () => {
     const file = join(dir, 'big.txt')
     const content = Array.from({ length: 50 }, (_, i) => `line ${i}: ${'x'.repeat(3000)}`).join('\n')
     await writeFile(file, content)
-    expect(await collect(streamWholeText(localTarget(file)))).toBe(content)
+    expect(await collect(streamWholeText(localTarget(file), LIVE))).toBe(content)
   })
 
   it('rejects a missing file, directory, binary, and invalid UTF-8', async () => {
-    await expect(collect(streamWholeText(localTarget(join(dir, 'nope'))))).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
-    await expect(collect(streamWholeText(localTarget(dir)))).rejects.toMatchObject({ code: 'FS_NOT_REGULAR_FILE' })
+    await expect(collect(streamWholeText(localTarget(join(dir, 'nope')), LIVE))).rejects.toMatchObject({ code: 'FS_NOT_FOUND' })
+    await expect(collect(streamWholeText(localTarget(dir), LIVE))).rejects.toMatchObject({ code: 'FS_NOT_REGULAR_FILE' })
     await writeFile(join(dir, 'bin'), Buffer.from([0x68, 0x00, 0x69]))
-    await expect(collect(streamWholeText(localTarget(join(dir, 'bin'))))).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
+    await expect(collect(streamWholeText(localTarget(join(dir, 'bin')), LIVE))).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
     await writeFile(join(dir, 'bad'), Buffer.from([0x68, 0xff, 0x69]))
-    await expect(collect(streamWholeText(localTarget(join(dir, 'bad'))))).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
+    await expect(collect(streamWholeText(localTarget(join(dir, 'bad')), LIVE))).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
   })
 
   it('honors a pre-aborted signal', async () => {
@@ -665,7 +667,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     await writeFile(file, 'old')
     if (posixModes) await chmod(file, 0o640)
     let inspected = false
-    await writeFileAtomic(file, 'hello', 0o640, undefined, {
+    await writeFileAtomic(file, 'hello', 0o640, LIVE, {
       inspectTemp: async ({ stagingDir, tempPath }) => {
         inspected = true
         const [staging, temp] = await Promise.all([stat(stagingDir), stat(tempPath)])
@@ -689,7 +691,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     await copyFileDaclWin32(file, file)
     const expectedDacl = await readFileDaclWin32(file)
 
-    await writeFileAtomic(file, 'new', (await stat(file)).mode, undefined, {
+    await writeFileAtomic(file, 'new', (await stat(file)).mode, LIVE, {
       inspectTemp: async ({ tempPath }) => {
         expect(await readFileDaclWin32(tempPath)).toEqual(expectedDacl)
       },
@@ -704,7 +706,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     await writeFile(file, 'old')
     const calls: string[] = []
 
-    await writeFileAtomic(file, 'new', 0o666, undefined, {
+    await writeFileAtomic(file, 'new', 0o666, LIVE, {
       platform: 'win32',
       copyFileDacl: async (source, temp) => {
         calls.push(`copy:${source}`)
@@ -724,7 +726,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     const file = join(dir, 'new.txt')
     const unexpected = async (): Promise<void> => { throw new Error('unexpected native replacement call') }
 
-    await writeFileAtomic(file, 'new', undefined, undefined, {
+    await writeFileAtomic(file, 'new', undefined, LIVE, {
       platform: 'win32',
       copyFileDacl: unexpected,
       replaceFile: unexpected,
@@ -738,7 +740,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     await writeFile(file, 'old')
     const missing = Object.assign(new Error('target vanished'), { code: 'ENOENT' })
 
-    await writeFileAtomic(file, 'new', 0o666, undefined, {
+    await writeFileAtomic(file, 'new', 0o666, LIVE, {
       platform: 'win32',
       copyFileDacl: () => Promise.resolve(),
       replaceFile: async () => { throw missing },
@@ -752,7 +754,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     await writeFile(file, 'old')
     const denied = Object.assign(new Error('replace denied'), { code: 'EACCES' })
 
-    await expect(writeFileAtomic(file, 'new', 0o666, undefined, {
+    await expect(writeFileAtomic(file, 'new', 0o666, LIVE, {
       platform: 'win32',
       copyFileDacl: () => Promise.resolve(),
       replaceFile: async () => { throw denied },
@@ -765,7 +767,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     const file = join(dir, 'a.txt')
     const denied = Object.assign(new Error('link denied'), { code: 'EACCES' })
 
-    await expect(writeFileAtomic(file, 'ours', undefined, undefined, {
+    await expect(writeFileAtomic(file, 'ours', undefined, LIVE, {
       linkFile: async () => { throw denied },
     }, { displayPath: file })).rejects.toMatchObject({ code: 'FS_IO_ERROR', cause: denied })
     await expect(stat(file)).rejects.toMatchObject({ code: 'ENOENT' })
@@ -777,7 +779,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     const linkFailure = Object.assign(new Error('link failed'), { code: 'EIO' })
     const inspectionFailure = Object.assign(new Error('inspection denied'), { code: 'EACCES' })
 
-    await expect(writeFileAtomic(file, 'ours', undefined, undefined, {
+    await expect(writeFileAtomic(file, 'ours', undefined, LIVE, {
       linkFile: async () => { throw linkFailure },
       inspectPublicationTarget: async () => { throw inspectionFailure },
     }, { displayPath: file })).rejects.toMatchObject({ code: 'FS_IO_ERROR', cause: inspectionFailure })
@@ -789,7 +791,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     const file = join(dir, 'a.txt')
     const collision = Object.assign(new Error('target existed'), { code: 'EEXIST' })
 
-    await expect(writeFileAtomic(file, 'ours', undefined, undefined, {
+    await expect(writeFileAtomic(file, 'ours', undefined, LIVE, {
       linkFile: async () => { throw collision },
     }, { displayPath: file })).rejects.toMatchObject({
       code: 'FS_NOT_OBSERVED',
@@ -804,7 +806,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     const file = join(dir, 'a.txt')
     const displayPath = join(dir, 'linked-workspace', 'a.txt')
 
-    await expect(writeFileAtomic(file, 'ours', undefined, undefined, {
+    await expect(writeFileAtomic(file, 'ours', undefined, LIVE, {
       inspectTemp: async () => { await writeFile(file, 'competitor') },
     }, { displayPath })).rejects.toMatchObject({
       code: 'FS_NOT_OBSERVED',
@@ -813,7 +815,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     expect(await readFile(file, 'utf8')).toBe('competitor')
 
     await rm(file)
-    await expect(writeFileAtomic(file, 'ours', undefined, undefined, {
+    await expect(writeFileAtomic(file, 'ours', undefined, LIVE, {
       inspectTemp: async () => { await mkdir(file) },
     }, { displayPath })).rejects.toMatchObject({
       code: 'FS_NOT_REGULAR_FILE',
@@ -826,7 +828,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     const file = join(dir, 'a.txt')
     const cleanupFailure = new Error('staging cleanup failed')
 
-    await expect(writeFileAtomic(file, 'ours', undefined, undefined, {
+    await expect(writeFileAtomic(file, 'ours', undefined, LIVE, {
       removeStagingDir: async () => { throw cleanupFailure },
     }, { displayPath: file })).resolves.toBeUndefined()
     expect(await readFile(file, 'utf8')).toBe('ours')
@@ -834,7 +836,7 @@ describe('writeFileAtomic — temp-file safety', () => {
 
   it.skipIf(!posixModes)('creates new files owner-only by default', async () => {
     const file = join(dir, 'a.txt')
-    await writeFileAtomic(file, 'hello', undefined, undefined)
+    await writeFileAtomic(file, 'hello', undefined, LIVE)
     expect((await stat(file)).mode & 0o777).toBe(0o600)
   })
 
@@ -844,7 +846,7 @@ describe('writeFileAtomic — temp-file safety', () => {
     await mkdir(join(dir, tempDirName))
     await writeFile(join(dir, tempDirName, 'PRECIOUS'), 'keep')
     await expect(
-      writeFileAtomic(file, 'hello', undefined, undefined, { tempDirName: () => tempDirName }),
+      writeFileAtomic(file, 'hello', undefined, LIVE, { tempDirName: () => tempDirName }),
     ).rejects.toMatchObject({ code: 'EEXIST' })
     expect(await readFile(join(dir, tempDirName, 'PRECIOUS'), 'utf8')).toBe('keep')
     await expect(stat(file)).rejects.toMatchObject({ code: 'ENOENT' })
@@ -852,7 +854,7 @@ describe('writeFileAtomic — temp-file safety', () => {
 
   it('creates parent directories as needed', async () => {
     const file = join(dir, 'nested', 'deep', 'a.txt')
-    await writeFileAtomic(file, 'hi', undefined, undefined)
+    await writeFileAtomic(file, 'hi', undefined, LIVE)
     expect(await readFile(file, 'utf8')).toBe('hi')
   })
 
@@ -871,7 +873,7 @@ describe('writeFileAtomic — temp-file safety', () => {
   it('cleans up the temp file when the final rename fails', async () => {
     const sub = join(dir, 'occupied')
     await mkdir(sub)
-    await expect(writeFileAtomic(sub, 'hi', undefined, undefined)).rejects.toBeInstanceOf(Error)
+    await expect(writeFileAtomic(sub, 'hi', undefined, LIVE)).rejects.toBeInstanceOf(Error)
     expect((await readdir(dir)).filter(n => n.includes('.tmp'))).toEqual([])
   })
 })
@@ -906,7 +908,7 @@ describe('readForEdit + restoreLineEndings', () => {
   it('round-trips CRLF: matches on LF, writes back CRLF', async () => {
     const file = join(dir, 'crlf.txt')
     await writeFile(file, 'one\r\ntwo\r\n')
-    const original = await readForEdit(file, file)
+    const original = await readForEdit(file, file, LIVE)
     expect(original.lineEndings).toBe('CRLF')
     const edited = applyLiteralEdit(original.content, 'two', 'TWO', false, file)
     expect(restoreLineEndings(edited.content, original.lineEndings)).toBe('one\r\nTWO\r\n')
@@ -914,9 +916,9 @@ describe('readForEdit + restoreLineEndings', () => {
 
   it('rejects a binary file and invalid UTF-8', async () => {
     await writeFile(join(dir, 'bin'), Buffer.from([0x00, 0x01]))
-    await expect(readForEdit(join(dir, 'bin'), join(dir, 'bin'))).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
+    await expect(readForEdit(join(dir, 'bin'), join(dir, 'bin'), LIVE)).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
     await writeFile(join(dir, 'bad'), Buffer.from([0x68, 0xff, 0x69]))
-    await expect(readForEdit(join(dir, 'bad'), join(dir, 'bad'))).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
+    await expect(readForEdit(join(dir, 'bad'), join(dir, 'bad'), LIVE)).rejects.toMatchObject({ code: 'FS_NOT_TEXT' })
   })
 
   it('passes a live (non-aborted) signal through the read', async () => {

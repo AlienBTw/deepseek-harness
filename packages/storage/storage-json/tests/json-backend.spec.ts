@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -224,5 +224,42 @@ describe('json backend specifics', () => {
     const closing = backend2.close()
     await expect(opening.then(u => u.putRecord('t', 'x', {}))).rejects.toMatchObject({ code: 'closed' })
     await closing
+  })
+
+  it('destroy deletes the unit file and rejects while the unit is open', async () => {
+    const root = await freshRoot()
+    const backend = new JsonStorageBackend(root)
+    const unit = await backend.kv.open(descriptor)
+    await unit.putRecord('t', 'k', { v: 1 })
+    await expect(backend.kv.destroy(descriptor)).rejects.toThrow(/is open/)
+    await unit.close()
+    await backend.kv.destroy(descriptor)
+    await expect(access(join(root, 'shape.json'))).rejects.toMatchObject({ code: 'ENOENT' })
+    const reopened = await backend.kv.open(descriptor)
+    expect(await reopened.loadAll()).toEqual({ tables: { t: {} }, global: null })
+    await backend.close()
+  })
+
+  it('resolves a relative root once so cwd changes cannot split the backend', async () => {
+    const base = await freshRoot()
+    const launch = join(base, 'launch')
+    const other = join(base, 'other')
+    await mkdir(launch)
+    await mkdir(other)
+    const previous = process.cwd()
+    try {
+      process.chdir(launch)
+      const backend = new JsonStorageBackend('storages-rel')
+      const unit = await backend.kv.open(descriptor)
+      await unit.putRecord('t', 'k', { v: 1 })
+      process.chdir(other)
+      await unit.putRecord('t', 'k2', { v: 2 })
+      await unit.close()
+      await expect(readFile(join(launch, 'storages-rel', 'shape.json'), 'utf8')).resolves.toContain('k2')
+      await expect(access(join(other, 'storages-rel'))).rejects.toMatchObject({ code: 'ENOENT' })
+      await backend.close()
+    } finally {
+      process.chdir(previous)
+    }
   })
 })

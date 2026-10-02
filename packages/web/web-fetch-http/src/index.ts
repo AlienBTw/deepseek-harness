@@ -15,14 +15,8 @@ import type { HttpFetchLimits } from './provider.ts'
 
 const MAX_NODE_TIMER_DELAY_MS = 2_147_483_647
 
-export {
-  LOCAL_FETCH_PROVIDER_ID,
-  HttpFetchProvider,
-} from './provider.ts'
-export type { HttpFetchLimits } from './provider.ts'
-
 /** Default `User-Agent`: an explicit product agent, never a browser disguise. */
-export const DEFAULT_USER_AGENT = 'deepseek-harness/0.0.1 (+https://github.com/deepseek-ai)'
+const DEFAULT_USER_AGENT = 'deepseek-harness/0.0.1 (+https://github.com/deepseek-ai)'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-fetch-http'
@@ -44,6 +38,12 @@ export interface Config {
   maxRedirects?: number
   /** `User-Agent` header sent on every request. */
   userAgent?: string
+  /**
+   * When true, skip post-DNS private/loopback/link-local/multicast destination
+   * checks. Defaults to false. Set only for trusted lab profiles that fetch
+   * loopback or internal targets on purpose — never implied by another setting.
+   */
+  allowPrivateNetwork?: boolean
 }
 
 export const Config: z<Config> = z.object({
@@ -53,6 +53,7 @@ export const Config: z<Config> = z.object({
   timeoutMs: z.number().default(30_000),
   maxRedirects: z.number().default(5),
   userAgent: z.string().default(DEFAULT_USER_AGENT),
+  allowPrivateNetwork: z.boolean().default(false),
 })
 
 /** Complete config after schemastery applies every field default. */
@@ -96,6 +97,7 @@ export function apply(ctx: Context, config: Config): void {
     timeoutMs: resolved.timeoutMs,
     maxRedirects: resolved.maxRedirects,
     userAgent: resolved.userAgent,
+    allowPrivateNetwork: resolved.allowPrivateNetwork,
   }
   ctx.web.registerFetchProvider(new HttpFetchProvider(limits))
 }

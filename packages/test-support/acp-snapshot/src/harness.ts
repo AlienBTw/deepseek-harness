@@ -249,15 +249,25 @@ export async function runScenario(input: InputScript, opts: RunOptions): Promise
     const env: NodeJS.ProcessEnv = {
       ...opts.env,
       MAPLE_SNAPSHOT: opts.mode,
+      DSH_SNAPSHOT: opts.mode,
       MAPLE_SNAPSHOT_FILE: opts.fixtureFile,
+      DSH_SNAPSHOT_FILE: opts.fixtureFile,
       MAPLE_SNAPSHOT_SESSIONS_ROOT: sessionsRoot,
       DSH_SNAPSHOT_SESSIONS_ROOT: sessionsRoot,
       MAPLE_SNAPSHOT_SPILL_ROOT: spillRoot,
       MAPLE_HOME: join(cwd, '.maple'),
       MAPLE_AGENTS_HOME: join(cwd, '.agents'),
-      ...opts.overrideFile !== undefined ? { MAPLE_SNAPSHOT_OVERRIDE: opts.overrideFile } : {},
+      ...opts.overrideFile !== undefined
+        ? {
+          MAPLE_SNAPSHOT_OVERRIDE: opts.overrideFile,
+          DSH_SNAPSHOT_OVERRIDE: opts.overrideFile,
+        }
+        : {},
       ...opts.childFiles !== undefined && opts.childFiles.length > 0
-        ? { MAPLE_SNAPSHOT_CHILD_FILES: opts.childFiles.join(delimiter) }
+        ? {
+          MAPLE_SNAPSHOT_CHILD_FILES: opts.childFiles.join(delimiter),
+          DSH_SNAPSHOT_CHILD_FILES: opts.childFiles.join(delimiter),
+        }
         : {},
     }
 

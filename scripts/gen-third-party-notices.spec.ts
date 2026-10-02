@@ -230,11 +230,11 @@ describe('parsePyprojectRequirements', () => {
 describe('collectPythonDependencies', () => {
   it('excludes normalized local project names without exempting a third-party prefix', () => {
     const pyprojects = [
-      '[project]\nname = "deepseek-harness-runtime-bin"\ndependencies = ["pydantic"]\n',
-      '[project]\nname = "deepseek-harness-sdk"\ndependencies = ["DeepSeek.Harness_Runtime-Bin", "deepseek-unrelated"]\n',
+      '[project]\nname = "maple-harness-runtime-bin"\ndependencies = ["pydantic"]\n',
+      '[project]\nname = "maple-harness-sdk"\ndependencies = ["Maple.Harness_Runtime-Bin", "maple-unrelated"]\n',
     ]
     expect(() => collectPythonDependencies(pyprojects)).toThrow(
-      'python dependency deepseek-unrelated is missing from PYTHON_METADATA',
+      'python dependency maple-unrelated is missing from PYTHON_METADATA',
     )
   })
 })

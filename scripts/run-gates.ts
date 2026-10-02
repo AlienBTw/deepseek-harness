@@ -95,7 +95,7 @@ async function main(args: string[]): Promise<number> {
   const mode = parseMode(args[0])
   const gates = gatesForMode(mode)
   const concurrencyDefault = defaultConcurrency(mode, gates.length)
-  const concurrencyOverride = process.env.MAPLE_GATE_CONCURRENCY
+  const concurrencyOverride = envLookup('MAPLE_GATE_CONCURRENCY')
   const maxConcurrency = concurrencyFromEnv('MAPLE_GATE_CONCURRENCY', concurrencyDefault.workers)
   const concurrencySource = concurrencyOverride === undefined || concurrencyOverride === ''
     ? concurrencyDefault.source
@@ -161,13 +161,27 @@ export function defaultConcurrency(
 }
 
 function concurrencyFromEnv(name: string, fallback: number): number {
-  const raw = process.env[name]
+  const raw = envLookup(name)
   if (raw === undefined || raw === '') return fallback
   const parsed = Number.parseInt(raw, 10)
   if (!Number.isSafeInteger(parsed) || parsed < 1) {
     throw new Error(`run-gates: ${name} must be a positive integer, got ${JSON.stringify(raw)}.`)
   }
   return parsed
+}
+
+/**
+ * Prefer the Maple-prefixed env var; accept the pre-rebrand `DSH_` twin so
+ * workflows that still export the old name keep driving the same gates.
+ */
+function envLookup(name: string): string | undefined {
+  const value = process.env[name]
+  if (value !== undefined && value !== '') return value
+  if (name.startsWith('MAPLE_')) {
+    const legacy = process.env[`DSH_${name.slice('MAPLE_'.length)}`]
+    if (legacy !== undefined && legacy !== '') return legacy
+  }
+  return value
 }
 
 function pnpmScript(id: string, script: string, options: Partial<Gate> = {}): Gate {
@@ -268,12 +282,19 @@ function ciSharedStaticGates(): Gate[] {
     pnpmScript('runtime-closure', 'verify-runtime-closure', { label: 'runtime closure' }),
     pnpmScript('constraints', 'constraints'),
     pnpmScript('dsh-package-licenses', 'verify-dsh-package-licenses', { label: 'DSH package licenses' }),
+    pnpmScript('vendored-licenses', 'verify-vendored-licenses', { label: 'vendored licenses' }),
     pnpmScript('package-invariants', 'verify-package-invariants', { label: 'package invariants' }),
     pnpmScript('cordis-config', 'verify-cordis-config', { label: 'Cordis config' }),
     pnpmScript('optional-dependency-imports', 'verify-optional-dependency-imports', {
       label: 'optional dependency imports',
     }),
+    pnpmScript('no-settimeout-in-tests', 'verify-no-settimeout-in-tests', {
+      label: 'no setTimeout in package tests',
+    }),
     pnpmScript('client-packages', 'verify-client-packages', { label: 'client packages' }),
+    pnpmScript('vendor-drift-offline', 'verify-vendor-drift:offline', {
+      label: 'vendor drift offline',
+    }),
     pnpmScript('issue-management', 'test:issue-management', { label: 'Issue management policy' }),
   ]
 }
@@ -309,11 +330,16 @@ function ciPrimaryGates(): Gate[] {
 }
 
 function nodeCompatGates(): Gate[] {
-  const typecheck = flagEnabled('MAPLE_NODE_COMPAT_SKIP_TYPECHECK')
-    ? []
-    : [pnpmScript('typecheck', 'typecheck')]
+  const skipHeavy = flagEnabled('MAPLE_NODE_COMPAT_SKIP_TYPECHECK')
+  const typecheck = skipHeavy ? [] : [pnpmScript('typecheck', 'typecheck')]
   if (runningNodeMajor() !== 22) {
     return [...typecheck, ...nodeCompatSmokeGates()]
+  }
+  // Node 22's native TypeScript stripping rejects `as` assertions that still
+  // appear on the Host tsdown/plugin load path; keep the source smokes and
+  // leave the full build matrix to Node 24+.
+  if (skipHeavy) {
+    return [...nodeCompatSmokeGates()]
   }
   return [
     ...typecheck,
@@ -439,7 +465,7 @@ function ciConsumerGates(): Gate[] {
 }
 
 function webSnapshotGate(needs: string[]): Gate {
-  const workerRaw = process.env.MAPLE_WEB_SNAPSHOT_WORKERS
+  const workerRaw = envLookup('MAPLE_WEB_SNAPSHOT_WORKERS')
   if (workerRaw !== undefined && workerRaw !== '') {
     const workers = Number.parseInt(workerRaw, 10)
     if (!Number.isSafeInteger(workers) || workers < 2 || String(workers) !== workerRaw) {
@@ -510,7 +536,7 @@ function typertContractsGate(): Gate {
 }
 
 function lintGate(options: { needs?: string[] } = {}): Gate {
-  const raw = process.env.MAPLE_OXLINT_THREADS
+  const raw = envLookup('MAPLE_OXLINT_THREADS')
   const script = 'lint:contracts-ready'
   return pnpmScript('lint', script, {
     ...raw === undefined || raw === ''
@@ -611,7 +637,7 @@ function positiveIntArg(envName: string, flag: string): string[] {
 }
 
 function flagEnabled(envName: string): boolean {
-  const raw = process.env[envName]
+  const raw = envLookup(envName)
   if (raw === undefined || raw === '') return false
   if (raw !== '1') throw new Error(`run-gates: ${envName} must be 1 when set, got ${JSON.stringify(raw)}.`)
   return true
@@ -625,6 +651,7 @@ function hygieneLeafGates(options: { artifactNeeds?: string[] } = {}): Gate[] {
     pnpmScript('publint', 'publint', artifactOptions),
     pnpmScript('constraints', 'constraints'),
     pnpmScript('dsh-package-licenses', 'verify-dsh-package-licenses', { label: 'DSH package licenses' }),
+    pnpmScript('vendored-licenses', 'verify-vendored-licenses', { label: 'vendored licenses' }),
     pnpmScript('package-invariants', 'verify-package-invariants', { label: 'package invariants' }),
     builtPackageInvariantsGate(options.artifactNeeds),
     pnpmScript('node-next-types', 'verify-node-next-types', {
@@ -634,7 +661,13 @@ function hygieneLeafGates(options: { artifactNeeds?: string[] } = {}): Gate[] {
     pnpmScript('optional-dependency-imports', 'verify-optional-dependency-imports', {
       label: 'optional dependency imports',
     }),
+    pnpmScript('no-settimeout-in-tests', 'verify-no-settimeout-in-tests', {
+      label: 'no setTimeout in package tests',
+    }),
     pnpmScript('client-packages', 'verify-client-packages', { label: 'client packages' }),
+    pnpmScript('vendor-drift-offline', 'verify-vendor-drift:offline', {
+      label: 'vendor drift offline',
+    }),
   ]
 }
 
@@ -923,7 +956,7 @@ export function formatGateResultReason(result: GateResult): string {
 }
 
 function printResult(result: GateResult): void {
-  const verbose = process.env.MAPLE_GATE_VERBOSE === '1'
+  const verbose = envLookup('MAPLE_GATE_VERBOSE') === '1'
   const seconds = (result.durationMs / 1000).toFixed(2)
   if (result.status === 'passed' && !verbose) {
     console.log(`run-gates: PASS ${result.gate.label} (${seconds}s)`)

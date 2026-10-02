@@ -2,26 +2,30 @@
 /**
  * ui-task-surface browser half on a real cordis Context with fake slots/
  * remote faces: the plugin registers the TaskSurface dock entry at
- * conversation.input.dock, wires getActive/submit through ctx.remote.taskSurface,
- * and drops the entry when the plugin fiber unloads.
+ * conversation.input.dock, the keyed show_task_surface transcript row, wires
+ * getActive/submit/dismiss through ctx.remote.taskSurface, and drops both
+ * entries when the plugin fiber unloads.
  */
 import { Context, Service } from '@maple/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import { cleanup, render, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach } from 'vitest'
 import { SlotRegistry, type SessionId } from '@maple/client-runtime/client'
 import { LocaleRuntime } from '@maple/client-locale/client'
 import { makeTranslate } from '@maple/client-test-runtime'
 import { zh as commonZh } from '@maple/client-locale/src/locales/zh.ts'
 import type {
+  DismissTaskSurfaceResult,
   GetActiveTaskSurfaceResult,
   SubmitTaskSurfaceResult,
   TaskSurfaceModelV1,
 } from '@maple/task-surface/client'
-import { TaskSurfaceId, TaskSurfaceSubmissionId } from '@maple/task-surface/client'
+import { TaskSurfaceDismissalId, TaskSurfaceId, TaskSurfaceSubmissionId } from '@maple/task-surface/client'
+import type { ToolResultNode } from '@maple/client-runtime/client'
 import type { TaskSurfaceDockActions } from '../src/client/slots.ts'
 import { apply, inject } from '../src/client/index.ts'
 import { TaskSurfacePanel } from '../src/client/TaskSurfaceDock.tsx'
+import { TaskSurfaceRow } from '../src/client/TaskSurfaceRow.tsx'
 import { zh } from '../src/client/locales.ts'
 import { apply as nodeApply } from '../src/index.ts'
 
@@ -32,7 +36,22 @@ const sid = (k: string): SessionId => k as SessionId
 const testModel: TaskSurfaceModelV1 = {
   version: 1,
   title: 'Choose Environment',
-  sections: [{ id: 'sec-1', blocks: [{ kind: 'markdown', text: 'Pick one' }] }],
+  description: 'Pick staging or production.',
+  sections: [{
+    id: 'sec-1',
+    title: 'Context',
+    blocks: [{ kind: 'markdown', text: 'Pick staging or production.' }],
+  }],
+  fields: [{
+    kind: 'choice',
+    id: 'env',
+    label: 'Environment',
+    options: [
+      { id: 'staging', label: 'Staging' },
+      { id: 'production', label: 'Production' },
+    ],
+    required: true,
+  }],
   submit: { label: 'Continue' },
 }
 
@@ -40,6 +59,7 @@ const testModel: TaskSurfaceModelV1 = {
 async function bench(options: {
   getActive?: GetActiveTaskSurfaceResult
   submit?: SubmitTaskSurfaceResult
+  dismiss?: DismissTaskSurfaceResult
 } = {}) {
   const ctx = new Context()
   const calls: { method: string; args: unknown[] }[] = []
@@ -51,17 +71,19 @@ async function bench(options: {
   }
   const getActive = vi.fn(answer('getActive', options.getActive ?? { active: false, reason: 'not-open' } satisfies GetActiveTaskSurfaceResult))
   const submit = vi.fn(answer('submit', options.submit ?? { accepted: true, messageId: 'msg-1' as never, phase: 'queued' } satisfies SubmitTaskSurfaceResult))
+  const dismiss = vi.fn(answer('dismiss', options.dismiss ?? { dismissed: true, eventSeq: 1 } satisfies DismissTaskSurfaceResult))
   class RemoteService extends Service {
     constructor(serviceCtx: Context) {
       super(serviceCtx, 'remote')
     }
   }
   new RemoteService(ctx)
-  ctx.provide('remote.taskSurface', { getActive, submit })
+  ctx.provide('remote.taskSurface', { getActive, submit, dismiss })
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
     name: 'root', children: {
       'conversation.input.dock': { kind: 'list', scope: 'session' },
+      'tool.call.toolview': { kind: 'keyed', scope: 'session' },
     },
   } as never, (() => null) as never)
   ctx.provide('locale', new LocaleRuntime(ctx))
@@ -79,21 +101,27 @@ async function bench(options: {
         inject: entry.inject as unknown as ((sessionId: SessionId) => TaskSurfaceDockActions) | undefined,
       }
     },
+    toolview: () => {
+      const entry = ctx.slots.entries('tool.call.toolview')[0]
+      if (entry === undefined) return undefined
+      return { ...entry.options, locale: entry.locale }
+    },
   }
 }
 
 describe('ui-task-surface browser plugin', () => {
-  it('registers the TaskSurface dock with Remote-backed inject face', async () => {
+  it('registers the TaskSurface dock and keyed transcript row', async () => {
     const b = await bench()
     await b.fiber.await()
     expect(b.entry()).toMatchObject({ id: 'task-surface', order: 30, locale: 'taskSurface' })
     expect(b.entry()?.inject).toBeTypeOf('function')
+    expect(b.toolview()).toMatchObject({ key: 'show_task_surface', locale: 'taskSurface' })
   })
 
-  it('forwards getActive and submit to the Remote namespace', async () => {
+  it('forwards getActive, submit, and dismiss to the Remote namespace', async () => {
     const active: GetActiveTaskSurfaceResult = {
       active: true,
-      callId: 'call-1' as GetActiveTaskSurfaceResult & { active: true } extends { callId: infer C } ? C : never,
+      callId: 'call-1' as never,
       surfaceId: TaskSurfaceId('surf-1'),
       model: testModel,
       pending: null,
@@ -105,7 +133,11 @@ describe('ui-task-surface browser plugin', () => {
     await verbs.onSubmit({
       surfaceId: TaskSurfaceId('surf-1'),
       submissionId: TaskSurfaceSubmissionId('sub-1'),
-      values: {},
+      values: { env: 'staging' },
+    })
+    await verbs.onDismiss({
+      surfaceId: TaskSurfaceId('surf-1'),
+      dismissalId: TaskSurfaceDismissalId('dsm-1'),
     })
     expect(b.calls).toEqual([
       { method: 'getActive', args: [{ sessionId: sid('s1') }] },
@@ -114,23 +146,32 @@ describe('ui-task-surface browser plugin', () => {
         args: [sid('s1'), {
           surfaceId: TaskSurfaceId('surf-1'),
           submissionId: TaskSurfaceSubmissionId('sub-1'),
-          values: {},
+          values: { env: 'staging' },
+        }],
+      },
+      {
+        method: 'dismiss',
+        args: [sid('s1'), {
+          surfaceId: TaskSurfaceId('surf-1'),
+          dismissalId: TaskSurfaceDismissalId('dsm-1'),
         }],
       },
     ])
   })
 
-  it('drops the dock entry when the plugin fiber unloads (HMR safety)', async () => {
+  it('drops the dock and toolview entries when the plugin fiber unloads (HMR safety)', async () => {
     const b = await bench()
     await b.fiber.await()
     expect(b.entry()).toBeDefined()
+    expect(b.toolview()).toBeDefined()
     await b.fiber.dispose()
     expect(b.entry()).toBeUndefined()
+    expect(b.toolview()).toBeUndefined()
   })
 })
 
 describe('TaskSurfacePanel adapter', () => {
-  it('renders the active title and submits through the inject face', async () => {
+  it('renders sections, fields, and submits captured values', async () => {
     const onGetActive = vi.fn(async (): Promise<GetActiveTaskSurfaceResult> => ({
       active: true,
       callId: 'call-1' as never,
@@ -143,24 +184,108 @@ describe('TaskSurfacePanel adapter', () => {
       messageId: 'msg-1' as never,
       phase: 'queued',
     }))
+    const onDismiss = vi.fn(async (): Promise<DismissTaskSurfaceResult> => ({
+      dismissed: true,
+      eventSeq: 1,
+    }))
     const t = makeTranslate(zh, commonZh)
     render(
       <TaskSurfacePanel
         active={{ callId: 'call-1' as never, surfaceId: TaskSurfaceId('surf-1') }}
         onGetActive={onGetActive}
         onSubmit={onSubmit}
+        onDismiss={onDismiss}
         t={t}
       />,
     )
     await waitFor(() => {
-      expect(document.body.textContent).toContain('Choose Environment')
+      expect(screen.getByText('Choose Environment')).toBeTruthy()
+      expect(screen.getByRole('radio', { name: 'Staging' })).toBeTruthy()
     })
-    const button = document.querySelector('button')
-    expect(button?.textContent).toBe('Continue')
-    button?.click()
+    fireEvent.click(screen.getByRole('radio', { name: 'Staging' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1)
     })
+    const submitArgs = onSubmit.mock.calls.at(0)?.at(0)
+    expect(submitArgs).toMatchObject({
+      surfaceId: TaskSurfaceId('surf-1'),
+      values: { env: 'staging' },
+    })
+  }, 15_000)
+
+  it('dismisses through the inject face', async () => {
+    const onGetActive = vi.fn(async (): Promise<GetActiveTaskSurfaceResult> => ({
+      active: true,
+      callId: 'call-1' as never,
+      surfaceId: TaskSurfaceId('surf-1'),
+      model: testModel,
+      pending: null,
+    }))
+    const onSubmit = vi.fn(async (): Promise<SubmitTaskSurfaceResult> => ({
+      accepted: true,
+      messageId: 'msg-1' as never,
+      phase: 'queued',
+    }))
+    const onDismiss = vi.fn(async (): Promise<DismissTaskSurfaceResult> => ({
+      dismissed: true,
+      eventSeq: 1,
+    }))
+    const t = makeTranslate(zh, commonZh)
+    render(
+      <TaskSurfacePanel
+        active={{ callId: 'call-1' as never, surfaceId: TaskSurfaceId('surf-1') }}
+        onGetActive={onGetActive}
+        onSubmit={onSubmit}
+        onDismiss={onDismiss}
+        t={t}
+      />,
+    )
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '关闭' })).toBeTruthy()
+    })
+    fireEvent.click(screen.getByRole('button', { name: '关闭' }))
+    await waitFor(() => {
+      expect(onDismiss).toHaveBeenCalledTimes(1)
+    })
+    const dismissArgs = onDismiss.mock.calls.at(0)?.at(0)
+    expect(dismissArgs).toMatchObject({
+      surfaceId: TaskSurfaceId('surf-1'),
+    })
+  }, 15_000)
+})
+
+describe('TaskSurfaceRow', () => {
+  const t = makeTranslate(zh, commonZh)
+
+  function rowProps(block: unknown): Parameters<typeof TaskSurfaceRow>[0] {
+    return {
+      callId: 'c1', toolName: 'show_task_surface', block, t,
+      openFile: vi.fn(),
+      sessionId: 's1',
+      useSessions: () => undefined,
+    } as unknown as Parameters<typeof TaskSurfaceRow>[0]
+  }
+
+  const resultNode = (argsRaw: string, resultText: string | null, over?: Partial<ToolResultNode>): ToolResultNode => ({
+    kind: 'tool-result', seq: 10, time: 2_000, callTime: 1_000, callId: 'c1',
+    call: { name: 'show_task_surface', argsRaw },
+    content: resultText === null ? [] : [{ type: 'text', text: resultText }],
+    isError: false, callView: null, resultView: null, subCalls: [], ...over,
+  })
+
+  it('settled open surface shows title and awaiting summary', () => {
+    const args = JSON.stringify({ model: { version: 1, title: 'Choose Environment', sections: [], submit: { label: 'Continue' } } })
+    render(<TaskSurfaceRow {...rowProps(resultNode(args, 'Rendered Task Surface: "Choose Environment". Awaiting user submission.', {
+      meta: {
+        kind: 'dsh/task-surface',
+        version: 1,
+        surfaceId: 'surface-fixture-1',
+        model: testModel,
+      },
+    }))} />)
+    expect(screen.getByText('任务面板')).toBeTruthy()
+    expect(screen.getByText('Choose Environment · 等待提交')).toBeTruthy()
   })
 })
 

@@ -97,4 +97,14 @@ describe('mergeHookOutputs — reasons, stop, context, systemMessages accumulate
     expect(m.additionalContext).toEqual(['ctx-A', 'ctx-B'])
     expect(m.systemMessages).toEqual(['warn-A', 'warn-B'])
   })
+
+  it('keeps the last non-undefined updatedInput in hook order', () => {
+    const m = mergeHookOutputs([
+      out({ updatedInput: { command: 'first' } }),
+      out({}),
+      out({ updatedInput: { command: 'last' } }),
+    ])
+    expect(m.updatedInput).toEqual({ command: 'last' })
+    expect(mergeHookOutputs([out({ decision: 'allow' })]).updatedInput).toBeUndefined()
+  })
 })

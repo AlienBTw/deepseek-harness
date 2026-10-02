@@ -190,6 +190,11 @@ function validateCompactionEvent(
     if (!Number.isSafeInteger(event.data.shadowedTokenCount) || event.data.shadowedTokenCount < 0) {
       fail('compaction/summary shadowedTokenCount must be a non-negative safe integer')
     }
+    if (event.data.kind !== undefined
+      && event.data.kind !== 'index'
+      && event.data.kind !== 'state') {
+      fail('compaction/summary kind must be "index" or "state" when present')
+    }
     return {
       kind: 'summary',
       compactionId: open.compactionId,

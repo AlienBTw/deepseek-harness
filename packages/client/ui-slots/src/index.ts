@@ -8,11 +8,6 @@
  * consumer `declare module` augmentation merges with declarations lexically in
  * the augmented module, not with re-exports.
  */
-/* oxlint-disable typescript/no-redundant-type-constituents --
- * `keyof SlotMap & string` is the declare-merge key pattern: SlotMap is empty
- * in THIS compilation unit (so the intersection reads as `never`), but every
- * consumer merges keys in and the intersection is what keeps them string-typed.
- * The rule fires on the empty-map view, not on real redundancy. */
 import type { ReactNode } from 'react'
 import type { HostObservable } from './renderer.ts'
 import type { BoundActions, HandleOf, PropsStore, SnapshotSelectorHook, StoreDecl } from './store.ts'
@@ -119,13 +114,22 @@ export interface SlotEntryDef {
    * face; child registrants do not own or replace this common capability.
    */
   inject?: object
+  /**
+   * Ordered domain-owned phases for a chain slot. When present, every
+   * registration on that chain must name one declared phase; sort is phase
+   * index, then local priority, then registration order. Absent on unphased
+   * chains, which keep numeric priority alone. The declaring slot owns the
+   * vocabulary — the framework does not define a global phase set.
+   */
+  phases?: readonly string[]
 }
 
 /**
  * Runtime dispatch spec for one slot, recorded from a register call's
  * `children` value. The literal is compile-time checked against the SlotMap
- * entry (`SlotSpec<SlotMap[P]>` in {@link ChildrenDecl}), so kind, scope, and
- * any common inject face are declared at one point and validate each other.
+ * entry (`SlotSpec<SlotMap[P]>` in {@link ChildrenDecl}), so kind, scope,
+ * any common inject face, and any chain phase tuple are declared at one
+ * point and validate each other.
  */
 export type SlotSpec<E extends SlotEntryDef> = {
   kind: E['kind']
@@ -135,6 +139,11 @@ export type SlotSpec<E extends SlotEntryDef> = {
     ? { inject: Injected }
     : { inject?: object }
   : { inject?: never })
+  & ('phases' extends keyof E
+    ? E extends { phases: infer P extends readonly string[] }
+      ? { phases: P }
+      : { phases?: never }
+    : { phases?: never })
 
 /**
  * Child-slot declaration table for register(): keys are the declared (and
@@ -245,14 +254,14 @@ export interface ChainRenderOpts {
 
 /**
  * Chain-entry selector: the routing decision of one chain contribution.
- * Runs at render time in chain order (ascending `priority`, default 0, lower
- * tries first; ties keep registration = assembly order); the first non-null
- * return elects its entry
- * and becomes the component's `matched` prop; `null` passes to the next
- * entry; all-null falls to the owner's {@link ChainRenderOpts} fallback.
- * MUST be pure — a function of the owner props only, no external mutable
- * reads, no side effects (the decline decision lives here, never in a
- * mounted component probing its own props).
+ * Runs at render time in chain order. Unphased chains sort by ascending
+ * `priority` (default 0, lower tries first); phased chains sort by declared
+ * phase index, then local priority, then registration = assembly order. The
+ * first non-null return elects its entry and becomes the component's
+ * `matched` prop; `null` passes to the next entry; all-null falls to the
+ * owner's {@link ChainRenderOpts} fallback. MUST be pure — a function of the
+ * owner props only, no external mutable reads, no side effects (the decline
+ * decision lives here, never in a mounted component probing its own props).
  */
 export type ChainSelect<O extends object, M> = (owner: O) => M | null
 
@@ -475,7 +484,7 @@ export type SlotLabel = string | (() => string)
 
 /**
  * Kind shape fields carried in register options (keyed dispatch key; list
- * id/order/label; chain select/priority; non-chain priority = cell shadowing rank).
+ * id/order/label; chain select/priority/phase; non-chain priority = cell shadowing rank).
  */
 export type KindOptions<
   K extends keyof SlotMap & string,
@@ -497,9 +506,24 @@ export type KindOptions<
       : SlotMap[K]['kind'] extends 'chain' ? {
         /** Routing selector, mandatory on chain entries; `M` (the component's `matched` prop) infers from its return. */
         select: ChainSelect<SlotMap[K] extends { owner: infer O extends object } ? O : object, M>
-        /** Explicit chain position (ascending, default 0, lower tries first); ties keep registration = assembly order. */
+        /**
+         * Local preference within a phase (or the sole sort key on an
+         * unphased chain): ascending, default 0, lower tries first; ties keep
+         * registration = assembly order.
+         */
         priority?: number
-      }
+      } & (SlotMap[K] extends { phases: infer P extends readonly string[] }
+        ? {
+          /**
+           * Declared phase of this entry. Required on phased chains; sort
+           * index comes from the slot's phase tuple, not from `priority`.
+           */
+          phase: P[number]
+        }
+        : {
+          /** Unphased chains reject a phase — declare `phases` on the SlotMap entry first. */
+          phase?: never
+        })
         : {
           /**
            * Cell shadowing rank (ascending, default 0, lowest renders; a
@@ -556,7 +580,15 @@ type BaseOptions<
  */
 export interface StoredEntry {
   component: unknown
-  options: { key?: string; id?: string; order?: number; label?: SlotLabel; priority?: number }
+  options: {
+    key?: string
+    id?: string
+    order?: number
+    label?: SlotLabel
+    priority?: number
+    /** Chain phase name when the slot declares `phases`; absent on unphased entries. */
+    phase?: string
+  }
   /** Chain routing selector (type-erased like `inject`; present exactly on chain-slot entries). */
   select?: ((owner: never) => unknown) | undefined
   /** Registrant business face; positional params derive from the declaration (sessionId?, actions?). */
@@ -596,6 +628,7 @@ interface ErasedOptions {
   label?: SlotLabel | undefined
   select?: ((owner: never) => unknown) | undefined
   priority?: number | undefined
+  phase?: string | undefined
   children?: Record<string, SlotSpec<SlotEntryDef>> | undefined
   store?: StoreDecl | undefined
   locale?: string | undefined
@@ -637,8 +670,10 @@ export interface LiveSlotOccupant {
   id?: string
   /** List display order. */
   order?: number
-  /** Shadowing or chain priority. */
+  /** Shadowing or chain local priority. */
   priority: number
+  /** Chain phase when the slot declares `phases`. */
+  phase?: string
   /** Whether the renderer currently selects this entry. */
   active: boolean
 }
@@ -713,7 +748,9 @@ export class SlotCore {
    * names the first declarer); mounting one shared store handle under slots
    * of different scopes throws. Kind constraints: keyed — missing `key`
    * throws; list — missing `id` throws; chain — missing `select` throws (the
-   * selector is the entry's routing seat, see {@link ChainSelect}).
+   * selector is the entry's routing seat, see {@link ChainSelect}); a chain
+   * that declares `phases` also requires a declared `phase` and rejects
+   * unknown names, while an unphased chain rejects any `phase`.
    *
    * Shadowing (single/keyed/list): entries sharing one cell (single — the
    * slot itself; keyed — same `key`; list — same `id`) coexist at distinct
@@ -723,13 +760,18 @@ export class SlotCore {
    * throws naming the occupant, so priority-less composition keeps the
    * historical one-occupant-per-cell fail-loud.
    *
+   * Chain sort: unphased chains sort by ascending local `priority` with
+   * registration-order ties; phased chains sort by declared phase index,
+   * then local priority, then registration order.
+   *
    * Lifecycle: the disposer removes the contribution AND collapses every
    * declared child slot (child entries clear recursively; their stale
    * disposers become no-ops) — one lifecycle axis, no dangling state.
    *
    * @param options - registration options: target `name`, `children`
    * declaration table, `store` seat, `inject` business-face factory, kind
-   * shape fields (keyed `key`; list `id`/`order`/`label`).
+   * shape fields (keyed `key`; list `id`/`order`/`label`; chain
+   * `select`/`priority`/`phase`).
    * @param component - component honoring the four-share composed props
    * contract ({@link ComposedProps}); checked at this call site.
    * @returns disposer removing the registration and its declarations
@@ -818,9 +860,23 @@ export class SlotCore {
         }
         break
       }
-      case 'chain':
+      case 'chain': {
         if (options.select === undefined) throw new Error(`chain slot "${options.name}" requires options.select`)
+        const phases = Array.isArray(spec.phases) ? spec.phases as readonly string[] : undefined
+        if (phases !== undefined) {
+          if (options.phase === undefined) {
+            throw new Error(
+              `chain slot "${options.name}" requires options.phase (declared phases: ${phases.map(p => JSON.stringify(p)).join(', ')})`)
+          }
+          if (!phases.includes(options.phase)) {
+            throw new Error(
+              `chain slot "${options.name}" phase ${JSON.stringify(options.phase)} is not in declared phases [${phases.map(p => JSON.stringify(p)).join(', ')}]`)
+          }
+        } else if (options.phase !== undefined) {
+          throw new Error(`chain slot "${options.name}" does not declare phases`)
+        }
         break
+      }
     }
     if (options.children) {
       for (const childKey of Object.keys(options.children)) {
@@ -850,6 +906,7 @@ export class SlotCore {
         ...(options.order !== undefined ? { order: options.order } : {}),
         ...(options.label !== undefined ? { label: options.label } : {}),
         ...(options.priority !== undefined ? { priority: options.priority } : {}),
+        ...(options.phase !== undefined ? { phase: options.phase } : {}),
       },
       ...(options.select !== undefined ? { select: options.select } : {}),
       ...(options.inject !== undefined ? { inject: options.inject } : {}),
@@ -859,13 +916,20 @@ export class SlotCore {
       ...(options.registrant !== undefined ? { registrant: options.registrant } : {}),
     }
     const next = [...rec.entries, entry]
-    // Stable sorts: priority ascending for every kind, ties keep registration
-    // sequence — a cell's winner is its first occurrence, chain tries lower
-    // priority first. List refines equal priorities by explicit `order` so the
-    // raw ledger keeps its display sequence for priority-less compositions.
+    // Stable sorts: list refines equal priorities by explicit `order`; chain
+    // phases (when declared) dominate local priority; every other kind sorts
+    // by priority ascending. Ties keep registration sequence — a cell's
+    // winner is its first occurrence, chain tries earlier entries first.
+    const phases = Array.isArray(spec.phases) ? spec.phases as readonly string[] : undefined
     next.sort(spec.kind === 'list'
       ? (a, b) => ((a.options.priority ?? 0) - (b.options.priority ?? 0)) || ((a.options.order ?? 0) - (b.options.order ?? 0))
-      : (a, b) => (a.options.priority ?? 0) - (b.options.priority ?? 0))
+      : spec.kind === 'chain' && phases !== undefined
+        ? (a, b) => {
+          const phaseIndex = (phase: string | undefined) => (phase === undefined ? -1 : phases.indexOf(phase))
+          return phaseIndex(a.options.phase) - phaseIndex(b.options.phase)
+            || ((a.options.priority ?? 0) - (b.options.priority ?? 0))
+        }
+        : (a, b) => (a.options.priority ?? 0) - (b.options.priority ?? 0))
     rec.entries = next
     this.markDirty(options.name, rec)
     if (options.children) {
@@ -1000,6 +1064,7 @@ export class SlotCore {
           ...entry.options.id === undefined ? {} : { id: entry.options.id },
           ...entry.options.order === undefined ? {} : { order: entry.options.order },
           priority: entry.options.priority ?? 0,
+          ...entry.options.phase === undefined ? {} : { phase: entry.options.phase },
           active: active.has(entry),
         })),
         children,

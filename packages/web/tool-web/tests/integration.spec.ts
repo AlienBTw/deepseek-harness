@@ -15,7 +15,9 @@ import SystemPrompt from '@maple/system-prompt'
 import ToolRuntime, { type ToolExecutionResult } from '@maple/tools'
 import WebRuntime from '@maple/web'
 import * as WebFetchLocal from '@maple/web-fetch-http'
+import { HttpFetchProvider, LOCAL_FETCH_PROVIDER_ID } from '@maple/web-fetch-http/src/provider.ts'
 import * as WebSearchExa from '@maple/web-search-exa'
+import { EXA_PROVIDER_ID } from '@maple/web-search-exa/src/provider.ts'
 import * as ToolWeb from '@maple/tool-web'
 import * as TimeoutPolicy from '@maple/tool-call-timeout-policy'
 
@@ -38,8 +40,8 @@ beforeEach(async () => {
   ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
-  await ctx.plugin(WebRuntime, { searchProvider: WebSearchExa.EXA_PROVIDER_ID, fetchProvider: WebFetchLocal.LOCAL_FETCH_PROVIDER_ID })
-  await ctx.plugin(WebFetchLocal, {})
+  await ctx.plugin(WebRuntime, { searchProvider: EXA_PROVIDER_ID, fetchProvider: LOCAL_FETCH_PROVIDER_ID })
+  await ctx.plugin(WebFetchLocal, { allowPrivateNetwork: true })
   await ctx.plugin(WebSearchExa, { apiKey: 'exa-key', baseURL: 'https://api.exa.test' })
   // The shipped deployment shape: the tool-call budget is declared by tool-web
   // config (default 30s, attached as ToolDefinition.timeoutMs) and enforced by
@@ -134,9 +136,9 @@ describe('tool-call timeout returns TOOL_TIMEOUT (deadline wins over a slow fetc
     tctx = new Context()
     await tctx.plugin(SystemPrompt)
     await tctx.plugin(ToolRuntime)
-    await tctx.plugin(WebRuntime, { fetchProvider: WebFetchLocal.LOCAL_FETCH_PROVIDER_ID })
+    await tctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
     // Provider backstop well ABOVE the tool-call budget, so the policy wins.
-    await tctx.plugin(WebFetchLocal, { timeoutMs: 30_000 })
+    await tctx.plugin(WebFetchLocal, { timeoutMs: 30_000, allowPrivateNetwork: true })
     await tctx.plugin(TimeoutPolicy)
     // The tool-call budget is declared by tool-web config, enforced by the policy.
     tfiber = await tctx.plugin(ToolWeb, { fetchTimeoutMs: 50 })
@@ -161,15 +163,16 @@ describe('tool-call timeout returns TOOL_TIMEOUT (deadline wins over a slow fetc
   it('the provider backstop still protects a direct provider call (no tool-call policy in that path)', async () => {
     // A direct provider caller bypasses tools/execute, so a short configured backstop
     // must produce provider-owned WEB_FETCH_TIMEOUT rather than TOOL_TIMEOUT.
-    const direct = new WebFetchLocal.HttpFetchProvider({
+    const direct = new HttpFetchProvider({
       maxUrlLength: 2048,
       maxResponseBytes: 5_000_000,
       maxBodyChars: 100_000,
       timeoutMs: 50,
       maxRedirects: 5,
       userAgent: 'integration-test',
+      allowPrivateNetwork: true,
     })
-    const err = await direct.fetch({ url: slowBase }).then(
+    const err = await direct.fetch({ url: slowBase }, new AbortController().signal).then(
       () => undefined,
       (e: unknown) => e as { code?: string },
     )

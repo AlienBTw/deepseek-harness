@@ -37,7 +37,7 @@ export function sessionResolveOptions(
   exec: ToolExecution,
   requestedPath: string,
   policyWorkspaceRoot?: string,
-): { cwd?: string; signal?: AbortSignal } {
+): { cwd?: string; signal: AbortSignal } {
   const cwd = policyWorkspaceRoot ?? sessionCwd(exec, requestedPath)
   return {
     ...cwd !== undefined ? { cwd } : {},

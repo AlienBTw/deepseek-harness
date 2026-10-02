@@ -446,63 +446,76 @@ export class SessionManager {
     this.notifier.markDirty()
     this.listInflight = (async () => {
       try {
-        const { result } = await this.api.sessions.list({})
-        if (result.ok) {
-          const baseline = this.listPhase === 'pending'
-            ? result.value.items
-            : mergeOrderedBaseline(established, result.value.items, summary => summary.sessionId)
-          // Seed first observations from the pull-time baseline BEFORE replaying
-          // in-flight mutations, then reconcile the reminders after EVERY
-          // replayed mutation: an edge that happens entirely between mutations
-          // (baseline idle → running → idle) must still arm, which a single
-          // sync on the folded result would collapse away.
-          for (const s of baseline) {
-            if (!this.prevRunning.has(s.sessionId)) this.prevRunning.set(s.sessionId, s.running)
+        const collected: SessionSummary[] = []
+        let cursor: string | undefined
+        for (;;) {
+          const { result } = await this.api.sessions.list({
+            ...cursor === undefined ? {} : { cursor },
+          })
+          if (!result.ok) {
+            this.listState = 'error'
+            this.listError = result.error
+            this.notifier.markDirty()
+            return
           }
-          let summaries = baseline
-          for (const mutation of mutations) {
-            summaries = applyMutation(summaries, mutation)
+          collected.push(...result.value.items)
+          if (result.value.nextCursor === undefined) {
+            const baseline = this.listPhase === 'pending'
+              ? collected
+              : mergeOrderedBaseline(established, collected, summary => summary.sessionId)
+            // Seed first observations from the pull-time baseline BEFORE replaying
+            // in-flight mutations, then reconcile the reminders after EVERY
+            // replayed mutation: an edge that happens entirely between mutations
+            // (baseline idle → running → idle) must still arm, which a single
+            // sync on the folded result would collapse away.
+            for (const s of baseline) {
+              if (!this.prevRunning.has(s.sessionId)) this.prevRunning.set(s.sessionId, s.running)
+            }
+            let summaries = baseline
+            for (const mutation of mutations) {
+              summaries = applyMutation(summaries, mutation)
+              this.summaries = summaries
+              this.syncCompletedNotifications()
+            }
             this.summaries = summaries
+            this.listState = 'idle'
+            this.listPhase = 'ready'
+            // Covers the empty-mutations pull (a plain baseline carries no edge).
             this.syncCompletedNotifications()
+            // Push running/blank bits down to instantiated Sessions (the list is the authoritative summary source).
+            for (const s of this.summaries) {
+              const session = this.sessions.get(s.sessionId)
+              if (session === undefined) continue
+              session.handleBlank(s.blank)
+              session.handleRunning(s.running)
+            }
+            // Seed each row's projection baseline into the per-session value
+            // store (cold titles surface without opening the session). Per-key
+            // apply, not seed(): the list block is a partial baseline — the
+            // cold cache serves only version-matching keys — so an absent key
+            // must not clear; higher-seq-wins still keeps a stale list block
+            // from overwriting a newer push frame or tail baseline.
+            for (const s of collected) {
+              const block = s.projections
+              if (block === undefined) continue
+              const store = this.projectionStore(s.sessionId)
+              const values = block.values as Record<string, unknown>
+              for (const key of Object.keys(values)) store.apply(key, values[key], block.asOfSeq)
+            }
+            this.notifier.markDirty()
+            return
           }
-          this.summaries = summaries
-          this.listState = 'idle'
-          this.listPhase = 'ready'
-          // Covers the empty-mutations pull (a plain baseline carries no edge).
-          this.syncCompletedNotifications()
-          // Push running/blank bits down to instantiated Sessions (the list is the authoritative summary source).
-          for (const s of this.summaries) {
-            const session = this.sessions.get(s.sessionId)
-            if (session === undefined) continue
-            session.handleBlank(s.blank)
-            session.handleRunning(s.running)
-          }
-          // Seed each row's projection baseline into the per-session value
-          // store (cold titles surface without opening the session). Per-key
-          // apply, not seed(): the list block is a partial baseline — the
-          // cold cache serves only version-matching keys — so an absent key
-          // must not clear; higher-seq-wins still keeps a stale list block
-          // from overwriting a newer push frame or tail baseline.
-          for (const s of result.value.items) {
-            const block = s.projections
-            if (block === undefined) continue
-            const store = this.projectionStore(s.sessionId)
-            const values = block.values as Record<string, unknown>
-            for (const key of Object.keys(values)) store.apply(key, values[key], block.asOfSeq)
-          }
-        } else {
-          this.listState = 'error'
-          this.listError = result.error
+          cursor = result.value.nextCursor
         }
-      } catch (error) {
+      } catch (error: unknown) {
         this.listState = 'error'
         const folded = transportError<never>(error)
         /* v8 ignore next -- the `? null` arm is unreachable: transportError always returns ok:false. */
         this.listError = folded.ok ? null : folded.error
-      } finally {
-        this.listMutations = null
-        this.listInflight = null
         this.notifier.markDirty()
+      } finally {
+        this.listInflight = null
+        this.listMutations = null
       }
     })()
     return this.listInflight

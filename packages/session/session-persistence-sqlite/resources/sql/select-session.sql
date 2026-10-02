@@ -1,4 +1,4 @@
 SELECT id, version, created_at, cwd, parent_session, seed_length, origin,
-       delegation_depth, agent_preset, incarnation, revision
+       delegation_depth, agent_preset, incarnation, revision, last_prompt_at
 FROM sessions
 WHERE id = ?;

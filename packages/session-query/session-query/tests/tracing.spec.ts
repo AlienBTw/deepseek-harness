@@ -91,6 +91,10 @@ class TracePersistence extends SessionPersistence {
     return Promise.resolve(result)
   }
 
+  async delete(id: SessionIdType, _signal?: AbortSignal): Promise<void> {
+    TracePersistence.entries.delete(id)
+  }
+
   listSnapshots(): Promise<never[]> {
     return Promise.resolve([])
   }

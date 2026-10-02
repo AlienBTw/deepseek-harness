@@ -110,14 +110,6 @@ export abstract class CodeRuntime extends Service {
    */
   abstract readonly language: string
 
-  /**
-   * The execution substrate, as a lowercase identifier. Informational, not
-   * gating — a descriptor so deployments and diagnostics can tell backends
-   * apart, not a security claim. Well-known values: `'worker-thread'`,
-   * `'process'`, `'container'`.
-   */
-  abstract readonly isolation: string
-
   constructor(ctx: Context) {
     super(ctx, 'codeRuntime')
   }

@@ -1,0 +1,8 @@
+{
+  "steps": [
+    {
+      "op": "prompt",
+      "text": "Establish a durable compaction-then-recall premise. Record this historical evidence including the unique marker RECALL_MARKER_7f3a: the snapshot uses keyless replay; persistence uses JSONL; the assembled headless application loads its real Cordis composition; model-visible inputs remain logged; tool calls and results remain paired and ordered; context overflow retains the original failure while recovery is attempted; compaction opens with compaction/start and closes with compaction/end; a successful auxiliary summary records compaction/summary provenance with a recallable checkpoint footer; the replacement surface shadows only an older balanced range; the checkpoint remains smaller than the history it replaces; the newest tool result remains verbatim; the retried request sees that checkpoint; history_read and history_search remain available after compaction; and no external API key is needed. Emit the marker RECALL_MARKER_7f3a through bash, then after any required recovery call history_search for RECALL_MARKER_7f3a and finish with the exact words RECALL OK."
+    }
+  ]
+}

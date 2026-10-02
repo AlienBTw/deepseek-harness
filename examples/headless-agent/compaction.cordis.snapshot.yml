@@ -1,4 +1,6 @@
 # Keyless context-overflow composition for the assembled compaction snapshot.
+# Patches the live recallable provider (not compaction-basic) so checkpoint
+# footers point at history_read, and pins llm-replay to the harness file env.
 - id: base
   name: '@maple/cordis-plugin-include'
   config:
@@ -7,16 +9,21 @@
       - id: llm-deepseek
         name: '@maple/llm-deepseek'
         disabled: true
-      - id: compaction-basic
-        name: '@maple/compaction-basic'
+      - id: compaction-recallable
+        name: '@maple/compaction-recallable'
         config:
           thresholdRatio: 0.99
           retainTokens: 20
           maxTokens: 32
+          chunkTokens: 64
+          stubTokens: 16
+          compactionRetries: 1
       - insert:
           - id: llm-replay
             name: '@maple/llm-replay'
             config:
+              file: !!js process.env.DSH_SNAPSHOT_FILE ?? process.env.MAPLE_SNAPSHOT_FILE
+              overrideFile: !!js process.env.DSH_SNAPSHOT_OVERRIDE ?? process.env.MAPLE_SNAPSHOT_OVERRIDE
               providers:
                 - id: deepseek-official
                   models:

@@ -16,6 +16,8 @@ import { spawnSubprocess } from '@maple/subprocess-local/src/spawn.ts'
 
 const fixtureServer = fileURLToPath(new URL('./fixture-server.ts', import.meta.url))
 
+const LIVE = new AbortController().signal
+
 let root: string
 let ws: string
 let ctx: Context
@@ -67,13 +69,13 @@ function query(operation: LspProviderQuery['operation'] = 'goToDefinition'): Lsp
 }
 
 /** Run a query against an instance, reading the source first the way the provider does. */
-async function run(instance: LspInstance, operation: LspProviderQuery['operation'] = 'goToDefinition', signal?: AbortSignal): Promise<LspQueryResult> {
+async function run(instance: LspInstance, operation: LspProviderQuery['operation'] = 'goToDefinition', signal: AbortSignal = LIVE): Promise<LspQueryResult> {
   const workspace = {
-    target: await fs.resolve(ws),
+    target: await fs.resolve(ws, { signal: LIVE }),
     canonicalPath: ws,
     fileUrl: pathToFileURL(ws).href,
   }
-  const source = await readHostSource(fs, 'a.ts', workspace, 4_000_000)
+  const source = await readHostSource(fs, 'a.ts', workspace, 4_000_000, LIVE)
   return instance.query(query(operation), source, signal)
 }
 

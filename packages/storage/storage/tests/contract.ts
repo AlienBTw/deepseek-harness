@@ -98,5 +98,24 @@ export function runKvBackendContract(label: string, create: () => Promise<KvBack
       await backend.close()
       await backend.close()
     })
+
+    it('destroy removes the medium so a later open is empty', async () => {
+      const harness = await create()
+      const unit = await harness.backend.kv!.open(DESCRIPTOR)
+      await unit.putRecord('alpha', 'k', { v: 1 })
+      await unit.setGlobal({ g: 1 })
+      await unit.close()
+      await harness.backend.kv!.destroy(DESCRIPTOR)
+      // Idempotent when already gone.
+      await harness.backend.kv!.destroy(DESCRIPTOR)
+      await harness.backend.close()
+
+      const reopened = await harness.reopen()
+      const unit2 = await reopened.kv!.open(DESCRIPTOR)
+      const snapshot = await unit2.loadAll()
+      expect(snapshot.tables).toEqual({ alpha: {}, beta: {} })
+      expect(snapshot.global).toBeNull()
+      await reopened.close()
+    })
   })
 }

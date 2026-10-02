@@ -210,11 +210,10 @@ export async function compactSurfaceRegion(
     if (options.owner === null) signal?.throwIfAborted()
     assertStable(dependencies, session, summarized)
     stage = 'commit'
-    const pending = commitCompactionBody(session, startEvent, summarized)
+    result = commitCompactionBody(session, startEvent, summarized)
     closing = true
-    const endEvent = session.append('compaction/end', lifecycle)
+    session.append('compaction/end', lifecycle)
     closed = true
-    result = completeCompaction(pending, endEvent)
   } catch (error: unknown) {
     failure = { error, stage: closing ? 'commit' : stage }
     if (!closing) {
@@ -428,7 +427,7 @@ function commitCompactionBody(
   session: Session,
   startEvent: SessionEvent<'compaction/start'>,
   summarized: SummarizedCompaction,
-): Omit<CompactionResult, 'endSeq'> {
+): CompactionResult {
   const {
     start,
     end,
@@ -468,21 +467,10 @@ function commitCompactionBody(
     ...startEvent.data.sourceCommandId === undefined
       ? {}
       : { sourceCommandId: startEvent.data.sourceCommandId },
-    startSeq: startEvent.seq,
-    summarySeq: summaryEvent.seq,
-    summary,
     shadowedRange: { start, end },
     shadowedSeqs: [...shadowedSeqs],
     shadowedTokenCount,
   }
-}
-
-/** Attach the successfully appended close event to a pending result. */
-function completeCompaction(
-  pending: Omit<CompactionResult, 'endSeq'>,
-  endEvent: SessionEvent<'compaction/end'>,
-): CompactionResult {
-  return { ...pending, endSeq: endEvent.seq }
 }
 
 /**

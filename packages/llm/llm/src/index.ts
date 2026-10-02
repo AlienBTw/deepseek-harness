@@ -69,8 +69,6 @@ declare module '@maple/cordis' {
 
 /** Structured provider facts and cause accepted by {@link LlmError}. */
 export interface LlmErrorOptions extends ErrorOptions {
-  /** Valid HTTP status observed at the provider boundary. */
-  status?: number
   /** Positive finite provider-requested delay in milliseconds. */
   providerRetryAfterMs?: number
   /** Non-empty opaque provider request id. */
@@ -93,10 +91,6 @@ export class LlmError extends HarnessError {
   constructor(message: string, code: string, options?: LlmErrorOptions) {
     if (typeof message !== 'string' || message.length === 0) throw new Error('LlmError message must be a non-empty string')
     if (typeof code !== 'string' || code.length === 0) throw new Error('LlmError code must be a non-empty string')
-    if (options?.status !== undefined
-      && (!Number.isInteger(options.status) || options.status < 100 || options.status > 599)) {
-      throw new Error('LlmError status must be an integer from 100 through 599')
-    }
     if (options?.providerRetryAfterMs !== undefined
       && (!Number.isFinite(options.providerRetryAfterMs) || options.providerRetryAfterMs <= 0)) {
       throw new Error('LlmError providerRetryAfterMs must be a positive finite number')
@@ -110,7 +104,6 @@ export class LlmError extends HarnessError {
     this.failure = Object.freeze({
       message,
       code,
-      ...options?.status === undefined ? {} : { status: options.status },
       ...options?.providerRetryAfterMs === undefined ? {} : { providerRetryAfterMs: options.providerRetryAfterMs },
       ...options?.requestId === undefined ? {} : { requestId: options.requestId },
     })

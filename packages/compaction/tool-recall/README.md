@@ -24,7 +24,7 @@ Prefix-stable while the definitions and visibility are unchanged. Plugin lifecyc
 
 #### What the model sees
 
-Each assistant tool call retains its requested parameters in arguments. `history_read` returns paginated shadowed spans with sequence numbers and line boundaries; `history_search` returns matching snippets with checkpoint IDs and sequence numbers.
+Each assistant tool call retains its requested parameters in arguments. `history_read` returns paginated shadowed spans with sequence numbers and line boundaries; `history_search` returns matching snippets with checkpoint IDs, sequence numbers, and coverage metadata (`scanned`/`matched`/`truncated`/`mode`). Search uses a bounded in-memory inverted index over shadowed transcripts, and optionally accelerates candidates through `sessionQuery` FTS when that service is mounted.
 
 #### Token effect
 

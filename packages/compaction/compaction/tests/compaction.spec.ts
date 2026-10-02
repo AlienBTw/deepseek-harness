@@ -72,13 +72,9 @@ class StubCompactionEngine extends CompactionEngine {
       surfaceOp: { op: 'replace', start, end },
       sourceEventSeqs: [startEvent.seq, summaryEvent.seq, ...shadowedSeqs],
     })
-    const endEvent = session.append('compaction/end', { compactionId, turn: 0 })
+    session.append('compaction/end', { compactionId, turn: 0 })
     return {
       compactionId,
-      startSeq: startEvent.seq,
-      summarySeq: summaryEvent.seq,
-      endSeq: endEvent.seq,
-      summary,
       shadowedRange: { start, end },
       shadowedSeqs,
       shadowedTokenCount: 0,
@@ -136,11 +132,14 @@ describe('CompactionEngine seam', () => {
     // verify the runtime value is absent.
     const raw = startEvent as unknown as { surfaceOp?: unknown }
     expect(raw.surfaceOp).toBeUndefined()
-    expect(result.summary).toEqual([{ type: 'text', text: 'stub' }])
-    expect(result.summarySeq).toBeGreaterThan(result.startSeq)
-    expect(result.endSeq).toBeGreaterThan(result.summarySeq)
+    const summaryEvent = session.events.find(e => e.type === 'compaction/summary')
+    expect(summaryEvent).toMatchObject({
+      type: 'compaction/summary',
+      data: { summary: [{ type: 'text', text: 'stub' }], compactionId: result.compactionId },
+    })
     expect(result.shadowedRange).toEqual({ start: original.seq, end: original.seq })
     expect(result.shadowedSeqs).toEqual([original.seq])
+    expect(result.shadowedTokenCount).toBe(0)
     const checkpoint = session.events.find(event => event.type === 'user/message'
       && isCompactCheckpointSource(event.data.source))
     expect(checkpoint?.type === 'user/message' && checkpoint.data.source)

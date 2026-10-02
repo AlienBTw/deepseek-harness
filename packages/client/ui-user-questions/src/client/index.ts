@@ -54,7 +54,12 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-user-questions: dictionaries')
 
   ctx.slots.inject('conversation.composer', () => ctx.slots.register(
-    { name: 'conversation.composer', select: selectQuestion, locale: NS },
+    {
+      name: 'conversation.composer',
+      select: selectQuestion,
+      phase: 'interaction',
+      locale: NS,
+    },
     QuestionComposer,
   ))
 }

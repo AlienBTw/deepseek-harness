@@ -75,8 +75,8 @@ export class SandboxedFileSystem extends LocalFileSystem {
    * atomic write. See {@link checkedTarget}.
    * @param target - the resolved target to write.
    * @param content - the full new file content.
-   * @param expected - the write intent guarding the write; omit for unconditional.
-   * @param signal - aborts before atomic publication takes effect.
+   * @param expected - the write intent guarding the write; `undefined` for unconditional.
+   * @param signal - caller-owned cancellation before atomic publication takes effect.
    * @param sandboxPolicy - the per-call mode and workspace root; omit to use
    *   the deployment fallback.
    * @returns the write outcome from the inherited backend.
@@ -84,11 +84,11 @@ export class SandboxedFileSystem extends LocalFileSystem {
   override async writeText(
     target: FsTarget,
     content: string,
-    expected?: FsWriteIntent,
-    signal?: AbortSignal,
+    expected: FsWriteIntent | undefined,
+    signal: AbortSignal,
     sandboxPolicy?: SandboxExecutionPolicy,
   ): Promise<FsWriteOutcome> {
-    return super.writeText(await this.checkedTarget(target, sandboxPolicy), content, expected, signal)
+    return super.writeText(await this.checkedTarget(target, signal, sandboxPolicy), content, expected, signal)
   }
 
   /**
@@ -96,8 +96,8 @@ export class SandboxedFileSystem extends LocalFileSystem {
    * atomic edit. See {@link checkedTarget}.
    * @param target - the resolved target to edit.
    * @param edit - the literal search/replace request.
-   * @param expected - the version guard; omit for an unconditional edit.
-   * @param signal - aborts before atomic publication takes effect.
+   * @param expected - the version guard; `undefined` for an unconditional edit.
+   * @param signal - caller-owned cancellation before atomic publication takes effect.
    * @param sandboxPolicy - the per-call mode and workspace root; omit to use
    *   the deployment fallback.
    * @returns the edit outcome from the inherited backend.
@@ -105,11 +105,11 @@ export class SandboxedFileSystem extends LocalFileSystem {
   override async editText(
     target: FsTarget,
     edit: FsEditRequest,
-    expected?: { version: FsVersion },
-    signal?: AbortSignal,
+    expected: { version: FsVersion } | undefined,
+    signal: AbortSignal,
     sandboxPolicy?: SandboxExecutionPolicy,
   ): Promise<FsEditOutcome> {
-    return super.editText(await this.checkedTarget(target, sandboxPolicy), edit, expected, signal)
+    return super.editText(await this.checkedTarget(target, signal, sandboxPolicy), edit, expected, signal)
   }
 
   /**
@@ -122,8 +122,15 @@ export class SandboxedFileSystem extends LocalFileSystem {
    * the caller's target unfenced. Throws the structured `FS_SANDBOX_DENIED` on
    * refusal — the tool layer maps it to the model-facing `[sandbox: …]` marker
    * and the escalation hint.
+   * @param target - the resolved target about to mutate.
+   * @param signal - caller-owned cancellation for the containment re-resolve.
+   * @param sandboxPolicy - the per-call mode and workspace root.
    */
-  private async checkedTarget(target: FsTarget, sandboxPolicy?: SandboxExecutionPolicy): Promise<FsTarget> {
+  private async checkedTarget(
+    target: FsTarget,
+    signal: AbortSignal,
+    sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<FsTarget> {
     const policy = sandboxPolicy ?? this.ctx.sandboxPolicy.resolve()
     const { mode } = policy
     if (mode === 'danger-full-access') return target
@@ -133,7 +140,7 @@ export class SandboxedFileSystem extends LocalFileSystem {
     // workspace-write: containment on the FRESH canonical path (catches a
     // symlink ancestor swapped since the tool resolved this target), and the
     // mutation delegates with THIS fresh target — never the stale one.
-    const fresh = await this.resolve(target.displayPath)
+    const fresh = await this.resolve(target.displayPath, { signal })
     let contained = false
     for (const root of writableRoots(policy)) {
       if (await isPathUnder(fresh.targetKey, root)) {

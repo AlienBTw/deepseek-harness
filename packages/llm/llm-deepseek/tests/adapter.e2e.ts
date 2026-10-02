@@ -19,6 +19,9 @@ import type {
 import { LocalCredentialProvider } from '@maple/credentials-local'
 import * as LlmDeepSeek from '@maple/llm-deepseek'
 import type { Config } from '@maple/llm-deepseek'
+import { DeepSeekFileId } from '../src/file-id.ts'
+import type { DeepSeekFileId as DeepSeekFileIdType } from '../src/file-id.ts'
+import { DeepSeekFilesClient } from '../src/files-api.ts'
 import { assemble, type AssembledResult } from './assemble.ts'
 
 /**
@@ -142,7 +145,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('llm-deepseek e2e (real API)', ()
     const ctx = await harness(VISION, { baseURL })
     await ctx.plugin(E2eAttachmentStore)
     const attachments = ctx.attachments as E2eAttachmentStore
-    let uploadedFile: LlmDeepSeek.DeepSeekFileIdType | undefined
+    let uploadedFile: DeepSeekFileIdType | undefined
     const nativeFetch = globalThis.fetch
     const observedFetch: typeof fetch = async (input, init) => {
       const response = await nativeFetch(input, init)
@@ -150,12 +153,12 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('llm-deepseek e2e (real API)', ()
       const method = init?.method ?? (input instanceof Request ? input.method : 'GET')
       if (method === 'POST' && url.pathname.endsWith('/files') && response.ok) {
         const value = await response.clone().json() as { id?: unknown }
-        if (typeof value.id === 'string') uploadedFile = LlmDeepSeek.DeepSeekFileId(value.id)
+        if (typeof value.id === 'string') uploadedFile = DeepSeekFileId(value.id)
       }
       return response
     }
     vi.stubGlobal('fetch', observedFetch)
-    const files = new LlmDeepSeek.DeepSeekFilesClient({ baseURL, apiKey: key })
+    const files = new DeepSeekFilesClient({ baseURL, apiKey: key })
 
     try {
       const result = await assemble(ctx, {

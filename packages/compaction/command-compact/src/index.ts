@@ -5,12 +5,31 @@
 
 import type { Context } from '@maple/cordis'
 import { ManualCompactionError } from '@maple/compaction'
+import type { CompactionId } from '@maple/compaction'
 import type { CommandInvocation, CommandResult } from '@maple/commands'
+import type { Session } from '@maple/session'
 
 export const name = 'command-compact'
 export const inject = ['commands', 'compaction']
 
 const USAGE = 'Usage: /compact (no arguments)'
+
+/**
+ * Locate the durable `compaction/summary` seq for a completed transaction.
+ * @param session - session that owns the compaction lifecycle events.
+ * @param compactionId - identity shared by start/summary/end.
+ * @returns the summary event seq, or `undefined` when absent (should not happen after success).
+ */
+function summarySeqFor(session: Session, compactionId: CompactionId): number | undefined {
+  for (let i = session.events.length - 1; i >= 0; i -= 1) {
+    const event = session.events[i]
+    if (event === undefined) continue
+    if (event.type === 'compaction/summary' && event.data.compactionId === compactionId) {
+      return event.seq
+    }
+  }
+  return undefined
+}
 
 /** Fail loudly if a locally closed union gains an unhandled member. */
 /* v8 ignore start -- closed-union backstop is unreachable without violating the TypeScript contract */
@@ -65,10 +84,11 @@ async function executeCompact(
   try {
     const result = await ctx.compaction.compactNow(invocation.agent, invocation.signal, invocation.commandId)
     if (result === null) return { kind: 'success', text: 'No compactable history yet.' }
+    const summarySeq = summarySeqFor(invocation.agent.session, result.compactionId)
     return {
       kind: 'success',
       text: `Compacted ${result.shadowedSeqs.length} history items (~${result.shadowedTokenCount} tokens).`,
-      sourceEventSeq: result.summarySeq,
+      ...summarySeq === undefined ? {} : { sourceEventSeq: summarySeq },
     }
   } catch (error: unknown) {
     if (invocation.signal.aborted) return { kind: 'error', text: 'Compaction cancelled.' }

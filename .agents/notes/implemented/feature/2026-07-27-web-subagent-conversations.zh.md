@@ -22,7 +22,7 @@ Web 产品通过页头的当前 title 谱系区域公开选中会话中由会话
 
 停止一个已寻址 child 绝不回退到 `session.cancel`。`SubagentRuntime.followup()` 只负责消息被 inbox 接受前的准入，不授予取消句柄；正在运行的可继续 child 通过专用的 `subagent.interrupt` 路由停止，遵循[当前轮次中断约定](2026-08-06-continuable-subagent-interrupt.zh.md)，该约定会停放并保留待处理工作，而不是将其丢弃。one-shot child 在 Web 端仍不可取消。
 
-本决策涵盖 Web 端发现、transcript 查看与经 parent 授权的用户继续交互。它不会让 subagent 成为用户独立所有的对象；这类产品仍然属于[交互式 side session](../../proposed/feature/2026-07-08-interactive-side-sessions.zh.md)。
+本决策涵盖 Web 端发现、transcript 查看与经 parent 授权的用户继续交互。它不会让 subagent 成为用户独立所有的对象；这类产品仍然属于[交互式 side session](2026-07-08-interactive-side-sessions.zh.md)。
 
 ## 设计上下文
 

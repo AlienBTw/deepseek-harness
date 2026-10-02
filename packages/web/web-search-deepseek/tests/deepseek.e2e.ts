@@ -6,11 +6,12 @@ import {
   DEEPSEEK_DEFAULT_MAX_TOKENS,
   DEEPSEEK_DEFAULT_MAX_USES,
   DEEPSEEK_DEFAULT_MODEL,
-} from '@maple/web-search-deepseek'
+} from '../src/provider.ts'
 
 /** Construct the provider over a fixed options value; production passes a live thunk. */
-import type { DeepSeekSearchProviderOptions } from '@maple/web-search-deepseek'
+import type { DeepSeekSearchProviderOptions } from '../src/provider.ts'
 
+const aliveSignal = new AbortController().signal
 const searchProvider = (options: DeepSeekSearchProviderOptions): DeepSeekSearchProvider =>
   new DeepSeekSearchProvider(() => options)
 
@@ -32,7 +33,7 @@ maybe('DeepSeekSearchProvider real API', () => {
       maxTokens: DEEPSEEK_DEFAULT_MAX_TOKENS,
       maxUses: DEEPSEEK_DEFAULT_MAX_USES,
     })
-    const result = await provider.search({ query: 'What is Maple Harness?', maxResults: 5 })
+    const result = await provider.search({ query: 'What is Maple Harness?', maxResults: 5 }, aliveSignal)
     expect(result.sources.length).toBeGreaterThan(0)
     for (const source of result.sources) expect(source.url).toMatch(/^https?:\/\//)
   }, 60_000)

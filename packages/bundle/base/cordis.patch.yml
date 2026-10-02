@@ -85,6 +85,9 @@
     # `$MAPLE_HOME/.credentials.yaml`, with project and user `.env` fallbacks.
     # Adapters resolve references per request; the Models page writes only the
     # managed document, which is never materialized into the process environment.
+    # Optional stronger store: replace `name` with `@maple/credentials-keychain`
+    # (and depend on that package) to keep secrets in the OS keychain instead —
+    # see packages/credentials/credentials-keychain/README.md.
     - id: credentials
       name: '@maple/credentials-local'
 
@@ -405,6 +408,13 @@
       config:
         thresholds: [3, 5, 8]
         argumentsPreviewChars: 500
+
+    # Optional spend ceilings; omit both fields to leave the plugin inert.
+    - id: run-budget
+      name: '@maple/run-budget'
+
+    - id: sidechat
+      name: '@maple/sidechat'
 
     # Every mode enables the stable model-facing web_search tool. DeepSeek search
     # resolves the same DEEPSEEK_API_KEY credential the Models page manages for

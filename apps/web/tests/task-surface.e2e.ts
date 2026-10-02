@@ -16,7 +16,7 @@ const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/task-surface', import.me
 const UI_EXPECTED = fileURLToPath(new URL('./snapshots/task-surface/ui.expected.md', import.meta.url))
 const MODE = webSnapshotMode()
 const SEED_ID = 'task-surface-web-e2e'
-const PROMPT = 'Use the show_task_surface tool with title "Choose Environment", one markdown section saying "Pick staging or production.", and submit label "Continue". Do not add fields. After the tool returns, stop.'
+const PROMPT = 'Use the show_task_surface tool with title "Choose Environment", description "Pick staging or production.", one markdown section saying "Pick staging or production.", a required choice field "env" labeled "Environment" with Staging and Production options, and submit label "Continue". After the tool returns, stop.'
 
 describe.skipIf(MODE === 'record')('web e2e: Task Surface dock over seeded session', () => {
   let scaffold: WebScaffold
@@ -49,10 +49,13 @@ describe.skipIf(MODE === 'record')('web e2e: Task Surface dock over seeded sessi
     await scaffold?.close()
   })
 
-  it('shows the active Task Surface title and submit control', async () => {
+  it('shows sections, fields, dismiss, and submit on the active Task Surface dock', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-task-surface'))
     const dock = page.locator('[data-task-surface-dock]')
     await expect.poll(() => dock.getByText('Choose Environment', { exact: true }).count()).toBe(1)
+    await expect.poll(() => dock.getByText('Pick staging or production.').count()).toBeGreaterThan(0)
+    await expect.poll(() => dock.getByRole('radio', { name: 'Staging' }).count()).toBe(1)
+    await expect.poll(() => dock.getByRole('button', { name: 'Dismiss' }).count()).toBe(1)
     await expect.poll(() => dock.getByRole('button', { name: 'Continue' }).count()).toBe(1)
 
     const snapshot = (await captureStableAria(page, '[data-task-surface-dock]', scaffold.workspaceCwd))

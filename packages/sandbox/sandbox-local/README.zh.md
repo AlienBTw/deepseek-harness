@@ -8,7 +8,7 @@
 
 不受支持的平台和不可用 runner 会以 `SANDBOX_UNAVAILABLE` 拒绝执行；执行绝不会静默回退为不受限制。每次包装都携带结构化 runner 失败规则，使消费方能够区分损坏的沙箱与命令失败。
 
-策略逐调用传入；提供方只存储机制与缓存的 runner 结论。每次包装都会报告强制执行完整度，以及后端专用的拒绝签名和 runner 失败规则。Landlock 只有在退出码为 125，且仅排除完全匹配的部分强制执行通知后仍存在一行 `landlock-run:` 致命诊断时，才判定 runner 失败；携带该通知的子进程即使以 1、2 或 125 退出，也仍按子进程结果处理。Bubblewrap 和 Seatbelt 仍仅依据签名，因为两者的公开约定均未保留 launcher 失败状态。消费方会直接 spawn 返回的 argv，因此 runner 缺失或不可执行属于带外 spawn 失败，而成功启动的子进程以 126 或 127 退出时仍按普通结果处理。`runnerCommand` 会跳过探测，并要求为自定义 runner 自身的致命方言提供一个或多个非空、单行、不区分大小写的 `runnerFailureSignatures` 条目。由于其机制未知，它会同时携带两种 Linux 拒绝方言。`probeTimeoutMs` 限定功能探测的时长。[沙箱 Agent Note](../../../.agents/notes/implemented/feature/2026-07-06-sandbox.zh.md) 负责说明选择与失败语义。
+策略逐调用传入；提供方只存储机制与缓存的 runner 结论。每次包装都会报告强制执行完整度，以及后端专用的拒绝签名和 runner 失败规则。Landlock 只有在退出码为 125，且仅排除完全匹配的部分强制执行通知后仍存在一行 `landlock-run:` 致命诊断时，才判定 runner 失败；携带该通知的子进程即使以 1、2 或 125 退出，也仍按子进程结果处理。Bubblewrap 和 Seatbelt 仍仅依据签名，因为两者的公开约定均未保留 launcher 失败状态。消费方会直接 spawn 返回的 argv，因此 runner 缺失或不可执行属于带外 spawn 失败，而成功启动的子进程以 126 或 127 退出时仍按普通结果处理。`runnerCommand` 会跳过探测，并要求为自定义 runner 自身的致命方言提供一个或多个非空、单行、不区分大小写的 `runnerFailureSignatures` 条目。由于其机制未知，它会同时携带两种 Linux 拒绝方言。`probeTimeoutMs` 限定功能探测的时长。**`requireFullSandboxEnforcement`**（默认 `false`）会在所选后端报告 `enforcement: 'partial'` 时让 `confine()` 抛出 `SANDBOX_UNAVAILABLE`。默认桌面与 web 组合保持为 false，使 partial 主机仍可运行并在 wrap 上报告完整度；高信任配置文件将其设为 `true`。[沙箱 Agent Note](../../../.agents/notes/implemented/feature/2026-07-06-sandbox.zh.md) 负责说明选择与失败语义。
 
 bwrap profile 将只读宿主根目录、全新的 `/dev` 与使用私有 PID 命名空间的 `/proc` 组合起来。命令可管理后代进程，但看不到宿主进程；隐藏宿主的 `/proc/<pid>` 条目，可以防止 `root`、`fd` 等魔法链接绕过其挂载约束。`workspace-write` 另加临时的 `/tmp` 与可写工作区绑定挂载。[私有 PID Agent Note](../../../.agents/notes/implemented/bug-fix/2026-08-06-bwrap-private-pid-namespace.zh.md)记录该边界。
 
@@ -35,8 +35,8 @@ Windows 档为每个工作区保留一个确定性写入 SID 和常驻 ACE，但
 
 ## 已知限制与暂缓事项
 
-- **Windows ACL 只能实现部分强制执行**：受限令牌必须保留 Everyone 以完成进程初始化，因此授予 Everyone 写访问的外部对象仍可写；NTFS 硬链接也会使工作区路径与外部路径指向同一个文件对象。提供方报告 `enforcement: 'partial'`，而不会把该边界夸大为完整强制执行。
-- **Landlock 可能只实现部分强制执行**：较旧且受支持的内核 ABI 只能限制自身公开的访问类别，因此报告 `enforcement: 'partial'`，不会夸大为完整强制执行。
+- **Windows ACL 只能实现部分强制执行**：受限令牌必须保留 Everyone 以完成进程初始化，因此授予 Everyone 写访问的外部对象仍可写；NTFS 硬链接也会使工作区路径与外部路径指向同一个文件对象；FAT/exFAT 卷没有 NTFS ACL，因此 ACL 授权无法约束它们。提供方报告 `enforcement: 'partial'`，而不会把该边界夸大为完整强制执行。将 `requireFullSandboxEnforcement: true` 的高信任部署会因此拒绝 Windows ACL 档（以及任何其他 partial 后端），而不是在这些缺口下继续运行。
+- **Landlock 可能只实现部分强制执行**：较旧且受支持的内核 ABI 只能限制自身公开的访问类别，因此报告 `enforcement: 'partial'`，不会夸大为完整强制执行；同一高信任 Config 会拒绝该档。
 - **Seatbelt 依赖已弃用的 `sandbox-exec`**：macOS 仍会提供它，但若 Apple 移除该私有策略引擎，该提供方无法替换或探测。
 - **runner 选择在提供方生命周期内缓存**：安装、移除或修复 runner 后，必须重载插件才能改变选择。
 - **`runnerCommand` 是操作方断言**：配置的自定义 runner 会跳过功能探测，并假定它诚实实现与 bwrap 兼容的 profile；如果它本身是 Bash 脚本，其解释器启动发生在该脚本施加约束之前。

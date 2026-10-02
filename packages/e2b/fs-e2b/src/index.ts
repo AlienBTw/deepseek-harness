@@ -31,8 +31,8 @@ const VERSION_METADATA_KEY = 'dsh-version'
 const BINARY_SAMPLE_BYTES = 8192
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
 
-function assertNotAborted(signal: AbortSignal | undefined, operation: string): void {
-  if (signal?.aborted === true) throw new FsError(`${operation} aborted`, 'FS_ABORTED')
+function assertNotAborted(signal: AbortSignal, operation: string): void {
+  if (signal.aborted) throw new FsError(`${operation} aborted`, 'FS_ABORTED')
 }
 
 function normalizeLineEndings(value: string): string {
@@ -82,18 +82,18 @@ function decodeCanonicalPath(encoded: string): string {
   return path
 }
 
-function signalOpts(signal: AbortSignal | undefined): { signal?: AbortSignal } {
-  return signal === undefined ? {} : { signal }
+function signalOpts(signal: AbortSignal): { signal: AbortSignal } {
+  return { signal }
 }
 
-function commandOpts(signal: AbortSignal | undefined): { envs: Record<string, string>; signal?: AbortSignal } {
+function commandOpts(signal: AbortSignal): { envs: Record<string, string>; signal: AbortSignal } {
   return { envs: e2bControlEnvs(), ...signalOpts(signal) }
 }
 
 async function openReadStream(
   sandbox: Sandbox,
   target: FsTarget,
-  signal: AbortSignal | undefined,
+  signal: AbortSignal,
 ): Promise<ReadableStream<Uint8Array>> {
   try {
     // The pinned SDK's stream overload lies for empty files: content-length 0
@@ -132,7 +132,7 @@ function entryVersion(entry: EntryInfo): ReturnType<typeof FsVersion> {
   return FsVersion(`e2b:${createHash('sha256').update(facts).digest('hex')}`)
 }
 
-function mapError(error: unknown, operation: string, displayPath: string, signal?: AbortSignal): FsError {
+function mapError(error: unknown, operation: string, displayPath: string, signal: AbortSignal): FsError {
   if (error instanceof FsError) return error
   if (signal?.aborted === true || (error instanceof DOMException && error.name === 'AbortError')) {
     return new FsError(`${operation} aborted`, 'FS_ABORTED', { cause: error })
@@ -173,17 +173,17 @@ export class E2BFileSystem extends FileSystem {
 
   private readonly locks = new Map<string, Promise<unknown>>()
 
-  override async resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal }): Promise<FsTarget> {
-    assertNotAborted(opts?.signal, 'resolve')
+  override async resolve(path: string, opts: { cwd?: string; signal: AbortSignal }): Promise<FsTarget> {
+    assertNotAborted(opts.signal, 'resolve')
     if (path.trim().length === 0) throw new FsError('file_path must be a non-empty string', 'FS_NOT_FOUND')
-    const displayPath = posix.resolve(opts?.cwd ?? this.ctx.e2b.cwd, path)
+    const displayPath = posix.resolve(opts.cwd ?? this.ctx.e2b.cwd, path)
     try {
       const sandbox = await this.ctx.e2b.getSandbox()
-      const targetKey = await this.canonicalPath(sandbox, displayPath, opts?.signal)
-      assertNotAborted(opts?.signal, 'resolve')
+      const targetKey = await this.canonicalPath(sandbox, displayPath, opts.signal)
+      assertNotAborted(opts.signal, 'resolve')
       return { targetKey: FsTargetKey(targetKey), displayPath }
     } catch (error: unknown) {
-      throw mapError(error, 'resolve', displayPath, opts?.signal)
+      throw mapError(error, 'resolve', displayPath, opts.signal)
     }
   }
 
@@ -202,7 +202,7 @@ export class E2BFileSystem extends FileSystem {
     return relative === '' || (relative !== '..' && !relative.startsWith('../') && !posix.isAbsolute(relative))
   }
 
-  override async stat(target: FsTarget, signal?: AbortSignal): Promise<FsInfo | undefined> {
+  override async stat(target: FsTarget, signal: AbortSignal): Promise<FsInfo | undefined> {
     assertNotAborted(signal, 'stat')
     const entry = await this.probe(String(target.targetKey), target.displayPath, signal)
     if (entry === undefined) return undefined
@@ -213,7 +213,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  override async lstat(path: string, opts?: { cwd?: string }, signal?: AbortSignal): Promise<FsPathInfo | undefined> {
+  override async lstat(path: string, opts: { cwd?: string } | undefined, signal: AbortSignal): Promise<FsPathInfo | undefined> {
     assertNotAborted(signal, 'lstat')
     if (path.trim().length === 0) throw new FsError('file_path must be a non-empty string', 'FS_NOT_FOUND')
     const displayPath = posix.resolve(opts?.cwd ?? this.ctx.e2b.cwd, path)
@@ -233,7 +233,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  override async readText(target: FsTarget, signal?: AbortSignal): Promise<string> {
+  override async readText(target: FsTarget, signal: AbortSignal): Promise<string> {
     const sandbox = await this.ctx.e2b.getSandbox()
     await this.requireRegular(target, signal)
     try {
@@ -245,7 +245,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  override async readBytes(target: FsTarget, signal: AbortSignal | undefined, maxBytes: number): Promise<Uint8Array> {
+  override async readBytes(target: FsTarget, signal: AbortSignal, maxBytes: number): Promise<Uint8Array> {
     const sandbox = await this.ctx.e2b.getSandbox()
     const info = await this.requireRegular(target, signal)
     if (info.size !== undefined && info.size > maxBytes) {
@@ -292,7 +292,7 @@ export class E2BFileSystem extends FileSystem {
     return whole
   }
 
-  override async streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>> {
+  override async streamText(target: FsTarget, signal: AbortSignal): Promise<AsyncIterable<string>> {
     const sandbox = await this.ctx.e2b.getSandbox()
     await this.requireRegular(target, signal)
     const stream = await openReadStream(sandbox, target, signal)
@@ -343,7 +343,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  override async listDir(target: FsTarget, signal?: AbortSignal): Promise<FsDirEntry[]> {
+  override async listDir(target: FsTarget, signal: AbortSignal): Promise<FsDirEntry[]> {
     const info = await this.stat(target, signal)
     if (info === undefined) throw new FsError(`cannot list "${target.displayPath}": not found`, 'FS_NOT_FOUND')
     if (info.type !== 'directory') throw new FsError(`cannot list "${target.displayPath}": not a directory`, 'FS_NOT_DIRECTORY')
@@ -376,8 +376,8 @@ export class E2BFileSystem extends FileSystem {
   override async writeText(
     target: FsTarget,
     content: string,
-    expected?: FsWriteIntent,
-    signal?: AbortSignal,
+    expected: FsWriteIntent | undefined,
+    signal: AbortSignal,
   ): Promise<FsWriteOutcome> {
     return this.withLock(String(target.targetKey), async () => {
       const existing = await this.probe(String(target.targetKey), target.displayPath, signal)
@@ -405,8 +405,8 @@ export class E2BFileSystem extends FileSystem {
   override async editText(
     target: FsTarget,
     edit: FsEditRequest,
-    expected?: { version: ReturnType<typeof FsVersion> },
-    signal?: AbortSignal,
+    expected: { version: ReturnType<typeof FsVersion> } | undefined,
+    signal: AbortSignal,
   ): Promise<FsEditOutcome> {
     return this.withLock(String(target.targetKey), async () => {
       const existing = await this.probe(String(target.targetKey), target.displayPath, signal)
@@ -440,7 +440,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  private async canonicalPath(sandbox: Sandbox, path: string, signal?: AbortSignal): Promise<string> {
+  private async canonicalPath(sandbox: Sandbox, path: string, signal: AbortSignal): Promise<string> {
     try {
       const result = await sandbox.commands.run(
         `set -o pipefail; realpath -mz -- ${quoteE2BShellArg(path)} | base64 -w0`,
@@ -453,7 +453,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  private async probe(path: string, displayPath: string, signal?: AbortSignal): Promise<EntryInfo | undefined> {
+  private async probe(path: string, displayPath: string, signal: AbortSignal): Promise<EntryInfo | undefined> {
     assertNotAborted(signal, 'stat')
     try {
       const sandbox = await this.ctx.e2b.getSandbox()
@@ -466,7 +466,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  private async requireRegular(target: FsTarget, signal?: AbortSignal): Promise<FsInfo> {
+  private async requireRegular(target: FsTarget, signal: AbortSignal): Promise<FsInfo> {
     const info = await this.stat(target, signal)
     if (info === undefined) throw new FsError(`cannot read "${target.displayPath}": not found`, 'FS_NOT_FOUND')
     if (info.type !== 'file') throw new FsError(`cannot read "${target.displayPath}": not a regular file`, 'FS_NOT_REGULAR_FILE')
@@ -484,7 +484,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  private async readForDiff(target: FsTarget, signal?: AbortSignal): Promise<string | null> {
+  private async readForDiff(target: FsTarget, signal: AbortSignal): Promise<string | null> {
     try {
       const sandbox = await this.ctx.e2b.getSandbox()
       const bytes = await sandbox.files.read(String(target.targetKey), { format: 'bytes', ...signalOpts(signal) })
@@ -496,7 +496,7 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
-  private async readForEdit(target: FsTarget, signal?: AbortSignal): Promise<string> {
+  private async readForEdit(target: FsTarget, signal: AbortSignal): Promise<string> {
     try {
       const sandbox = await this.ctx.e2b.getSandbox()
       const bytes = await sandbox.files.read(String(target.targetKey), { format: 'bytes', ...signalOpts(signal) })
@@ -512,7 +512,7 @@ export class E2BFileSystem extends FileSystem {
     content: string,
     existing: EntryInfo | undefined,
     createIfAbsent: boolean,
-    signal?: AbortSignal,
+    signal: AbortSignal,
   ): Promise<ReturnType<typeof FsVersion>> {
     assertNotAborted(signal, 'write')
     const sandbox = await this.ctx.e2b.getSandbox()
@@ -545,7 +545,7 @@ export class E2BFileSystem extends FileSystem {
         const targetArg = quoteE2BShellArg(targetPath)
         const publication = await sandbox.commands.run(
           `if ln -T -- ${quoteE2BShellArg(temporary)} ${targetArg}; then printf created; elif test -e ${targetArg} || test -L ${targetArg}; then printf exists; else exit 1; fi`,
-          commandOpts(undefined),
+          commandOpts(signal),
         )
         if (publication.stdout === 'exists') {
           throw new FsError(

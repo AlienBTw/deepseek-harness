@@ -31,7 +31,7 @@ import { resolvePwshPath } from './resolve.ts'
  * pagers that would garble tool output. `TERM=dumb` is a POSIX concept and is
  * deliberately absent; `NO_COLOR` is honored by modern pwsh renderers.
  */
-export const ENV_OVERRIDES = {
+const ENV_OVERRIDES = {
   NO_COLOR: '1',
   PAGER: 'cat',
   GIT_PAGER: 'cat',
@@ -200,7 +200,7 @@ export class PwshLocalExecutor extends ShellExecutor {
       workdir: request.workdir ?? this.config.cwd ?? process.cwd(),
       timeoutMs,
       stdoutMaxBytes,
-      ...request.signal ? { signal: request.signal } : {},
+      signal: request.signal,
       ...request.stdin !== undefined ? { stdin: request.stdin } : {},
       ...request.env !== undefined ? { env: request.env } : {},
       ...request.mapleEnv !== undefined ? { mapleEnv: request.mapleEnv } : {},
@@ -222,7 +222,7 @@ export class PwshLocalExecutor extends ShellExecutor {
   private spawnSpec(
     spec: ShellExecSpec,
     stdoutMaxBytes: number,
-    signal: AbortSignal | undefined,
+    signal: AbortSignal,
     argv: readonly string[],
   ): SubprocessSpawnSpec {
     const collect = (maxBytes: number): SubprocessCollect =>
@@ -304,7 +304,7 @@ export class PwshLocalExecutor extends ShellExecutor {
       done: running.done.then((outcome) => {
         // Any signal termination is killed, including a command signaling itself.
         if (proc.status === 'running') {
-          proc.status = spec.signal?.aborted === true || outcome.signal !== null ? 'killed' : 'completed'
+          proc.status = spec.signal.aborted || outcome.signal !== null ? 'killed' : 'completed'
         }
         proc.exitCode = outcome.exitCode
         proc.signal = outcome.signal

@@ -23,10 +23,6 @@ const COMPACTION_ID = CompactionId('loader-command-compact-test')
 
 const RESULT: CompactionResult = {
   compactionId: COMPACTION_ID,
-  startSeq: 1,
-  summarySeq: 2,
-  endSeq: 3,
-  summary: [{ type: 'text', text: 'loader summary' }],
   shadowedRange: { start: 3, end: 8 },
   shadowedSeqs: [3, 5, 8],
   shadowedTokenCount: 99,
@@ -57,7 +53,7 @@ class LoaderCompactionEngine extends CompactionEngine {
     agent.session.append('compaction/start', { ...provenance, turn: null })
     agent.session.append('compaction/summary', {
       ...provenance,
-      summary: RESULT.summary,
+      summary: [{ type: 'text', text: 'loader summary' }],
       shadowedRange: RESULT.shadowedRange,
       shadowedSeqs: RESULT.shadowedSeqs,
       shadowedTokenCount: RESULT.shadowedTokenCount,
@@ -125,10 +121,12 @@ describe('command-compact real Loader composition', () => {
     })
     const execution = await context.commands.execute(agent, '/compact', [], new AbortController().signal)
     if (execution === undefined) throw new Error('Loader composition did not resolve /compact')
+    const summaryEvent = session.events.find(event => event.type === 'compaction/summary')
+    expect(summaryEvent).toBeDefined()
     expect(execution.result).toEqual({
       kind: 'success',
       text: 'Compacted 3 history items (~99 tokens).',
-      sourceEventSeq: RESULT.summarySeq,
+      sourceEventSeq: summaryEvent!.seq,
     })
     expect(session.events.map(event => ({ type: event.type, data: event.data }))).toEqual([
       {
@@ -153,7 +151,7 @@ describe('command-compact real Loader composition', () => {
         data: {
           compactionId: COMPACTION_ID,
           sourceCommandId: execution.commandId,
-          summary: RESULT.summary,
+          summary: [{ type: 'text', text: 'loader summary' }],
           shadowedRange: RESULT.shadowedRange,
           shadowedSeqs: RESULT.shadowedSeqs,
           shadowedTokenCount: RESULT.shadowedTokenCount,
@@ -175,7 +173,7 @@ describe('command-compact real Loader composition', () => {
           commandId: execution.commandId,
           kind: 'success',
           text: 'Compacted 3 history items (~99 tokens).',
-          sourceEventSeq: RESULT.summarySeq,
+          sourceEventSeq: summaryEvent!.seq,
         },
       },
     ])

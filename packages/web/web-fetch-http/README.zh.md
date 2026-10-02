@@ -17,6 +17,7 @@
 ## 传输卫生
 
 - 只接受 `http:` 和 `https:` URL；拒绝 URL 中的凭据（`WEB_BLOCKED_URL`）以及过长／格式错误的 URL（`WEB_INVALID_URL`）。
+- DNS 解析后拒绝私有、loopback、link-local（含云元数据 `169.254.169.254`）、CGNAT 与 multicast 目标（`WEB_BLOCKED_URL`）；每一跳重定向都会重新检查。仅可通过显式 `allowPrivateNetwork: true` 覆盖。
 - 强制执行 URL 最大长度、响应字节上限（`WEB_FETCH_TOO_LARGE`）、解码主体字符上限、超时（`WEB_FETCH_TIMEOUT`）和重定向跳数上限。
 - 把调用方的中止信号（`WEB_ABORTED`）传播到网络请求与流式读取。
 - 只跟随**同源**重定向；跨源重定向以 `WEB_REDIRECT_BLOCKED` 失败，要求发起新的工具调用（沿用 Claude Code 的 WebFetch 模式）。
@@ -33,6 +34,7 @@
 | `timeoutMs` | `30_000` | Node 定时器范围内的抓取超时：直接 `ctx.web.fetch()` 调用方的资源兜底，而非面向模型的工具调用预算（后者属于 `dsh-tool-call-timeout-policy`）。 |
 | `maxRedirects` | `5` | 同源重定向最大跳数（`0` 表示完全不跟随）。 |
 | `userAgent` | `deepseek-harness/…` | `User-Agent` 标头。 |
+| `allowPrivateNetwork` | `false` | 为 `true` 时跳过 DNS 解析后的私有／loopback／link-local／multicast 检查。仅用于受信实验室配置；绝不可由其他设置隐式打开。 |
 
 数值限制会在插件构造时验证：除 `maxRedirects` 外，每个上限都必须是正的有限数；`maxRedirects` 必须是非负整数。无效值会抛出异常，不会静默构造限制荒谬的提供方。
 
@@ -46,6 +48,6 @@
 
 ## 已知限制与暂缓事项
 
-- **SSRF／私有网络防护暂缓**：不会阻止私有、loopback、link-local、multicast 或其他非公开目标，也不进行 DNS 解析后验证或逐跳重新验证（见 [web 能力 seam Agent Note](../../../.agents/notes/implemented/architecture/2026-06-24-web-capability-seam.zh.md)）。在此功能落地前，该提供方是 SSRF 原语；能够访问敏感内部网络目标的部署**禁止启用它**。
+- **DNS 解析后再验证不会把 TCP 连接钉到已检查的地址** — lookup 与 `fetch()` 之间仍存在 TOCTOU／DNS rebinding 窗口；连接到已验证 IP（Host 标头／自定义 dispatcher）仍属暂缓工作（见 [web 能力 seam Agent Note](../../../.agents/notes/implemented/architecture/2026-06-24-web-capability-seam.zh.md) 与 [SSRF 目标策略](../../../.agents/notes/implemented/architecture/2026-09-28-web-fetch-ssrf-destination-policy.zh.md)）。
 - **只解码文本内容**：包括 html/xhtml 与 `text/*` 加 JSON/XML 家族；缺少 `Content-Type` 或任何二进制类型都会抛出 `WEB_UNSUPPORTED_CONTENT_TYPE`，可提取文本的 PDF 解码属于明确的暂缓工作。
 - **charset 只来自 `Content-Type` 标头**（默认为 UTF-8）：HTML `<meta charset>` 声明会被忽略；声明但无法识别的 charset 标签会抛出异常，而非回退。

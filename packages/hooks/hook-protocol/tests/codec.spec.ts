@@ -88,6 +88,13 @@ describe('parseHookOutput — structured stdout (exit 0 only)', () => {
     expect(out.updatedInput).toEqual({ command: 'safe' })
   })
 
+  it('parses top-level updatedInput when hookSpecificOutput omits it', () => {
+    const out = parseHookOutput(0, JSON.stringify({
+      updatedInput: { command: 'codex-style' },
+    }), '')
+    expect(out.updatedInput).toEqual({ command: 'codex-style' })
+  })
+
   it('an unknown decision string is ignored (not coerced)', () => {
     expect(parseHookOutput(0, JSON.stringify({ decision: 'maybe' }), '').decision).toBeUndefined()
   })

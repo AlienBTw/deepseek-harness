@@ -189,6 +189,13 @@ class HarnessClient:
             raise TypeError(f"{method} response must be a JSON object")
         return response_model.model_validate(result)
 
+    def notify(self, method: str, params: JsonObject | None = None) -> None:
+        """Send a JSON-RPC notification (no response id) to the runtime."""
+        message: JsonObject = {"jsonrpc": "2.0", "method": method}
+        if params is not None:
+            message["params"] = params
+        self._write_message(message)
+
     def next_notification(self) -> Notification:
         item = self._notifications.get()
         if isinstance(item, BaseException):

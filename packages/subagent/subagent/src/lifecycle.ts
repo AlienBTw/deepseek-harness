@@ -246,6 +246,8 @@ function epochStopReason(events: readonly SessionEvent[]): SubagentResult['stopR
     // this epoch had claimed: the work was declined, not done.
     case 'blocked':
       return 'refusal'
+    case 'quota':
+      return 'error'
     // A clean ending and no accounting turn at all share one rule: the epoch
     // finished what it was given unless a cancelled queue says otherwise.
     case undefined:

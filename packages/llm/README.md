@@ -7,6 +7,7 @@ The LLM seam and its provider adapters. The `llm` package owns both the Service 
 | Package | Role | ctx key |
 |---|---|---|
 | [`llm/`](llm/README.md) | LLM service and shared streaming vocabulary | `ctx.llm` |
+| [`token-count/`](token-count/README.md) | Shared cl100k_base counting (js-tiktoken) | — |
 | [`token-meter/`](token-meter/README.md) | Replay-aware token measurement | `ctx.tokenMeter` |
 | [`llm-retry/`](llm-retry/README.md) | Provider-scoped retry policy | listens to `agent/request-error` |
 | [`llm-deepseek/`](llm-deepseek/README.md) | Direct DeepSeek adapter | registers on `ctx.llm` |

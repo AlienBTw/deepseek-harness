@@ -314,6 +314,42 @@ describe('the default landlock probe (launcher CLI contract)', () => {
     expect(sandbox.confine(['true'], RO).enforcement).toBe('partial')
   })
 
+  it('requireFullSandboxEnforcement rejects a partial landlock backend', async () => {
+    const launcher = fakeLauncher('landlock: partially enforced (older ABI)')
+    const { sandbox } = await setup(
+      { requireFullSandboxEnforcement: true },
+      { platform: 'linux', probeBwrap: () => false, landlockLauncher: launcher },
+    )
+    expect(() => sandbox.confine(['true'], RO)).toThrow(SandboxUnavailableError)
+    try {
+      sandbox.confine(['true'], RO)
+    } catch (error) {
+      expect(error).toBeInstanceOf(SandboxUnavailableError)
+      expect((error as SandboxUnavailableError).code).toBe(SANDBOX_UNAVAILABLE)
+      expect(String(error)).toMatch(/requireFullSandboxEnforcement rejects partial backend "landlock"/)
+    }
+  })
+
+  it('requireFullSandboxEnforcement rejects the windows-acl partial rung', async () => {
+    const { sandbox } = await setup(
+      { requireFullSandboxEnforcement: true },
+      {
+        platform: 'win32',
+        windowsAclRunnerArgs: ['node', 'windows-acl-runner.js'],
+        windowsAclRunnerEntry: absentRunnerEntry(),
+      },
+    )
+    expect(() => sandbox.confine(['true'], RO)).toThrow(/requireFullSandboxEnforcement rejects partial backend "windows-acl"/)
+  })
+
+  it('requireFullSandboxEnforcement still accepts a full backend', async () => {
+    const { sandbox } = await setup(
+      { requireFullSandboxEnforcement: true },
+      { platform: 'linux', probeBwrap: () => true },
+    )
+    expect(sandbox.confine(['true'], RO).enforcement).toBe('full')
+  })
+
   it('reads a failing launcher as unusable: the chain ends and fails closed', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'dsh-fake-landlock-'))
     const launcher = join(dir, 'landlock-run')

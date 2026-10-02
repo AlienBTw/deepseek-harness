@@ -107,6 +107,7 @@ describe('DomainFacility.open', () => {
           setGlobal: async () => {},
           close: async () => {},
         }),
+        destroy: async () => {},
       },
       close: async () => {},
     })
@@ -147,6 +148,126 @@ describe('DomainFacility.open', () => {
       name: 'StorageError',
       code: 'version-mismatch',
     })
+  })
+})
+
+describe('DomainFacility.open recovery', () => {
+  const resetSpec = defineDomain({
+    name: 'derived',
+    version: 1,
+    recovery: 'reset',
+    tables: { items: domainTable<string, Item>(itemSchema) },
+  })
+
+  it('resets each damage class once for a recovery:reset domain', async () => {
+    const cases: Array<{
+      label: string
+      seed: (pool: MemoryMediaPool) => void
+      code: string
+    }> = [
+      {
+        label: 'version-mismatch',
+        seed: (pool) => { pool.versions.set('derived', 9) },
+        code: 'version-mismatch',
+      },
+      {
+        label: 'malformed-medium',
+        seed: (pool) => { pool.malformed.add('derived') },
+        code: 'malformed-medium',
+      },
+      {
+        label: 'invalid-record',
+        seed: (pool) => {
+          pool.versions.set('derived', 1)
+          pool.media.set('derived', {
+            tables: new Map([['items', new Map([['bad', { label: 'x', count: 'NaN' }]])]]),
+            global: null,
+          })
+        },
+        code: 'invalid-record',
+      },
+    ]
+
+    for (const { seed, code } of cases) {
+      const pool = new MemoryMediaPool()
+      seed(pool)
+      const { ctx, facility } = await harness({ pool })
+      const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
+      const domain = await facility.open(resetSpec)
+      expect(domain.table('items').size).toBe(0)
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining(`domain 'derived': discarding damaged medium (${code})`),
+      )
+      expect(warn).toHaveBeenCalledTimes(1)
+      warn.mockRestore()
+      await domain.close()
+    }
+  })
+
+  it('keeps non-damage failures loud on a recovery:reset domain', async () => {
+    const { facility } = await harness({ config: { backend: 'missing' } })
+    await expect(facility.open(resetSpec)).rejects.toMatchObject({
+      name: 'StorageError',
+      code: 'backend-not-found',
+    })
+
+    const { ctx, facility: noKv } = await harness({ config: { backend: 'nokv' } })
+    ctx.storage.backend.register('nokv', { close: async () => {} })
+    await expect(noKv.open(resetSpec)).rejects.toMatchObject({ code: 'facet-unsupported' })
+
+    const { facility: once } = await harness()
+    await once.open(resetSpec)
+    await expect(once.open(resetSpec)).rejects.toMatchObject({ code: 'already-open' })
+  })
+
+  it('propagates every damage class on the default reject policy', async () => {
+    const rejectSpec = defineDomain({
+      name: 'authoritative',
+      version: 1,
+      tables: { items: domainTable<string, Item>(itemSchema) },
+    })
+
+    {
+      const pool = new MemoryMediaPool()
+      pool.versions.set('authoritative', 3)
+      const { facility } = await harness({ pool })
+      await expect(facility.open(rejectSpec)).rejects.toMatchObject({ code: 'version-mismatch' })
+      expect(pool.versions.get('authoritative')).toBe(3)
+    }
+    {
+      const pool = new MemoryMediaPool()
+      pool.malformed.add('authoritative')
+      const { facility } = await harness({ pool })
+      await expect(facility.open(rejectSpec)).rejects.toMatchObject({ code: 'malformed-medium' })
+      expect(pool.malformed.has('authoritative')).toBe(true)
+    }
+    {
+      const pool = new MemoryMediaPool()
+      pool.versions.set('authoritative', 1)
+      pool.media.set('authoritative', {
+        tables: new Map([['items', new Map([['bad', { label: 'x', count: 'NaN' }]])]]),
+        global: null,
+      })
+      const { facility } = await harness({ pool })
+      await expect(facility.open(rejectSpec)).rejects.toMatchObject({ code: 'invalid-record' })
+      expect(pool.media.get('authoritative')!.tables.get('items')!.has('bad')).toBe(true)
+    }
+  })
+
+  it('propagates a second damage failure after a single reset attempt', async () => {
+    const pool = new MemoryMediaPool()
+    pool.versions.set('derived', 9)
+    const { ctx, facility, backend } = await harness({ pool })
+    const warn = vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
+    const realDestroy = backend.kv.destroy.bind(backend.kv)
+    backend.kv.destroy = async (descriptor) => {
+      await realDestroy(descriptor)
+      // Re-stamp a bad version so the single-shot reopen still fails.
+      pool.versions.set(descriptor.name, 9)
+    }
+    await expect(facility.open(resetSpec)).rejects.toMatchObject({ code: 'version-mismatch' })
+    expect(warn).toHaveBeenCalledTimes(1)
+    warn.mockRestore()
   })
 })
 

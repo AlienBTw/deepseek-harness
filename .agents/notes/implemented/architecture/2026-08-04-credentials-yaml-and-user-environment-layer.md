@@ -34,7 +34,7 @@ There is no migration. A key already in `$DSH_HOME/.env` keeps resolving as a fa
 - Given up: a key left in `$DSH_HOME/.env` is materialized into `process.env`, so it reaches subprocesses under the [subprocess credential scrub](../../../../packages/subprocess/subprocess/README.md) rather than staying inside the provider. It remains a writable fallback below `.credentials.yaml`; a secret the Harness should own and isolate belongs in the managed document, which is never materialized.
 - Bought: a non-secret in the user's `.env` finally takes effect, which was the original defect; the document format can reject what it cannot serve; and `0600` covers a file that holds only secrets instead of a file users are told to put ordinary configuration in.
 - The `0600` the provider writes is also enforced on what it reads: on POSIX, a document with any group or other permission bit fails the launch before its contents are read, at boot and on every reload, and the diagnostic names the `chmod 600` repair. Windows has no mode to inspect — its ACLs are not expressible here — so the check is skipped rather than faked.
-- The `0600` boundary still stops other OS users and not the model, unchanged by this split — the [provider README](../../../../packages/credentials/credentials-local/README.md) owns that limit and the keychain-provider deferral.
+- The `0600` boundary still stops other OS users and not the model, unchanged by this split — the [provider README](../../../../packages/credentials/credentials-local/README.md) owns that limit; the stronger store is [`dsh-credentials-keychain`](../../../../packages/credentials/credentials-keychain/README.md) ([decision](../feature/2026-09-28-os-keychain-credentials-provider.md)).
 
 ## Alternatives considered
 

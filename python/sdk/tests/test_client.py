@@ -108,7 +108,7 @@ for line in sys.stdin:
         result = harness.run("say hello", session_id="main")
 
     assert result.final_response == "hello from runtime"
-    assert result.status == "error"
+    assert result.status == "ok"
     assert result.reason == {"kind": "max-tokens"}
     assert result.finish_reason == "max-tokens"
     assert result.events[-1]["type"] == "turn/end"

@@ -24,7 +24,7 @@
 
 #### 模型可见内容
 
-每个助手工具调用在其参数中保留请求的参数。`history_read` 返回带有序列号和行边界的分页遮蔽跨度；`history_search` 返回带有检查点 ID 和序列号的匹配片段。
+每个助手工具调用在其参数中保留请求的参数。`history_read` 返回带有序列号和行边界的分页遮蔽跨度；`history_search` 返回带有检查点 ID、序列号和覆盖元数据（`scanned`／`matched`／`truncated`／`mode`）的匹配片段。搜索对遮蔽转写使用有界内存倒排索引，并在挂载 `sessionQuery` 时可选通过 FTS 加速候选。
 
 #### Token 影响
 

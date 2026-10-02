@@ -130,7 +130,7 @@ describe('plan mode through the agent loop', () => {
   it('a mode flip at error settlement waits until the step after a same-step retry', async () => {
     const failedRequest = [{
       type: 'finish',
-      reason: { kind: 'error', failure: { message: 'temporarily unavailable', code: 'SERVER', status: 503 } },
+      reason: { kind: 'error', failure: { message: 'temporarily unavailable', code: 'SERVER' } },
     }] satisfies StreamChunk[]
     const adapter = new MockAdapter([
       failedRequest,

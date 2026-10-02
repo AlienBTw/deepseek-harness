@@ -1,3 +1,9 @@
 - region "Task panel":
   - text: Choose Environment
+  - paragraph: Pick staging or production.
+  - text: Pick staging or production.
+  - group "Environment":
+    - radio "Staging"
+    - radio "Production"
+  - button "Dismiss"
   - button "Continue"

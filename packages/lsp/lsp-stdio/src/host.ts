@@ -26,18 +26,18 @@ export interface HostSource {
  * Resolve and validate one workspace through `ctx.fs`.
  * @param fs - filesystem provider sharing the language server's execution world.
  * @param workspaceRoot - caller-supplied workspace path.
- * @param signal - optional cancellation around provider operations.
+ * @param signal - caller-owned cancellation around provider operations.
  * @returns stable identity plus process path and file URI.
  */
 export async function canonicalizeWorkspace(
   fs: FileSystem,
   workspaceRoot: string,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<HostWorkspace> {
   throwIfAborted(signal)
   let target: FsTarget
   try {
-    target = await fs.resolve(workspaceRoot, signal === undefined ? {} : { signal })
+    target = await fs.resolve(workspaceRoot, { signal })
   } catch (error: unknown) {
     throwIfAborted(signal)
     throw new Error(`workspace root "${workspaceRoot}" cannot be resolved: ${messageOf(error)}`, { cause: error })
@@ -66,7 +66,7 @@ export async function canonicalizeWorkspace(
  * @param filePath - absolute source path or path relative to `workspace`.
  * @param workspace - already-canonical workspace.
  * @param maxDocumentBytes - largest complete source accepted by this host.
- * @param signal - optional cancellation.
+ * @param signal - caller-owned cancellation.
  * @returns canonical file URI and current text.
  */
 export async function readHostSource(
@@ -74,14 +74,14 @@ export async function readHostSource(
   filePath: string,
   workspace: HostWorkspace,
   maxDocumentBytes: number,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<HostSource> {
   throwIfAborted(signal)
   let target: FsTarget
   try {
     target = await fs.resolve(filePath, {
       cwd: workspace.canonicalPath,
-      ...signal === undefined ? {} : { signal },
+      signal,
     })
   } catch (error: unknown) {
     throwIfAborted(signal)

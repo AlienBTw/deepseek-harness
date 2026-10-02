@@ -17,6 +17,8 @@ import { LocalFileSystem } from '@maple/fs-local'
 import * as FsPolicy from '@maple/fs-observation-policy'
 import * as ToolFs from '@maple/tool-fs'
 
+const LIVE = new AbortController().signal
+
 const testToolSignal = new AbortController().signal
 
 let dir: string
@@ -226,7 +228,7 @@ describe('default deployment (with dsh-fs-observation-policy)', () => {
     it('a direct ctx.fs.readText records no observed-state, so a later edit rejects', async () => {
       await writeFile(join(dir, 'a.txt'), 'hello world')
       // Reach AROUND the tool — an explicit escape hatch for non-tool consumers.
-      await ctx.fs.readText(await ctx.fs.resolve('a.txt'))
+      await ctx.fs.readText(await ctx.fs.resolve('a.txt', { signal: LIVE }), LIVE)
       // The model-facing edit still rejects: the read did not emit fs/observed.
       const result = await call('edit', { file_path: 'a.txt', old_string: 'world', new_string: 'there' })
       expect(result.isError).toBe(true)
@@ -479,14 +481,14 @@ describe('signal, concurrency, and the fs/observed contract', () => {
 
   it('a stale observed version from an older read fails closed at edit CAS', async () => {
     await writeFile(join(dir, 'a.txt'), 'older content\n')
-    const target = await ctx.fs.resolve('a.txt')
-    const firstInfo = await ctx.fs.stat(target)
+    const target = await ctx.fs.resolve('a.txt', { signal: LIVE })
+    const firstInfo = await ctx.fs.stat(target, LIVE)
     if (!firstInfo) throw new Error('expected first stat')
 
     expect((await callOwned('read', { file_path: 'a.txt' })).isError).toBe(false)
 
     await writeFile(join(dir, 'a.txt'), 'newer current content\n')
-    const secondInfo = await ctx.fs.stat(target)
+    const secondInfo = await ctx.fs.stat(target, LIVE)
     if (!secondInfo) throw new Error('expected second stat')
     expect(secondInfo.version).not.toBe(firstInfo.version)
     expect((await callOwned('read', { file_path: 'a.txt' })).isError).toBe(false)

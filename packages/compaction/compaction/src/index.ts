@@ -87,11 +87,13 @@ declare module '@maple/cordis' {
 /**
  * Abstract compaction service. Implementations own trigger policy, retention,
  * and summarization, and may consume a separate measurement service. A
- * successful run replaces the selected surface span with one summary node and
- * prevents concurrent compaction of the same session. The replacement user
- * message uses {@link compactCheckpointSource} with the transaction identity
- * so consumers recognize and correlate it independently of the backend. Load
- * one implementation per context as `ctx.compaction`.
+ * successful run replaces one or more selected surface spans with checkpoint
+ * nodes (basic backends: one summary; recallable backends: frozen index stubs
+ * plus one state rewrite) and prevents concurrent compaction of the same
+ * session. The replacement user message uses {@link compactCheckpointSource}
+ * with the transaction identity so consumers recognize and correlate it
+ * independently of the backend. Load one implementation per context as
+ * `ctx.compaction`.
  */
 export abstract class CompactionEngine extends Service {
   constructor(ctx: Context) {
@@ -159,7 +161,7 @@ export abstract class CompactionEngine extends Service {
    * @param agent - context whose session is mutated and whose routing options guide summarization.
    * @param signal - optional cancellation; model-backed implementations must forward it.
    * @throws when compaction is active or the range is missing, reversed, or unbalanced.
-   * @returns the appended event seqs, summary, replaced range, and token accounting.
+   * @returns shadowed range/seq/token accounting; durable event identity stays on the log.
    */
   abstract compactRegion(
     start: number,

@@ -112,7 +112,7 @@ export function defineCoverageCases(group: CoverageGroup): void {
       expect(existsSync(marker)).toBe(true) // substituted command ran
     }, 15_000) // Real agent and hook subprocess startup can exceed Vitest's default under coverage concurrency.
 
-    it('warns and honors updatedInput as a no-op (input rewrite deferred)', async () => {
+    it('honors updatedInput before tool/call and does not warn', async () => {
       const d = dir()
       const s = sh(d, 'u.sh', '#!/usr/bin/env bash\necho \'{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{"command":"rewritten"}}}\'\n')
       const path = hooks(d, { PreToolUse: [{ hooks: [{ type: 'command', command: s }] }] })
@@ -125,9 +125,11 @@ export function defineCoverageCases(group: CoverageGroup): void {
       const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
       agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
       await waitForIdle(ctx, agent)
-      // updatedInput is NOT honored — the tool ran with the ORIGINAL args.
-      expect((sawArgs as { command?: string }).command).toBe('original')
-      expect(warn).toHaveBeenCalledWith(expect.stringContaining('updatedInput'))
+      expect((sawArgs as { command?: string }).command).toBe('rewritten')
+      const call = events(agent).find(e => e.type === 'tool/call')
+      expect(call?.type === 'tool/call' && call.data.arguments).toBe(JSON.stringify({ command: 'rewritten' }))
+      expect(call?.type === 'tool/call' && call.data.originalArguments).toBe(JSON.stringify({ command: 'original' }))
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('updatedInput'))
     })
   })
 

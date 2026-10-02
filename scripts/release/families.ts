@@ -356,7 +356,7 @@ class DshFamily extends ReleaseFamily {
     validateTarballPayload(files, member.name)
   }
 
-  readonly installedEntry = { packageName: '@maple/dsh', binPath: 'lib/bin.js' }
+  readonly installedEntry = { packageName: '@maple/cli', binPath: 'lib/bin.js' }
 }
 
 /** `vendor/*`: every package keeps its own version line, so every package has its own tag. */

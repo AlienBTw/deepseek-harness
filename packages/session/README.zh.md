@@ -40,6 +40,14 @@
 
 部署可以注册一个模型驱动提供方；未注册时，服务仍保留确定性回退机制。
 
+## 侧会话
+
+从活跃父会话 fork 出的交互式顾问子会话，不改变父会话主上下文。
+
+| 包 | 职责 | ctx 键 |
+|---|---|---|
+| [`sidechat/`](sidechat/README.zh.md) | 已完成轮次顾问 fork、硬只读拒绝门禁、有上限的合并回写 | `ctx.sidechat` |
+
 ## 遥测
 
 将会话活动投影为外发遥测，并将投递委派给配置的上报后端。[遥测决策](../../.agents/notes/implemented/feature/2026-07-23-session-telemetry-otel-revival.zh.md)记录上报边界；[模式决策](../../.agents/notes/implemented/feature/2026-08-05-feedback-gated-session-telemetry.zh.md)记录即时、反馈门控与禁用投递。

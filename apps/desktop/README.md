@@ -34,6 +34,8 @@ pnpm desktop:build          # stages sidecar resources, then NSIS installer
 
 `pnpm desktop:build` runs `scripts/prepare-sidecar.mjs`, which copies `apps/cli/lib/bin.js` and a Node binary into `src-tauri/sidecar/` before Tauri bundles them as resources. Override the Node copy with `NODE_SIDECAR=/absolute/path/to/node`.
 
+On Windows, a checkout path that contains a space can break Tauri resource packing. Build from a space-free junction or subst drive that points at the checkout (for example `C:\maple-harness-build`) when `pnpm desktop:build` fails on resource globs.
+
 Release installs prefer the bundled sidecar (`sidecar/node` + `sidecar/cli/bin.js`); unpackaged `cargo build --release` without those resources falls back to system `node` plus `apps/cli/lib/bin.js` in the resolved checkout.
 
 The repository root is located by walking up from the working directory and the executable, then by reading the `repo-root.txt` hint file under this app's data directory (`%APPDATA%\app.maple.desktop\`) or a `maple-desktop.repo` file beside the executable; `MAPLE_DESKTOP_REPO_ROOT` overrides everything. Double-clicking an installed binary works once either hint file names a checkout.

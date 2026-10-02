@@ -21,7 +21,7 @@ The bar for a new dependency:
 
 `packages/util/`'s "zero-dependency" charter describes that group's *export* discipline — util packages stay free of harness dependencies so any group can depend on them — and does not ban external packages where they simplify; a util package whose entire job a maintained external package does better should be replaced by the dependency, not preserved for the charter.
 
-Dependency-swap proposals are recorded as `proposed/simplification` Agent Notes like any other removal, with the candidate package, the deletable surface, residual semantics, and supply-chain considerations stated. The [supply-chain proposal](../../proposed/process/2026-06-11-supply-chain-and-vendor-drift.md) owns advisory scanning and update cadence for the dependency list this policy grows.
+Dependency-swap proposals are recorded as `proposed/simplification` Agent Notes like any other removal, with the candidate package, the deletable surface, residual semantics, and supply-chain considerations stated. The [supply-chain decision](2026-06-11-supply-chain-and-vendor-drift.md) owns advisory scanning and update cadence for the dependency list this policy grows.
 
 ## Alternatives considered
 
@@ -32,5 +32,5 @@ Dependency-swap proposals are recorded as `proposed/simplification` Agent Notes 
 ## Consequences
 
 - Agents and contributors surveying for simplifications now treat "replace hand-rolled X with package Y" as in-scope output; [dsh-find-simplifications](../../../skills/dsh-find-simplifications/SKILL.md) carries the corresponding guidance.
-- The dependency list will grow, and with it the supply-chain surface; the mitigations live in the [supply-chain proposal](../../proposed/process/2026-06-11-supply-chain-and-vendor-drift.md), which this policy makes more urgent.
+- The dependency list will grow, and with it the supply-chain surface; the mitigations live in the [supply-chain decision](2026-06-11-supply-chain-and-vendor-drift.md), which this policy makes more urgent.
 - Root `AGENTS.md` carries the one-line rule; this note owns the rationale and the bar.

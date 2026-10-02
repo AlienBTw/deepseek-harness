@@ -58,7 +58,11 @@ async function provideSlotFaces(ctx: Context): Promise<void> {
     name: 'root',
     children: {
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
-      'conversation.composer': { kind: 'chain', scope: 'session' },
+      'conversation.composer': {
+        kind: 'chain',
+        scope: 'session',
+        phases: ['interaction', 'restriction'],
+      },
     },
   } as never, () => null)
 }
@@ -113,6 +117,7 @@ describe('apply', () => {
 
     const composerEntry = ctx.slots.entries('conversation.composer')
       .find(entry => entry.component === SubagentReadOnlyComposer)!
+    expect(composerEntry.options.phase).toBe('restriction')
     const select = composerEntry.select as (owner: ComposerChainProps) => SubagentReadOnlyMatch | null
     const owner = (
       subagent: ConversationSnapshot['subagent'] | undefined,

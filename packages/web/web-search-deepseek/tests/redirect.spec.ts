@@ -6,11 +6,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createServer, type IncomingMessage, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { DeepSeekSearchProvider } from '@maple/web-search-deepseek'
+import { DeepSeekSearchProvider } from '../src/provider.ts'
 
 /** Construct the provider over a fixed options value; production passes a live thunk. */
-import type { DeepSeekSearchProviderOptions } from '@maple/web-search-deepseek'
+import type { DeepSeekSearchProviderOptions } from '../src/provider.ts'
 
+const aliveSignal = new AbortController().signal
 const searchProvider = (options: DeepSeekSearchProviderOptions): DeepSeekSearchProvider =>
   new DeepSeekSearchProvider(() => options)
 
@@ -61,7 +62,7 @@ describe('DeepSeekSearchProvider redirect policy', () => {
       maxUses: 1,
     })
 
-    await expect(provider.search({ query: TEST_QUERY }))
+    await expect(provider.search({ query: TEST_QUERY }, aliveSignal))
       .rejects.toMatchObject({ code: 'WEB_PROVIDER_ERROR' })
     expect(targetRequests).toHaveLength(0)
   })

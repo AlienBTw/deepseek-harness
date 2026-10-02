@@ -1,6 +1,6 @@
 {
   "name": "@maple/client-ui-task-surface",
-  "description": "Web Task Surface dock: actionable panel above the composer over the taskSurface projection and Remote API",
+  "description": "Web Task Surface dock and keyed show_task_surface transcript row over the taskSurface projection and Remote API",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -35,7 +35,8 @@
         "@maple/client-runtime",
         "@maple/api-remotes",
         "@maple/client-locale",
-        "@maple/client-ui-conversation"
+        "@maple/client-ui-conversation",
+        "@maple/client-ui-tool"
       ],
       "platform": "web"
     }
@@ -50,6 +51,7 @@
     "@maple/client-locale": "workspace:^",
     "@maple/client-runtime": "workspace:^",
     "@maple/client-ui-conversation": "workspace:^",
+    "@maple/client-ui-tool": "workspace:^",
     "@maple/cordis": "workspace:^",
     "@maple/invariants": "workspace:^",
     "@maple/task-surface": "workspace:^"
@@ -62,6 +64,7 @@
     "@maple/client-ui-conversation": "workspace:^",
     "@maple/client-ui-primitives": "workspace:^",
     "@maple/client-ui-slots": "workspace:^",
+    "@maple/client-ui-tool": "workspace:^",
     "@maple/cordis": "workspace:^",
     "@maple/invariants": "workspace:^",
     "@maple/task-surface": "workspace:^",

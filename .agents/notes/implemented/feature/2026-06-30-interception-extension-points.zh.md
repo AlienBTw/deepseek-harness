@@ -41,9 +41,9 @@ harness 需要一套钩子子系统：用户像 Claude Code（CC）和 Codex 那
 
 3. **stopping 监听器通过 steering 通道请求继续执行**，使得下一步骤在循环顶部排空时将其记录为当前轮次的 steering——同一轮次内的下一*步骤* steering，而非下一*轮次*的提示词。
 
-### 工具执行前输入重写是一个独立的一致性决策
+### 工具执行前输入重写是身份标识创建前的一致性事务
 
-`PreToolDecision` 不能重写参数。历史和审计调用在执行前记录，UI 展示读取相同的输入，因此注册表在策略之前封存参数。有效的重写必须在身份创建之前同时更新历史、审计、展示和执行；该约定属于[输入重写提案](../../proposed/feature/2026-06-30-pre-tool-input-rewrite.zh.md)。
+`tools/pre-rewrite` 在持久化 `tool/call` 提交之前、以及 `ToolExecution` 身份铸造之前选定生效参数。`tool/call` 记录生效参数（可选的 `originalArguments` 保留模型原始输出），派生历史对 assistant 工具调用块做 surface-replace，展示层读取同一生效值。允许/拒绝/询问仍留在 `tools/pre-execute`，并观察已密封的重写后身份。[输入重写 Agent Note](2026-06-30-pre-tool-input-rewrite.zh.md) 负责顺序与桥接映射。
 
 ### 边界
 
@@ -51,7 +51,7 @@ Service Definition 包**不**声明 `hook/*` 会话事件（持久的钩子调�
 
 ## 曾考虑的替代方案
 
-- **将工具执行前输入重写作为本扩展点集合的一部分发布**：推迟，视为越界信号；上文已阐述一致性问题（审计、历史和展示都读取执行前记录的 `tool/call.arguments`），[工具执行前输入重写提案](../../proposed/feature/2026-06-30-pre-tool-input-rewrite.zh.md)负责该设计。
+- **将工具执行前输入重写作为本扩展点集合的一部分发布**：推迟，视为越界信号；一致性问题（审计、历史和展示都读取执行前记录的参数）由[输入重写 Agent Note](2026-06-30-pre-tool-input-rewrite.zh.md) 负责。
 - **将持久的 `hook/*` SessionEvents 与扩展点一起声明**：否决。原生插件使用类型化 Decision 而完全不需要钩子日志（实际示例已证明），因此持久日志属于[钩子协议库](2026-06-30-hook-protocol-lib.zh.md)，而非扩展接口。
 
 ## 后果

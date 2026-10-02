@@ -21,8 +21,10 @@ import {
 } from '../../session-persistence/tests/coordinator-contract.ts'
 import {
   meta,
+  oneTurnLog,
   runPersistenceContract,
 } from '../../session-persistence/tests/contract.ts'
+import { foldLastPromptAt } from '@maple/session-persistence'
 import { MAX_PACKED_DATA_BYTES } from '../src/codec.ts'
 import {
   decodeEventRow,
@@ -372,11 +374,28 @@ describe('SessionPersistenceSqlite physical packing', () => {
   it('rejects an older SQLite physical schema', async () => {
     const path = await freshDbPath('dsh-sqlite-old-schema-')
     const seed = await openDatabase(DatabaseSync, path, 'wal', DEFAULT_BUSY_TIMEOUT_MS)
-    seed.exec(testSql('set-user-version-16'))
+    seed.exec(testSql('set-user-version-17'))
     seed.close()
     await chmod(path, 0o600)
     await expect(openDatabase(DatabaseSync, path, 'wal', DEFAULT_BUSY_TIMEOUT_MS))
-      .rejects.toThrow(/schema version 16.*incompatible/)
+      .rejects.toThrow(/schema version 17.*incompatible/)
+  })
+
+  it('persists last_prompt_at in the same transaction as appendBatch', async () => {
+    const path = await freshDbPath('dsh-sqlite-activity-')
+    const store = new SqliteStore({ path, journalMode: 'wal', busyTimeoutMs: DEFAULT_BUSY_TIMEOUT_MS })
+    const events = oneTurnLog()
+    const lastPromptAt = foldLastPromptAt(undefined, events)
+    const header = { ...meta(SessionId('activity')), ...lastPromptAt === undefined ? {} : { lastPromptAt } }
+    await store.appendBatch(header, events, false)
+    const listed = await store.list()
+    expect(listed).toEqual([expect.objectContaining({
+      id: header.id,
+      lastPromptAt: events.find(event => event.type === 'user/message')!.time,
+    })])
+    const loaded = await store.loadStored(header.id)
+    expect(loaded?.meta.lastPromptAt).toBe(events.find(event => event.type === 'user/message')!.time)
+    await store.close()
   })
 
   it('rejects a stale physical append without replacing the winning tail', async () => {
@@ -522,13 +541,13 @@ describe('SessionPersistenceSqlite schema ownership', () => {
 
     const incompatiblePath = await freshDbPath('dsh-sqlite-incompatible-')
     const incompatible = new DatabaseSync(incompatiblePath)
-    incompatible.exec(testSql('set-user-version-16'))
+    incompatible.exec(testSql('set-user-version-17'))
     incompatible.close()
     await expect(openDatabase(DatabaseSync, incompatiblePath, 'wal', DEFAULT_BUSY_TIMEOUT_MS)).rejects.toThrow(/incompatible with this build/)
 
     const foreignPath = await freshDbPath('dsh-sqlite-foreign-')
     const foreign = new DatabaseSync(foreignPath)
-    foreign.exec(testSql('set-user-version-17'))
+    foreign.exec(testSql('set-user-version-18'))
     foreign.exec(testSql('set-application-id-12345'))
     foreign.close()
     await expect(openDatabase(DatabaseSync, foreignPath, 'wal', DEFAULT_BUSY_TIMEOUT_MS)).rejects.toThrow(/has application id 12345/)
@@ -583,6 +602,7 @@ describe('SessionPersistenceSqlite schema ownership', () => {
       revision: 1,
       delegation_depth: 2,
       agent_preset: 'minimal',
+      last_prompt_at: 99,
     }
     expect(rowToMeta(decodeSessionRow(base))).toMatchObject({
       cwd: '/project',
@@ -591,10 +611,12 @@ describe('SessionPersistenceSqlite schema ownership', () => {
       origin: 'subagent',
       delegationDepth: 2,
       agentPreset: 'minimal',
+      lastPromptAt: 99,
     })
     expect(() => decodeSessionRow({ ...base, created_at: -1 })).toThrow(/created_at/)
     expect(() => decodeSessionRow({ ...base, origin: 'external' })).toThrow(/origin/)
     expect(() => decodeSessionRow({ ...base, delegation_depth: -1 })).toThrow(/delegation_depth/)
+    expect(() => decodeSessionRow({ ...base, last_prompt_at: -1 })).toThrow(/last_prompt_at/)
   })
 
   it('rejects malformed SQLite row primitives generically', () => {
@@ -610,6 +632,7 @@ describe('SessionPersistenceSqlite schema ownership', () => {
       revision: 1,
       delegation_depth: null,
       agent_preset: null,
+      last_prompt_at: null,
     }
     for (const [value, message] of [
       [null, /object/],

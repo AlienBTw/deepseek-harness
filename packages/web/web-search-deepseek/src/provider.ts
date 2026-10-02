@@ -194,7 +194,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
       && isPositiveInteger(options.maxUses)
   }
 
-  async search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult> {
+  async search(request: WebSearchRequest, signal: AbortSignal): Promise<WebSearchResult> {
     // One snapshot for the whole operation: credential resolution awaits, and a
     // settings write landing inside that await must not send the key resolved
     // from the old section to the endpoint named by the new one.
@@ -233,10 +233,10 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
           'user-agent': USER_AGENT,
         },
         body: JSON.stringify(body),
-        ...signal !== undefined ? { signal } : {},
+        signal,
       })
     } catch (error: unknown) {
-      if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
+      if (signal.aborted || isAbortError(error)) throw searchAborted(signal, error)
       throw new WebError(`DeepSeek search request failed: ${String(error)}`, 'WEB_PROVIDER_ERROR', { cause: error })
     }
 
@@ -251,7 +251,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
         // An abort fired mid-body must surface as WEB_ABORTED, not be swallowed
         // into a generic HTTP-error message — cancellation is not a provider
         // error (the seam's cancellation contract).
-        if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
+        if (signal.aborted || isAbortError(error)) throw searchAborted(signal, error)
         // Otherwise: the HTTP status is already captured in `message` above; a
         // malformed/non-JSON error body (normal for gateway 5xx/429s) can only
         // cost a richer provider message, never the real error.
@@ -263,7 +263,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
       const payload = await response.json() as AnthropicResponse
       return mapAnthropicResponse(payload)
     } catch (error: unknown) {
-      if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
+      if (signal.aborted || isAbortError(error)) throw searchAborted(signal, error)
       if (error instanceof WebError) throw error
       throw new WebError(`DeepSeek returned an unprocessable response body: ${String(error)}`, 'WEB_PROVIDER_ERROR', { cause: error })
     }
@@ -275,14 +275,14 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
    * @param signal - abort signal for the surrounding search.
    * @returns the resolved key.
    */
-  private async apiKey(options: DeepSeekSearchProviderOptions, signal?: AbortSignal): Promise<string> {
+  private async apiKey(options: DeepSeekSearchProviderOptions, signal: AbortSignal): Promise<string> {
     throwIfSearchAborted(signal)
     if (options.apiKey !== undefined && options.apiKey.length > 0) return options.apiKey
     let resolved: string | undefined
     try {
       resolved = await abortable(options.resolveApiKey?.() ?? Promise.resolve(undefined), signal)
     } catch (error: unknown) {
-      if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
+      if (signal.aborted || isAbortError(error)) throw searchAborted(signal, error)
       throw new WebError(
         `DeepSeek search credential resolution failed: ${String(error)}`,
         'WEB_PROVIDER_ERROR',
@@ -305,8 +305,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
  * attached settlement handlers keep observing an uncooperative operation after
  * abort so a later rejection cannot become unhandled.
  */
-function abortable<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
-  if (signal === undefined) return operation
+function abortable<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) return Promise.reject(searchAborted(signal))
   return new Promise<T>((resolve, reject) => {
     const onAbort = (): void => { reject(searchAborted(signal)) }
@@ -325,14 +324,14 @@ function abortable<T>(operation: Promise<T>, signal?: AbortSignal): Promise<T> {
 }
 
 /** Throw the provider's stable cancellation error when the caller already aborted. */
-function throwIfSearchAborted(signal?: AbortSignal): void {
-  if (signal?.aborted === true) throw searchAborted(signal)
+function throwIfSearchAborted(signal: AbortSignal): void {
+  if (signal.aborted) throw searchAborted(signal)
 }
 
 /** Build the provider's stable cancellation error while retaining the caller's reason. */
-function searchAborted(signal?: AbortSignal, fallback?: unknown): WebError {
+function searchAborted(signal: AbortSignal, fallback?: unknown): WebError {
   return new WebError('DeepSeek search aborted', 'WEB_ABORTED', {
-    cause: signal?.aborted === true ? signal.reason : fallback,
+    cause: signal.aborted ? signal.reason : fallback,
   })
 }
 

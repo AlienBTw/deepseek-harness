@@ -11,7 +11,7 @@ import type {
 } from '@maple/attachment'
 import LlmRuntime, { createUserMessage, CONTEXT_WINDOW_EXCEEDED_CODE, LlmError, ReasoningEffortId, userAgent } from '@maple/llm'
 import * as LlmPiAi from '@maple/llm-pi-ai'
-import { PiAiAdapter } from '@maple/llm-pi-ai'
+import { PiAiAdapter } from '../src/adapter.ts'
 import { MAX_TIMER_DELAY_MS } from '@maple/timeout'
 import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
 import { DEFAULT_MAX_REQUEST_IMAGE_BYTES, resolveProfiles } from '../src/config.ts'

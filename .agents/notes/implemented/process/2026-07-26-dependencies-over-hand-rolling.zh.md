@@ -21,7 +21,7 @@ harness 手写了大量基础设施，而成熟的外部包早已提供同等能
 
 `packages/util/` 的「零依赖」章程描述的是该分组的*导出*纪律（util 包不携带 harness 依赖，从而任何分组都能依赖它们），并不禁止在能带来简化时使用外部包；如果一个 util 包的全部职责有维护良好的外部包做得更好，就应当用该依赖替换它，而不是为了章程而保留它。
 
-依赖替换提案与其他任何移除类提案一样，记录为 `proposed/simplification` Agent Note，写明候选包、可删除的接口面、残留语义和供应链考量。本政策会使依赖清单增长，这份清单的安全公告扫描与更新节奏由[供应链提案](../../proposed/process/2026-06-11-supply-chain-and-vendor-drift.zh.md)负责。
+依赖替换提案与其他任何移除类提案一样，记录为 `proposed/simplification` Agent Note，写明候选包、可删除的接口面、残留语义和供应链考量。本政策会使依赖清单增长，这份清单的安全公告扫描与更新节奏由[供应链决策](2026-06-11-supply-chain-and-vendor-drift.zh.md)负责。
 
 ## 曾考虑的替代方案
 
@@ -32,5 +32,5 @@ harness 手写了大量基础设施，而成熟的外部包早已提供同等能
 ## 后果
 
 - 巡查简化机会的 agent 与贡献者，现在把「用包 Y 替换手写的 X」视为范围内的产出；[dsh-find-simplifications](../../../skills/dsh-find-simplifications/SKILL.md) 承载相应指引。
-- 依赖清单会增长，供应链接触面随之扩大；缓解措施记录在[供应链提案](../../proposed/process/2026-06-11-supply-chain-and-vendor-drift.zh.md)中，本政策使该提案更加紧迫。
+- 依赖清单会增长，供应链接触面随之扩大；缓解措施记录在[供应链决策](2026-06-11-supply-chain-and-vendor-drift.zh.md)中，本政策使该决策更加紧迫。
 - 根 `AGENTS.md` 承载一行规则；论证理由与准入门槛由本 Agent Note 持有。

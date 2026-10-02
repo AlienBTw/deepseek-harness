@@ -211,6 +211,7 @@ export interface StatsLineProps {
 export const StatsLine = memo(function StatsLine({ useSession, useProjection, t }: StatsLineProps) {
   const settledNodes = useSession(s => s.chat.legacy.nodes)
   const usage = useProjection('tokenUsage')
+  const pressure = useProjection('contextPressure')
   // Every figure rides the durable sessionStats projection, so paging and
   // compaction cannot change any of them; an assembly without the unit falls
   // back to the window-scoped fold wholesale (same field names), paid only
@@ -236,12 +237,12 @@ export const StatsLine = memo(function StatsLine({ useSession, useProjection, t 
     }
     if (speeds.length > 0) groups.push(speeds.join(' · '))
   }
-  // Context occupancy deliberately lives on the composer's ContextMeter ring,
-  // not here — one home per fact.
   // Billing rides the durable projection, so these survive paging and
   // compaction. Gated on actual token activity: a session whose steps all
   // settled without billing (e.g. every request failed) shows its counts
-  // without a zero-token group.
+  // without a zero-token group. Burn is the four disjoint buckets' sum; the
+  // ContextMeter ring remains the primary occupancy control, while the strip
+  // also surfaces a compact pressure percent when both figures are known.
   if (usage !== undefined
     && (billedInputTokens(usage) > 0 || usage.outputTokens > 0)) {
     const cacheHit = cacheHitPercent(usage)
@@ -250,6 +251,12 @@ export const StatsLine = memo(function StatsLine({ useSession, useProjection, t 
       input: formatTokens(billedInputTokens(usage)),
       output: formatTokens(usage.outputTokens),
     }))
+    const burn = billedInputTokens(usage) + usage.outputTokens
+    groups.push(t('stats.burn', { total: formatTokens(burn) }))
+  }
+  const occupancy = contextOccupancy(pressure)
+  if (occupancy !== null) {
+    groups.push(t('stats.pressure', { percent: occupancy.percent }))
   }
   const line = groups.join(' | ')
   // The row elides with ellipsis when overlong; a delayed hover tooltip carries

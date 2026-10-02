@@ -37,6 +37,9 @@ const retryConfigPath = fileURLToPath(new URL('../retry.cordis.snapshot.yml', im
 const compactionScenarioDir = join(snapshotsDir, 'compaction-recovery')
 const compactionSessionFixture = join(compactionScenarioDir, 'session.jsonl')
 const compactionStreamExpected = join(compactionScenarioDir, 'stream-json.expected.jsonl')
+const compactThenRecallScenarioDir = join(snapshotsDir, 'compact-then-recall')
+const compactThenRecallSessionFixture = join(compactThenRecallScenarioDir, 'session.jsonl')
+const compactThenRecallStreamExpected = join(compactThenRecallScenarioDir, 'stream-json.expected.jsonl')
 const compactionConfigPath = fileURLToPath(new URL('../compaction.cordis.snapshot.yml', import.meta.url))
 const credentialsScenarioDir = join(snapshotsDir, 'missing-credential')
 const credentialsConfigPath = fileURLToPath(new URL('../credentials.cordis.snapshot.yml', import.meta.url))
@@ -421,6 +424,94 @@ describe('headless stream-json snapshots', () => {
     const normalized = normalizeHeadlessStream(result.stdout, runCwd)
     if (refreshing) await writeFile(compactionStreamExpected, normalized)
     expect(normalized).toBe(await readFile(compactionStreamExpected, 'utf8'))
+  }, LOADER_SMOKE_TEST_TIMEOUT_MS)
+
+  it('compacts then recalls shadowed history through history_search', async () => {
+    const prompt = await scenarioPrompt(compactThenRecallScenarioDir, 'compact-then-recall')
+    let expectedSession = await readFile(compactThenRecallSessionFixture, 'utf8')
+    let runCwd = ''
+    const result = await runLoaderSmoke({
+      label: 'compact-then-recall headless stream-json snapshot',
+      tempDirPrefix: 'headless-snapshot-compact-then-recall-',
+      binScript,
+      libBinScript: binScript,
+      configPath: compactionConfigPath,
+      binArgs: [compactionConfigPath, prompt],
+      tsconfigPath,
+      processTimeoutMs: 60_000,
+      env: {
+        DSH_SNAPSHOT: 'replay',
+        DSH_SNAPSHOT_FILE: compactThenRecallSessionFixture,
+        MAPLE_SNAPSHOT_FILE: compactThenRecallSessionFixture,
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--disable-warning=ExperimentalWarning'].filter(Boolean).join(' '),
+      },
+      prepare: (cwd) => { runCwd = cwd },
+      inspect: async (cwd) => {
+        const logs = await persistedLogs(cwd)
+        expect(logs).toHaveLength(1)
+        const actual = logs[0]
+        if (actual === undefined) throw new Error('compact-then-recall snapshot did not persist its session')
+        const records = parseJsonl(actual.content)
+        const types = records.map(record => record.type)
+        expect(types.filter(type => type === 'compaction/start').length).toBeGreaterThanOrEqual(1)
+        expect(types.filter(type => type === 'compaction/summary').length).toBeGreaterThanOrEqual(1)
+        expect(types.filter(type => type === 'compaction/end').length).toBeGreaterThanOrEqual(1)
+        // Multi-checkpoint passes may land index stubs before the state rewrite;
+        // legacy single-summary fixtures remain valid keyless replay.
+        const summaryKinds = records
+          .filter(record => record.type === 'compaction/summary')
+          .map(record => (record.data as JsonObject | undefined)?.kind)
+        expect(summaryKinds.every(kind => kind === undefined || kind === 'index' || kind === 'state')).toBe(true)
+
+        const header = records.find(record => record.type === 'request/header')
+        const headerTools = JSON.stringify((header?.data as JsonObject | undefined)?.header ?? {})
+        expect(headerTools).toContain('history_read')
+        expect(headerTools).toContain('history_search')
+
+        const replacement = records.find((record) => {
+          if (record.type !== 'user/message') return false
+          const surfaceOp = record.surfaceOp as JsonObject | undefined
+          return surfaceOp?.op === 'replace'
+        })
+        expect(JSON.stringify(replacement)).toContain('history_read')
+        expect(JSON.stringify(replacement)).toContain('checkpoint c')
+
+        const searchCall = records.find(record =>
+          record.type === 'tool/call'
+          && (record.data as JsonObject | undefined)?.name === 'history_search')
+        expect(searchCall).toBeDefined()
+        const searchResult = records.find((record) => {
+          if (record.type !== 'tool/result') return false
+          return JSON.stringify(record).includes('call_history_search')
+        })
+        expect(JSON.stringify(searchResult)).toContain('RECALL_MARKER_7f3a')
+
+        const final = [...records].reverse().find(record => record.type === 'assistant/message')
+        expect(JSON.stringify(final)).toContain('RECALL OK')
+
+        const actualContext = contextFromLogs([actual.content])
+        if (refreshing) {
+          const harvested: HarvestedLog = {
+            id: String(actual.header.id),
+            createdAt: Number(actual.header.createdAt),
+            content: actual.content,
+          }
+          const replacements = refreshFixtureReplacements([harvested], [expectedSession])
+          expectedSession = projectSessionFixture(tokenizeSessionFixtureCwd(
+            stabilizeRefreshLog(actual.content, expectedSession, replacements, actualContext),
+          ))
+          await writeFile(compactThenRecallSessionFixture, expectedSession)
+        }
+        const expectedContext = contextFromLogs([expectedSession])
+        expect(normalizeSessionSnapshot(actual.content, actualContext))
+          .toBe(normalizeSessionSnapshot(expectedSession, expectedContext))
+      },
+    })
+
+    expect(result.stderr).toBe('')
+    const normalized = normalizeHeadlessStream(result.stdout, runCwd)
+    if (refreshing) await writeFile(compactThenRecallStreamExpected, normalized)
+    expect(normalized).toBe(await readFile(compactThenRecallStreamExpected, 'utf8'))
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)
 
   it('logs actionable missing-credential guidance through the one-shot app', async () => {

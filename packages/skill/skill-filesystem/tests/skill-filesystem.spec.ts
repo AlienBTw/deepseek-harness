@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { Context } from '@maple/cordis'
 import SkillRegistry from '@maple/skill'
-import { FileSystem, FsError, FsVersion, type FsDirEntry, type FsEditOutcome, type FsEditRequest, type FsInfo, type FsPathInfo, type FsTarget, type FsWriteOutcome } from '@maple/fs'
+import { FileSystem, FsError, FsVersion, type FsDirEntry, type FsEditOutcome, type FsEditRequest, type FsInfo, type FsPathInfo, type FsTarget, type FsWriteIntent, type FsWriteOutcome } from '@maple/fs'
 import * as SkillFileSystem from '../src/index.ts'
 
 async function tempDir(name: string): Promise<string> {
@@ -32,11 +32,11 @@ class TestFileSystem extends FileSystem {
   errorReadPaths = new Set<string>()
   missingReadPaths = new Set<string>()
   statOverrides = new Map<string, FsInfo | undefined>()
-  statSignals: Array<AbortSignal | undefined> = []
-  readTextSignals: Array<AbortSignal | undefined> = []
-  readTextOverride?: (target: FsTarget, signal?: AbortSignal) => Promise<string>
+  statSignals: AbortSignal[] = []
+  readTextSignals: AbortSignal[] = []
+  readTextOverride?: (target: FsTarget, signal: AbortSignal) => Promise<string>
 
-  override async resolve(path: string): Promise<FsTarget> {
+  override async resolve(path: string, _opts: { cwd?: string; signal: AbortSignal }): Promise<FsTarget> {
     if (this.failResolvePaths.has(path)) throw new FsError('resolve failed', 'FS_NOT_FOUND')
     if (this.errorResolvePaths.has(path)) throw new Error('resolve temporarily failed')
     return { targetKey: path as never, displayPath: path }
@@ -50,7 +50,7 @@ class TestFileSystem extends FileSystem {
     return child.targetKey === parent.targetKey || String(child.targetKey).startsWith(`${parent.targetKey}/`)
   }
 
-  override async stat(target: FsTarget, signal?: AbortSignal): Promise<FsInfo | undefined> {
+  override async stat(target: FsTarget, signal: AbortSignal): Promise<FsInfo | undefined> {
     this.statSignals.push(signal)
     if (this.failStatPaths.has(target.displayPath)) throw new FsError('stat failed', 'FS_NOT_FOUND')
     if (this.errorStatPaths.has(target.displayPath)) throw new Error('stat temporarily failed')
@@ -68,7 +68,7 @@ class TestFileSystem extends FileSystem {
     }
   }
 
-  override async lstat(path: string): Promise<FsPathInfo | undefined> {
+  override async lstat(path: string, _opts: { cwd?: string } | undefined, _signal: AbortSignal): Promise<FsPathInfo | undefined> {
     try {
       const fs = await import('node:fs/promises')
       const info = await fs.lstat(path)
@@ -82,7 +82,7 @@ class TestFileSystem extends FileSystem {
     }
   }
 
-  override async readText(target: FsTarget, signal?: AbortSignal): Promise<string> {
+  override async readText(target: FsTarget, signal: AbortSignal): Promise<string> {
     this.readTextSignals.push(signal)
     if (this.readTextOverride !== undefined) return await this.readTextOverride(target, signal)
     if (this.missingReadPaths.has(target.displayPath)) throw new FsError('read failed', 'FS_NOT_FOUND')
@@ -92,15 +92,15 @@ class TestFileSystem extends FileSystem {
     return text
   }
 
-  override async streamText(_target: FsTarget): Promise<AsyncIterable<string>> {
+  override async streamText(_target: FsTarget, _signal: AbortSignal): Promise<AsyncIterable<string>> {
     throw new Error('not needed in skill tests')
   }
 
-  override async readBytes(_target: FsTarget, _signal: AbortSignal | undefined, _maxBytes: number): Promise<Uint8Array> {
+  override async readBytes(_target: FsTarget, _signal: AbortSignal, _maxBytes: number): Promise<Uint8Array> {
     throw new Error('not needed in skill tests')
   }
 
-  override async listDir(target: FsTarget): Promise<FsDirEntry[]> {
+  override async listDir(target: FsTarget, _signal: AbortSignal): Promise<FsDirEntry[]> {
     this.listDirCalls += 1
     if (this.failListDirPaths.has(target.displayPath)) throw new Error('list temporarily failed')
     const entries = await readdir(target.displayPath, { withFileTypes: true, encoding: 'utf8' })
@@ -127,13 +127,23 @@ class TestFileSystem extends FileSystem {
     return result
   }
 
-  override async writeText(target: FsTarget, content: string): Promise<FsWriteOutcome> {
+  override async writeText(
+    target: FsTarget,
+    content: string,
+    _expected: FsWriteIntent | undefined,
+    _signal: AbortSignal,
+  ): Promise<FsWriteOutcome> {
     await mkdir(dirname(target.displayPath), { recursive: true })
     await writeFile(target.displayPath, content)
     return { operation: 'create', version: FsVersion('test'), before: null, after: content }
   }
 
-  override async editText(_target: FsTarget, _request: FsEditRequest): Promise<FsEditOutcome> {
+  override async editText(
+    _target: FsTarget,
+    _request: FsEditRequest,
+    _expected: { version: FsVersion } | undefined,
+    _signal: AbortSignal,
+  ): Promise<FsEditOutcome> {
     throw new Error('not needed in skill tests')
   }
 }

@@ -87,8 +87,8 @@ type StatFileProbe =
   | { kind: 'absent' }
   | { kind: 'unavailable' }
 
-function signalOptions(signal?: AbortSignal): { signal: AbortSignal } | undefined {
-  return signal === undefined ? undefined : { signal }
+function resolveOpts(signal: AbortSignal): { signal: AbortSignal } {
+  return { signal }
 }
 
 function isMissingPathError(error: unknown): boolean {
@@ -113,42 +113,42 @@ async function nodeStatFile(path: string, signal?: AbortSignal): Promise<StatFil
 async function fsStatFile(
   path: string,
   fileSystem: FileSystem,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<StatFileProbe> {
   // resolve() follows a final-component symlink to its target's stable identity;
   // stat then classifies that target. A link to a regular file loads, while a
   // missing path or non-file target (including a link to a directory) is absent.
   try {
-    const target = await fileSystem.resolve(path, signalOptions(signal))
-    signal?.throwIfAborted()
+    const target = await fileSystem.resolve(path, resolveOpts(signal))
+    signal.throwIfAborted()
     const info = await fileSystem.stat(target, signal)
-    signal?.throwIfAborted()
+    signal.throwIfAborted()
     if (info?.type !== 'file') return { kind: 'absent' }
     return {
       kind: 'present',
       info: { target, version: info.version, ...info.size === undefined ? {} : { size: info.size } },
     }
   } catch {
-    signal?.throwIfAborted()
+    signal.throwIfAborted()
     return { kind: 'unavailable' }
   }
 }
 
 async function statFile(
   path: string,
-  fileSystem?: FileSystem,
-  signal?: AbortSignal,
+  fileSystem: FileSystem | undefined,
+  signal: AbortSignal,
 ): Promise<StatFileProbe> {
   return fileSystem === undefined ? nodeStatFile(path, signal) : fsStatFile(path, fileSystem, signal)
 }
 
-async function existsAsMarker(path: string, fileSystem?: FileSystem, signal?: AbortSignal): Promise<boolean> {
+async function existsAsMarker(path: string, fileSystem: FileSystem | undefined, signal: AbortSignal): Promise<boolean> {
   if (fileSystem !== undefined) {
     try {
-      const target = await fileSystem.resolve(path, signalOptions(signal))
+      const target = await fileSystem.resolve(path, resolveOpts(signal))
       return await fileSystem.stat(target, signal) !== undefined
     } catch {
-      signal?.throwIfAborted()
+      signal.throwIfAborted()
       // TODO(root-marker-unavailable): preserve provider failure separately from
       // absence and stop discovery; continuing upward can cross into an ancestor project.
       return false
@@ -176,8 +176,8 @@ async function existsAsMarker(path: string, fileSystem?: FileSystem, signal?: Ab
 export async function findProjectRoot(
   cwd: string,
   markers: readonly string[],
-  fileSystem?: FileSystem,
-  signal?: AbortSignal,
+  fileSystem: FileSystem | undefined,
+  signal: AbortSignal,
 ): Promise<string> {
   let current = resolve(cwd)
   for (;;) {
@@ -240,8 +240,8 @@ async function allExistingInstructionFiles(
   dir: string,
   root: string,
   instructionFileCandidates: readonly string[],
-  fileSystem?: FileSystem,
-  signal?: AbortSignal,
+  fileSystem: FileSystem | undefined,
+  signal: AbortSignal,
 ): Promise<DiscoveredInstructionFile[]> {
   const found: DiscoveredInstructionFile[] = []
   for (const candidate of instructionFileCandidates) {
@@ -269,6 +269,8 @@ async function discoverInstructionFiles(
   fileSystem?: FileSystem,
 ): Promise<DiscoveredInstructionFile[]> {
   const config = resolveDiscoveryConfig(options)
+  // Lookup may omit cancellation; this call owns a controller for the FS probes.
+  const signal = options.signal ?? new AbortController().signal
   const files: DiscoveredInstructionFile[] = []
   const seen = new Set<string>()
   const addFile = (file: DiscoveredInstructionFile): void => {
@@ -278,7 +280,7 @@ async function discoverInstructionFiles(
   }
 
   const userGlobal = join(config.dshHome, USER_GLOBAL_FILE)
-  const userGlobalProbe = await statFile(userGlobal, fileSystem, options.signal)
+  const userGlobalProbe = await statFile(userGlobal, fileSystem, signal)
   switch (userGlobalProbe.kind) {
     case 'present':
       addFile({
@@ -297,10 +299,10 @@ async function discoverInstructionFiles(
 
   const cwd = resolve(options.cwd)
   const projectRoot = options.projectRoot
-    ?? await findProjectRoot(cwd, config.projectRootMarkers, fileSystem, options.signal)
+    ?? await findProjectRoot(cwd, config.projectRootMarkers, fileSystem, signal)
   for (const dir of ancestorChain(projectRoot, cwd)) {
     for (const candidates of [config.instructionFileCandidates, config.localInstructionFileCandidates]) {
-      for (const file of await allExistingInstructionFiles(dir, projectRoot, candidates, fileSystem, options.signal)) {
+      for (const file of await allExistingInstructionFiles(dir, projectRoot, candidates, fileSystem, signal)) {
         addFile(file)
       }
     }
@@ -327,13 +329,13 @@ async function* nodeTextChunks(path: string, signal?: AbortSignal): AsyncIterabl
 async function readBounded(
   file: { absolutePath: string; target?: FsTarget; size?: number },
   maxSourceBytes: number,
-  fileSystem?: FileSystem,
-  signal?: AbortSignal,
+  fileSystem: FileSystem | undefined,
+  signal: AbortSignal,
 ): Promise<string | undefined> {
   // TODO(total-instruction-read-bound): enforce an aggregate source budget
   // across a complete baseline or reconciliation batch; the render budget is
   // applied only after every accepted file has been read under this per-file cap.
-  signal?.throwIfAborted()
+  signal.throwIfAborted()
   if (file.size !== undefined && file.size > maxSourceBytes) return undefined
   try {
     const chunks = fileSystem === undefined || file.target === undefined
@@ -342,15 +344,15 @@ async function readBounded(
     const parts: string[] = []
     let bytes = 0
     for await (const chunk of chunks) {
-      signal?.throwIfAborted()
+      signal.throwIfAborted()
       bytes += Buffer.byteLength(chunk, 'utf8')
       if (bytes > maxSourceBytes) return undefined
       parts.push(chunk)
     }
-    signal?.throwIfAborted()
+    signal.throwIfAborted()
     return parts.join('')
   } catch {
-    signal?.throwIfAborted()
+    signal.throwIfAborted()
     // A file may disappear or become unreadable after its metadata probe.
     return undefined
   }
@@ -409,10 +411,12 @@ export async function loadBaselineInstructionSet(
   const config = resolveConfig(options)
   if (config.maxBytes <= 0 || !Number.isFinite(config.maxBytes)) return undefined
   if (config.maxSourceBytes <= 0 || !Number.isFinite(config.maxSourceBytes)) return undefined
-  const discovered = await discoverInstructionFiles(options, fileSystem)
+  // Lookup may omit cancellation; this call owns a controller for the FS reads.
+  const signal = options.signal ?? new AbortController().signal
+  const discovered = await discoverInstructionFiles({ ...options, signal }, fileSystem)
   const loaded: LoadedInstructionFile[] = []
   for (const file of discovered) {
-    const content = await readBounded(file, config.maxSourceBytes, fileSystem, options.signal)
+    const content = await readBounded(file, config.maxSourceBytes, fileSystem, signal)
     if (content !== undefined) {
       loaded.push({
         absolutePath: file.absolutePath,
@@ -462,7 +466,7 @@ export async function probeScopeInstruction(
   projectRoot: string,
   resolved: ResolvedConfig,
   fileSystem: FileSystem,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<ScopeInstructionProbe> {
   const { directory, candidateName } = decodeScopeKey(scope)
   const dir = directory === USER_GLOBAL_DIRECTORY
@@ -475,10 +479,10 @@ export async function probeScopeInstruction(
   let target: FsTarget
   let info: FsInfo | undefined
   try {
-    target = await fileSystem.resolve(absolutePath, signalOptions(signal))
+    target = await fileSystem.resolve(absolutePath, resolveOpts(signal))
     info = await fileSystem.stat(target, signal)
   } catch {
-    signal?.throwIfAborted()
+    signal.throwIfAborted()
     return { kind: 'unavailable' }
   }
   if (info?.type !== 'file') return { kind: 'absent' }
@@ -504,7 +508,7 @@ export async function readScopeInstruction(
   file: ProbedInstructionFile,
   maxSourceBytes: number,
   fileSystem: FileSystem,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<LoadedInstructionFile | undefined> {
   const content = await readBounded(file, maxSourceBytes, fileSystem, signal)
   if (content === undefined) return undefined

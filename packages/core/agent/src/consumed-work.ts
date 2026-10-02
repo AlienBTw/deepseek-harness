@@ -44,6 +44,7 @@ function accountsForClaim(reason: TurnEndReason): boolean {
     case 'completed':
       return false
     case 'blocked':
+    case 'quota':
     case 'aborted':
     case 'interrupted':
     case 'error':

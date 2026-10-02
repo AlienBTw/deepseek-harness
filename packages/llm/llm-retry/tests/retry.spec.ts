@@ -176,7 +176,7 @@ describe('provider-routed retry policy', () => {
   it('records the scheduled delay before retrying the request', async () => {
     vi.useFakeTimers()
     const adapter = new ScriptedAdapter([
-      new LlmError('busy', 'RATE_LIMIT', { status: 429 }),
+      new LlmError('busy', 'RATE_LIMIT'),
       textResponse('done'),
     ])
     ;({ ctx: context } = await harness(adapter, {
@@ -202,7 +202,7 @@ describe('provider-routed retry policy', () => {
       retry: 1,
       maxRetries: 2,
       delayMs: 500,
-      failure: { message: 'busy', code: 'RATE_LIMIT', status: 429 },
+      failure: { message: 'busy', code: 'RATE_LIMIT' },
     })
     expect(adapter.requests).toHaveLength(1)
     await vi.advanceTimersByTimeAsync(499)

@@ -27,7 +27,7 @@ import shutil
 import sys
 from pathlib import Path
 
-PACKAGE_METADATA_FILENAME = "deepseek-harness-runtime.json"
+PACKAGE_METADATA_FILENAME = "maple-harness-runtime.json"
 
 RUNTIME_MODE_ENV_VAR = "MAPLE_RUNTIME_MODE"
 
@@ -36,7 +36,7 @@ _ARCH_TAGS = {"x86_64": "x64", "amd64": "x64", "arm64": "arm64", "aarch64": "arm
 
 _EXE_ACQUISITION_HINT = (
     "Two ways to get the executable: run `scripts/build-exe-for-python-sdk.ts` (via tsx) in a "
-    "deepseek-harness checkout, or install the matching `deepseek-harness-runtime-bin` platform "
+    "Maple Harness checkout, or install the matching `maple-harness-runtime-bin` platform "
     "wheel retained by the `build-exe-for-python-sdk` CI workflow. For local development "
     "against a repo source build, explicitly select the dev-only node carrier with "
     f"{RUNTIME_MODE_ENV_VAR}=node (or resolve_bundled_launch_args('node'))."
@@ -48,7 +48,7 @@ def bundled_package_dir() -> Path:
     root = Path(__file__).resolve().parent
     metadata = root / PACKAGE_METADATA_FILENAME
     if not metadata.is_file():
-        raise FileNotFoundError(f"deepseek-harness-runtime-bin is missing {metadata}")
+        raise FileNotFoundError(f"maple-harness-runtime-bin is missing {metadata}")
     return root
 
 
@@ -62,7 +62,7 @@ def bundled_default_config_path() -> Path:
     path = bundled_package_dir() / "runtime" / "cordis.yml"
     if not path.is_file():
         raise FileNotFoundError(
-            f"deepseek-harness-runtime-bin is missing the default runtime config at {path}"
+            f"maple-harness-runtime-bin is missing the default runtime config at {path}"
         )
     return path
 
@@ -81,20 +81,20 @@ def bundled_runtime_path() -> Path:
     path = bundled_package_dir() / "runtime" / f"dsh-jsonrpc-agent-pkg-{tag}"
     if not path.is_file():
         raise FileNotFoundError(
-            f"deepseek-harness-runtime-bin is missing the runtime executable at {path}. "
+            f"maple-harness-runtime-bin is missing the runtime executable at {path}. "
             + _EXE_ACQUISITION_HINT
         )
     ripgrep = Path(f"{path}-rg")
     if not ripgrep.is_file():
         raise FileNotFoundError(
-            f"deepseek-harness-runtime-bin is missing the ripgrep sidecar at {ripgrep}. "
+            f"maple-harness-runtime-bin is missing the ripgrep sidecar at {ripgrep}. "
             + _EXE_ACQUISITION_HINT
         )
     if tag.startswith("macos-"):
         helper = Path(f"{path}-spawn-helper")
         if not helper.is_file():
             raise FileNotFoundError(
-                f"deepseek-harness-runtime-bin is missing the node-pty spawn helper at {helper}. "
+                f"maple-harness-runtime-bin is missing the node-pty spawn helper at {helper}. "
                 + _EXE_ACQUISITION_HINT
             )
     return path

@@ -166,6 +166,15 @@ class MemoryPersistence extends SessionPersistence implements PersistenceBackend
     return [...this.store.values()].map(e => structuredClone(e.meta))
   }
 
+  async delete(id: SessionId, signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted()
+    const live = this.ctx.sessions.get(id)
+    if (live !== undefined) {
+      throw new Error(`cannot delete session "${id}": a live Session is still attached`)
+    }
+    this.store.delete(id)
+  }
+
   async listSnapshots(signal?: AbortSignal): Promise<SessionPersistenceSnapshot[]> {
     signal?.throwIfAborted()
     return [...this.store.values()].map(entry => ({
@@ -232,6 +241,10 @@ class ControlledBackend implements PersistenceBackend<never> {
 
   async list(): Promise<SessionHeader[]> {
     return [...this.store.values()].map(entry => structuredClone(entry.meta))
+  }
+
+  async delete(id: SessionId): Promise<void> {
+    this.store.delete(id)
   }
 
   async close(): Promise<void> {
@@ -1791,7 +1804,10 @@ describe('SessionPersistence service registration', () => {
     const defaultPrepare = SessionPersistence.prototype.prepare.bind(ctx.sessionPersistence)
 
     const preparation = await defaultPrepare(m.id)
-    expect(preparation.session.header).toEqual(m)
+    expect(preparation.session.header).toEqual({
+      ...m,
+      lastPromptAt: oneTurnLog().find(event => event.type === 'user/message')!.time,
+    })
     preparation[Symbol.dispose]()
 
     const preAborted = new AbortController()

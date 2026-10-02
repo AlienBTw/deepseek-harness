@@ -19,11 +19,13 @@ import type {
   FsWriteOutcome,
 } from '@maple/fs'
 
+const signal = new AbortController().signal
+
 /** A minimal in-memory fake implementing the provider primitives. */
 class FakeFileSystem extends FileSystem {
   files = new Map<string, string>()
 
-  override async resolve(path: string): Promise<FsTarget> {
+  override async resolve(path: string, _opts: { cwd?: string; signal: AbortSignal }): Promise<FsTarget> {
     return { targetKey: FsTargetKey(path), displayPath: path }
   }
   override processPath(target: FsTarget): string { return String(target.targetKey) }
@@ -31,33 +33,33 @@ class FakeFileSystem extends FileSystem {
   override contains(parent: FsTarget, child: FsTarget): boolean {
     return child.targetKey === parent.targetKey || String(child.targetKey).startsWith(`${parent.targetKey}/`)
   }
-  override async stat(target: FsTarget): Promise<FsInfo | undefined> {
+  override async stat(target: FsTarget, _signal: AbortSignal): Promise<FsInfo | undefined> {
     const content = this.files.get(target.targetKey)
     if (content === undefined) return undefined
     return { version: FsVersion('v1'), type: 'file', size: content.length }
   }
-  override async lstat(path: string): Promise<FsPathInfo | undefined> {
+  override async lstat(path: string, _opts: { cwd?: string } | undefined, _signal: AbortSignal): Promise<FsPathInfo | undefined> {
     const content = this.files.get(path)
     if (content === undefined) return undefined
     return { version: FsVersion('v1'), type: 'file', size: content.length }
   }
-  override async readText(target: FsTarget): Promise<string> {
+  override async readText(target: FsTarget, _signal: AbortSignal): Promise<string> {
     const content = this.files.get(target.targetKey)
     if (content === undefined) throw new FsError(`not found: ${target.displayPath}`, 'FS_NOT_FOUND')
     return content
   }
-  override async streamText(target: FsTarget): Promise<AsyncIterable<string>> {
-    const content = await this.readText(target)
+  override async streamText(target: FsTarget, signal: AbortSignal): Promise<AsyncIterable<string>> {
+    const content = await this.readText(target, signal)
     return (async function* () { yield content })()
   }
-  override async readBytes(target: FsTarget, _signal: AbortSignal | undefined, maxBytes: number): Promise<Uint8Array> {
-    const bytes = new TextEncoder().encode(await this.readText(target))
+  override async readBytes(target: FsTarget, signal: AbortSignal, maxBytes: number): Promise<Uint8Array> {
+    const bytes = new TextEncoder().encode(await this.readText(target, signal))
     if (bytes.length > maxBytes) {
       throw new FsError(`too large: ${target.displayPath}`, 'FS_TOO_LARGE')
     }
     return bytes
   }
-  override async listDir(target: FsTarget): Promise<FsDirEntry[]> {
+  override async listDir(target: FsTarget, _signal: AbortSignal): Promise<FsDirEntry[]> {
     if (target.targetKey !== 'skills') throw new FsError(`not a directory: ${target.displayPath}`, 'FS_NOT_DIRECTORY')
     return [
       {
@@ -69,12 +71,22 @@ class FakeFileSystem extends FileSystem {
       },
     ]
   }
-  override async writeText(target: FsTarget, content: string, _expected?: FsWriteIntent): Promise<FsWriteOutcome> {
+  override async writeText(
+    target: FsTarget,
+    content: string,
+    _expected: FsWriteIntent | undefined,
+    _signal: AbortSignal,
+  ): Promise<FsWriteOutcome> {
     const before = this.files.get(target.targetKey) ?? null
     this.files.set(target.targetKey, content)
     return { operation: before !== null ? 'update' : 'create', version: FsVersion('v2'), before, after: content }
   }
-  override async editText(target: FsTarget, edit: FsEditRequest): Promise<FsEditOutcome> {
+  override async editText(
+    target: FsTarget,
+    edit: FsEditRequest,
+    _expected: { version: FsVersion } | undefined,
+    _signal: AbortSignal,
+  ): Promise<FsEditOutcome> {
     const content = this.files.get(target.targetKey) ?? ''
     const after = content.split(edit.oldString).join(edit.newString)
     this.files.set(target.targetKey, after)
@@ -89,9 +101,10 @@ describe('FileSystem provider seam', () => {
     const fs = ctx.fs as FakeFileSystem
     expect(fs.sandboxMode).toBeUndefined()
     fs.files.set('a.txt', 'hi')
-    const target = await fs.resolve('a.txt')
-    expect((await fs.stat(target))?.type).toBe('file')
-    expect(await fs.readText(target)).toBe('hi')
+    const live = new AbortController().signal
+    const target = await fs.resolve('a.txt', { signal: live })
+    expect((await fs.stat(target, live))?.type).toBe('file')
+    expect(await fs.readText(target, live)).toBe('hi')
   })
 
   it('throws when a second implementation is loaded (duplicate service)', async () => {
@@ -113,10 +126,10 @@ describe('FileSystem provider seam', () => {
     await ctx.plugin(FakeFileSystem)
     const fs = ctx.fs as FakeFileSystem
     fs.files.set('a.txt', 'one\ntwo')
-    const target = await fs.resolve('a.txt')
+    const target = await fs.resolve('a.txt', { signal })
     let streamed = ''
-    for await (const chunk of await fs.streamText(target)) streamed += chunk
-    expect(streamed).toBe(await fs.readText(target))
+    for await (const chunk of await fs.streamText(target, signal)) streamed += chunk
+    expect(streamed).toBe(await fs.readText(target, signal))
   })
 
   it('readBytes returns raw content and enforces the byte cap with FS_TOO_LARGE', async () => {
@@ -124,16 +137,16 @@ describe('FileSystem provider seam', () => {
     await ctx.plugin(FakeFileSystem)
     const fs = ctx.fs as FakeFileSystem
     fs.files.set('a.bin', 'hi')
-    const target = await fs.resolve('a.bin')
-    expect(await fs.readBytes(target, undefined, 2)).toEqual(new TextEncoder().encode('hi'))
-    await expect(fs.readBytes(target, undefined, 1)).rejects.toMatchObject({ code: 'FS_TOO_LARGE' })
+    const target = await fs.resolve('a.bin', { signal })
+    expect(await fs.readBytes(target, signal, 2)).toEqual(new TextEncoder().encode('hi'))
+    await expect(fs.readBytes(target, signal, 1)).rejects.toMatchObject({ code: 'FS_TOO_LARGE' })
   })
 
   it('listDir returns child entry targets without reading file content', async () => {
     const ctx = new Context()
     await ctx.plugin(FakeFileSystem)
     const fs = ctx.fs as FakeFileSystem
-    const entries = await fs.listDir(await fs.resolve('skills'))
+    const entries = await fs.listDir(await fs.resolve('skills', { signal }), signal)
     expect(entries).toEqual([{
       name: 'alpha.md',
       type: 'file',
@@ -147,7 +160,7 @@ describe('FileSystem provider seam', () => {
     const ctx = new Context()
     await ctx.plugin(FakeFileSystem)
     const fs = ctx.fs as FakeFileSystem
-    expect(await fs.stat(await fs.resolve('missing.txt'))).toBeUndefined()
+    expect(await fs.stat(await fs.resolve('missing.txt', { signal }), signal)).toBeUndefined()
   })
 
   it('lstat returns path metadata before resolving a target', async () => {
@@ -155,8 +168,8 @@ describe('FileSystem provider seam', () => {
     await ctx.plugin(FakeFileSystem)
     const fs = ctx.fs as FakeFileSystem
     fs.files.set('a.txt', 'hi')
-    expect(await fs.lstat('a.txt')).toEqual({ version: 'v1', type: 'file', size: 2 })
-    expect(await fs.lstat('missing.txt')).toBeUndefined()
+    expect(await fs.lstat('a.txt', undefined, signal)).toEqual({ version: 'v1', type: 'file', size: 2 })
+    expect(await fs.lstat('missing.txt', undefined, signal)).toBeUndefined()
   })
 })
 

@@ -19,15 +19,6 @@ import {
   EXA_DEFAULT_SEARCH_TYPE,
 } from './provider.ts'
 
-export {
-  EXA_DEFAULT_BASE_URL,
-  EXA_DEFAULT_HIGHLIGHTS_PER_RESULT,
-  EXA_DEFAULT_SEARCH_TYPE,
-  EXA_PROVIDER_ID,
-  ExaSearchProvider,
-} from './provider.ts'
-export type { ExaSearchProviderOptions } from './provider.ts'
-
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-exa'
 

@@ -5,6 +5,10 @@ import SessionStore, { SessionId, TurnEndReason } from '@maple/session'
 import SystemPrompt from '@maple/system-prompt'
 import ToolRuntime, { defineContentToolFixture } from '@maple/tools'
 import AgentRegistry, { type Agent } from '@maple/agent'
+import {
+  assertDeriveMessagesReplay,
+  waitForIdle,
+} from '@maple/agent-loop-testkit'
 
 import AgentLoop from '@maple/agent-loop'
 import { MockAdapter, maxTokensResponse, textResponse, toolCallResponse } from './mock-adapter.ts'
@@ -23,18 +27,6 @@ async function harness(adapter: MockAdapter, persona = '') {
   await ctx.plugin(AgentLoop, { agents: [] })
   ctx.llm.registerAdapter(['mock'], adapter)
   return ctx
-}
-
-/** Wait for the agent's next transition to idle after a waking send. */
-function waitForIdle(ctx: Context, agent: Agent): Promise<void> {
-  return new Promise((resolve) => {
-    const dispose = ctx.on('agent/status', ({ agent: subject, status }) => {
-      if (subject === agent && status === 'idle') {
-        dispose()
-        resolve()
-      }
-    })
-  })
 }
 
 function send(agent: Agent, text: string) {
@@ -75,6 +67,7 @@ describe('agent loop', () => {
     await waitForIdle(ctx, agent)
 
     expect(adapter.requests[0]?.maxTokens).toBe(256)
+    assertDeriveMessagesReplay(ctx, agent.session)
   })
 
   it('cancels queued wakeup work together with an active maintenance task', async () => {
@@ -1486,8 +1479,7 @@ describe('agent loop', () => {
     send(agent, 'run')
     await waitForIdle(ctx, agent)
 
-    const replayed = ctx.sessions.create(SessionId('replayed'), { seed: [...agent.session.events] })
-    expect(replayed.deriveMessages()).toEqual(agent.session.deriveMessages())
+    const replayed = assertDeriveMessagesReplay(ctx, agent.session, SessionId('replayed'))
     // event-by-event identity of types over the inherited prefix
     expect(replayed.events.slice(0, agent.session.seq).map(e => e.type)).toEqual(
       agent.session.events.map(e => e.type))

@@ -23,6 +23,7 @@ import type { ToolExecution } from '@maple/tools'
 const testToolSignal = new AbortController().signal
 import WebRuntime from '@maple/web'
 import * as WebFetchLocal from '@maple/web-fetch-http'
+import { LOCAL_FETCH_PROVIDER_ID } from '@maple/web-fetch-http/src/provider.ts'
 import LocalSpillStore from '@maple/spill-local'
 import * as SpillPolicy from '@maple/spill-policy'
 import * as ToolWeb from '@maple/tool-web'
@@ -48,10 +49,10 @@ beforeEach(async () => {
   ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
-  await ctx.plugin(WebRuntime, { fetchProvider: WebFetchLocal.LOCAL_FETCH_PROVIDER_ID })
+  await ctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
   // Provider cap generous so the tool returns a large formatted result; the
   // policy cap is what triggers the spill (the Agent Note's separation of concerns).
-  await ctx.plugin(WebFetchLocal, { maxBodyChars: 500_000 })
+  await ctx.plugin(WebFetchLocal, { maxBodyChars: 500_000, allowPrivateNetwork: true })
   await ctx.plugin(LocalSpillStore, { root: spillRoot })
   await ctx.plugin(SpillPolicy, { maxInlineBytes: MAX_INLINE_BYTES })
   await ctx.plugin(ToolWeb)

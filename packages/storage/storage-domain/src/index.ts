@@ -9,7 +9,8 @@
 
 import type { Context } from '@maple/cordis'
 import z from '@maple/schemastery'
-import { storageBackendServiceKey } from '@maple/storage'
+import { StorageError, storageBackendServiceKey } from '@maple/storage'
+import type { KvFacet } from '@maple/storage'
 import { DomainError } from './error.ts'
 import { descriptorOf } from './spec.ts'
 import type { DomainSpec } from './spec.ts'
@@ -20,7 +21,7 @@ export { DomainError } from './error.ts'
 export type { DomainErrorCode, DomainErrorOptions, InvalidRecordDetail } from './error.ts'
 export { defineDomain, domainTable, descriptorOf } from './spec.ts'
 export type {
-  DomainSpec, DomainGlobalSpec, DomainTableSpec,
+  DomainSpec, DomainRecovery, DomainGlobalSpec, DomainTableSpec,
   TableKeyOf, TableValueOf, GlobalValueOf,
 } from './spec.ts'
 export type { DomainChanged } from './events.ts'
@@ -90,6 +91,12 @@ export class DomainFacility {
    * every stored record against the spec's zod schemas (`invalid-record`
    * with the offending table and key); construct the domain.
    *
+   * When the spec declares `recovery: 'reset'`, a damage-class failure
+   * (`version-mismatch`, `malformed-medium`, or `invalid-record`) logs one
+   * warning, destroys the unit medium, and reopens empty once. Every other
+   * failure — and every failure on the default `'reject'` policy — stays
+   * loud. A second failure after reset propagates without another destroy.
+   *
    * Lifecycle: the CALLER owns the returned handle and closes it via
    * `Domain.close()` (typically as its own `ctx.effect` disposer) — the
    * facility does not tie the domain to any consumer fiber. Domains still
@@ -111,46 +118,68 @@ export class DomainFacility {
           `backend '${backendName}' routed for domain '${spec.name}' has no kv facet`,
         )
       }
-      const unit = await backend.kv.open(descriptorOf(spec))
       try {
-        const snapshot = await unit.loadAll()
-        const tables = new Map<string, Map<string, unknown>>()
-        for (const [table, tableSpec] of Object.entries(spec.tables)) {
-          const records = new Map<string, unknown>()
-          for (const [key, raw] of Object.entries(snapshot.tables[table] ?? {})) {
-            records.set(key, parseRecord(spec.name, table, key, () => tableSpec.valueSchema.parse(raw)))
-          }
-          tables.set(table, records)
-        }
-        // A null stored global means "never written": serve `initial` without
-        // materializing it — the first `set` writes.
-        const globalSpec = spec.global
-        const globalValue = globalSpec === undefined
-          ? undefined
-          : snapshot.global === null
-            ? globalSpec.initial
-            : parseRecord(spec.name, '', '', () => globalSpec.schema.parse(snapshot.global))
-        // The onClosed hook runs strictly after teardown completes: writes
-        // landing during the drain still emit domain/changed, and the domain
-        // stays resolvable (the package invariant cross-checks each event)
-        // until fully closed — only then does the name free up for reopening.
-        const domain: DomainImpl = new DomainImpl(this.ctx, spec, unit, tables, globalValue, () => {
-          this.domains.delete(spec.name)
-          this.reserved.delete(spec.name)
-        })
-        this.domains.set(spec.name, domain)
-        // The single type-erasure point: DomainImpl is the untyped runtime,
-        // Domain<S> the spec-typed view; the unknown hop is required because
-        // S's conditional global-handle type stays unresolved here.
-        return domain as unknown as Domain<S>
+        return await this.materialize(spec, backend.kv)
       } catch (error) {
-        await unit.close()
+        if ((spec.recovery ?? 'reject') === 'reset' && isDamageClass(error)) {
+          this.ctx.logger.warn(
+            `domain '${spec.name}': discarding damaged medium (${damageLabel(error)}) and reopening empty`,
+          )
+          await backend.kv.destroy(descriptorOf(spec))
+          // Single-shot: a second failure propagates without another destroy.
+          return await this.materialize(spec, backend.kv)
+        }
         throw error
       }
     } catch (error) {
       // Any failure means the domain never registered (nothing can throw
       // after it), so releasing the name reservation is unconditional.
       this.reserved.delete(spec.name)
+      throw error
+    }
+  }
+
+  /**
+   * Open the unit, validate every stored record, and register the domain.
+   * @param spec - Domain declaration.
+   * @param kv - Routed backend facet.
+   * @returns the typed domain handle.
+   */
+  private async materialize<S extends DomainSpec>(spec: S, kv: KvFacet): Promise<Domain<S>> {
+    const unit = await kv.open(descriptorOf(spec))
+    try {
+      const snapshot = await unit.loadAll()
+      const tables = new Map<string, Map<string, unknown>>()
+      for (const [table, tableSpec] of Object.entries(spec.tables)) {
+        const records = new Map<string, unknown>()
+        for (const [key, raw] of Object.entries(snapshot.tables[table] ?? {})) {
+          records.set(key, parseRecord(spec.name, table, key, () => tableSpec.valueSchema.parse(raw)))
+        }
+        tables.set(table, records)
+      }
+      // A null stored global means "never written": serve `initial` without
+      // materializing it — the first `set` writes.
+      const globalSpec = spec.global
+      const globalValue = globalSpec === undefined
+        ? undefined
+        : snapshot.global === null
+          ? globalSpec.initial
+          : parseRecord(spec.name, '', '', () => globalSpec.schema.parse(snapshot.global))
+      // The onClosed hook runs strictly after teardown completes: writes
+      // landing during the drain still emit domain/changed, and the domain
+      // stays resolvable (the package invariant cross-checks each event)
+      // until fully closed — only then does the name free up for reopening.
+      const domain: DomainImpl = new DomainImpl(this.ctx, spec, unit, tables, globalValue, () => {
+        this.domains.delete(spec.name)
+        this.reserved.delete(spec.name)
+      })
+      this.domains.set(spec.name, domain)
+      // The single type-erasure point: DomainImpl is the untyped runtime,
+      // Domain<S> the spec-typed view; the unknown hop is required because
+      // S's conditional global-handle type stays unresolved here.
+      return domain as unknown as Domain<S>
+    } catch (error) {
+      await unit.close()
       throw error
     }
   }
@@ -175,6 +204,23 @@ export class DomainFacility {
   async closeAll(): Promise<void> {
     await Promise.all([...this.domains.values()].map(domain => domain.close()))
   }
+}
+
+/** True when the failure is medium damage eligible for declared reset. */
+function isDamageClass(error: unknown): boolean {
+  if (error instanceof StorageError) {
+    return error.code === 'version-mismatch' || error.code === 'malformed-medium'
+  }
+  if (error instanceof DomainError) {
+    return error.code === 'invalid-record'
+  }
+  return false
+}
+
+/** Stable code label for the recovery warning. */
+function damageLabel(error: unknown): string {
+  if (error instanceof StorageError || error instanceof DomainError) return error.code
+  return 'unknown'
 }
 
 /** Run one zod parse, translating failure to `invalid-record` with its location. */

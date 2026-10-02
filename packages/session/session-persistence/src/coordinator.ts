@@ -18,6 +18,7 @@ import {
 import type { Session, SessionEvent, SessionId, SessionHeader } from '@maple/session'
 import { MAX_TIMER_DELAY_MS } from '@maple/timeout'
 import type { SessionInspection, SessionLocation } from './index.ts'
+import { foldLastPromptAt } from './last-activity.ts'
 import type { SessionPersistenceRevision } from './revision.ts'
 import { observeQueuedAbort, SessionPreparations } from './preparations.ts'
 import type { SessionPreparationReservation } from './preparations.ts'
@@ -197,6 +198,13 @@ export interface PersistenceBackend<TornMarker = unknown> {
    * @param signal - optional cancellation for backend listing work.
    */
   list(signal?: AbortSignal): Promise<SessionHeader[]>
+
+  /**
+   * Durably remove one stored session. An absent id is a no-op success.
+   * @param id - persisted session to delete.
+   * @param signal - optional cancellation for backend delete work.
+   */
+  delete(id: SessionId, signal?: AbortSignal): Promise<void>
 
   /**
    * Optional side-effect-free artifact locator, used to point refusal
@@ -701,9 +709,16 @@ export class PersistenceCoordinator<TornMarker = unknown> {
       }
     }
 
-    await this.backend.appendBatch(state.meta, events, state.materialized)
+    const lastPromptAt = foldLastPromptAt(state.meta.lastPromptAt, events)
+    const meta: SessionHeader = lastPromptAt === state.meta.lastPromptAt
+      ? state.meta
+      : lastPromptAt === undefined
+        ? state.meta
+        : { ...state.meta, lastPromptAt }
+    await this.backend.appendBatch(meta, events, state.materialized)
     // The durable write is the transaction: mark materialized + advance the
     // cursor as soon as it commits (uniform across backends).
+    state.meta = meta
     state.materialized = true
     state.cursor += events.length
     this.preparations.invalidate(id)

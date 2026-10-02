@@ -11,12 +11,14 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { credentialRef } from '@maple/credentials'
 import type { SessionEvent } from '@maple/session'
-import { WEB_SEARCH_MAX_RESULTS } from '@maple/tool-web'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+
+/** Default `tool-web` searchMaxResults; keep in sync with `@maple/tool-web` Config. */
+const WEB_SEARCH_MAX_RESULTS = 8
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/web-search-round', import.meta.url))
 const FIXTURE = fileURLToPath(new URL('./snapshots/web-search-round/session.jsonl', import.meta.url))

@@ -8,8 +8,12 @@ import type { Context } from '@maple/cordis'
 import z from '@maple/schemastery'
 import { defineTool } from '@maple/tools'
 import type { SessionEvent } from '@maple/session'
+import { isCompactCheckpointSource } from '@maple/compaction'
+import type { CompactionCheckpointSource } from '@maple/compaction'
 import type {} from '@maple/compaction'
 import { renderEventToTranscript } from '@maple/session'
+import type { Message } from '@maple/llm'
+import { searchShadowedHistory } from './search.ts'
 
 export const name = 'tool-recall'
 export const inject = ['tools']
@@ -36,7 +40,6 @@ export function apply(ctx: Context, config: Config = {}): void {
   const maxLines = config.maxPageLines ?? 200
   const defaultLimit = config.defaultSearchLimit ?? 10
 
-  // 1. history_read tool
   ctx.tools.register(
     defineTool({
       name: 'history_read',
@@ -80,7 +83,6 @@ export function apply(ctx: Context, config: Config = {}): void {
         const events = exec.agent.session.events
         const seqTarget = Number.parseInt(checkpoint.replace(/^c/i, ''), 10)
 
-        // Locate the matching compaction/summary event
         const summaryEvent = events.find(
           (e): e is SessionEvent & { type: 'compaction/summary' } =>
             e.type === 'compaction/summary' && (e.seq === seqTarget || String(e.seq) === String(seqTarget)),
@@ -94,15 +96,20 @@ export function apply(ctx: Context, config: Config = {}): void {
 
         const { shadowedRange, shadowedSeqs } = summaryEvent.data
         const targetSeqs = new Set(shadowedSeqs)
+        const stateCompactionIds = new Set(
+          events
+            .filter((e): e is SessionEvent & { type: 'compaction/summary' } =>
+              e.type === 'compaction/summary' && (e.data.kind === 'state' || e.data.kind === undefined))
+            .map(e => e.data.compactionId),
+        )
 
         const transcriptLines: string[] = []
         for (const event of events) {
-          if (targetSeqs.has(event.seq)) {
-            const line = renderEventToTranscript(event)
-            if (line !== null) {
-              transcriptLines.push(`[#${event.seq}] ${line}`)
-            }
-          }
+          if (!targetSeqs.has(event.seq)) continue
+          const line = renderEventToTranscript(event)
+          if (line === null) continue
+          const labeled = labelPriorStateCheckpoint(event, stateCompactionIds, line)
+          transcriptLines.push(`[#${event.seq}] ${labeled}`)
         }
 
         const totalLines = transcriptLines.length
@@ -123,13 +130,12 @@ export function apply(ctx: Context, config: Config = {}): void {
     }),
   )
 
-  // 2. history_search tool
   ctx.tools.register(
     defineTool({
       name: 'history_search',
       description:
         'Search across all compacted/shadowed conversation history for a literal string query. '
-        + 'Returns matching snippets with checkpoint IDs and event sequence numbers.',
+        + 'Returns matching snippets with checkpoint IDs, event sequence numbers, and coverage metadata.',
       parameters: {
         query: {
           type: 'string',
@@ -158,11 +164,11 @@ export function apply(ctx: Context, config: Config = {}): void {
           text: value.text,
         }],
       },
-      execute: (args, exec) => {
+      execute: async (args, exec) => {
         if (!exec.agent) {
-          return Promise.resolve({
+          return {
             text: 'Error: history_search requires an active agent session.',
-          })
+          }
         }
 
         const query = args.query
@@ -170,9 +176,9 @@ export function apply(ctx: Context, config: Config = {}): void {
         const limit = args.limit ?? defaultLimit
 
         if (!query.trim()) {
-          return Promise.resolve({
+          return {
             text: 'Search query cannot be empty.',
-          })
+          }
         }
 
         const events = exec.agent.session.events
@@ -186,50 +192,54 @@ export function apply(ctx: Context, config: Config = {}): void {
           targetSummaries = summaryEvents.filter(e => e.seq === seqTarget)
         }
 
-        const shadowedSeqs = new Set<number>()
-        const seqToCheckpoint = new Map<number, number>()
+        const searched = await searchShadowedHistory(
+          ctx,
+          exec.agent.session,
+          query,
+          targetSummaries,
+          limit,
+        )
 
-        for (const s of targetSummaries) {
-          const rangeSeqs = s.data.shadowedSeqs
-          for (const seq of rangeSeqs) {
-            shadowedSeqs.add(seq)
-            seqToCheckpoint.set(seq, s.seq)
+        if (searched.hits.length === 0) {
+          return {
+            text: `No matches found for "${query}" in shadowed history. `
+              + `(scanned=${searched.coverage.scanned}, matched=0, truncated=${searched.coverage.truncated}, mode=${searched.coverage.mode}; `
+              + 'history_search is a literal scan — check checkpoint index summaries or use history_read directly).',
           }
         }
 
-        const lowerQuery = query.toLowerCase()
-        const matches: Array<{ checkpointId: number; seq: number; snippet: string }> = []
-
-        for (const event of events) {
-          if (shadowedSeqs.has(event.seq)) {
-            const transcript = renderEventToTranscript(event)
-            if (transcript && transcript.toLowerCase().includes(lowerQuery)) {
-              const cp = seqToCheckpoint.get(event.seq) ?? 0
-              matches.push({
-                checkpointId: cp,
-                seq: event.seq,
-                snippet: transcript.length > 300 ? `${transcript.slice(0, 300)}...` : transcript,
-              })
-              if (matches.length >= limit) break
-            }
-          }
-        }
-
-        if (matches.length === 0) {
-          return Promise.resolve({
-            text: `No matches found for "${query}" in shadowed history. (Note: history_search is a literal scan; check checkpoint index summaries or use history_read directly).`,
-          })
-        }
-
-        const resultLines = matches.map(
+        const resultLines = searched.hits.map(
           m => `[Checkpoint c${m.checkpointId} | Event #${m.seq}]:\n${m.snippet}`,
         )
 
-        return Promise.resolve({
-          text: `Found ${matches.length} matching snippet(s) for "${query}":\n\n${resultLines.join('\n\n---\n\n')}`,
-        })
+        return {
+          text: `Found ${searched.hits.length} matching snippet(s) for "${query}" `
+            + `(scanned=${searched.coverage.scanned}, matched=${searched.coverage.matched}, `
+            + `truncated=${searched.coverage.truncated}, mode=${searched.coverage.mode}):\n\n`
+            + resultLines.join('\n\n---\n\n'),
+        }
       },
       presentCall: args => ({ card: 'generic', title: `Search compacted history for "${args.query}"`, kind: 'other', rawInput: args }),
     }),
   )
+}
+
+/**
+ * Label a shadowed surface node that is itself a prior state checkpoint.
+ * @param event - shadowed event being rendered.
+ * @param stateCompactionIds - compaction ids classified as state.
+ * @param line - plain transcript line.
+ * @returns line, optionally prefixed with the prior-state marker.
+ */
+function labelPriorStateCheckpoint(
+  event: SessionEvent,
+  stateCompactionIds: ReadonlySet<string>,
+  line: string,
+): string {
+  if (event.type !== 'user/message') return line
+  const message = ('message' in event.data ? event.data.message : event.data) as Message
+  if (!isCompactCheckpointSource(message.source)) return line
+  const source = message.source as CompactionCheckpointSource
+  if (!stateCompactionIds.has(source.compactionId)) return line
+  return `[prior state checkpoint]\n${line}`
 }

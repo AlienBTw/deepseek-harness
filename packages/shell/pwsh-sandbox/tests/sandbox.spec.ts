@@ -20,6 +20,7 @@ import LocalSubprocessRuntime from '@maple/subprocess-local'
 import { SandboxPwshExecutor } from '../src/index.ts'
 import { classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from '../src/helpers.ts'
 
+const LIVE = new AbortController().signal
 // The same probe pwsh-local's suites and the vitest coverage exemption use:
 // spawnSync never throws on a missing binary (it reports status null), and
 // `where.exe pwsh` exits 1 when pwsh is absent — only the status is truth.
@@ -169,7 +170,7 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
 
   it('wraps the exact pwsh argv through ctx.sandbox with the per-call policy', async () => {
     const { executor, calls } = await setup()
-    const result = await executor.run(executor.resolve({ command: 'echo wrapped', sandboxPolicy: RO }))
+    const result = await executor.run(executor.resolve({ command: 'echo wrapped', sandboxPolicy: RO, signal: LIVE }))
     expect(result.exitCode).toBe(0)
     expect(calls).toHaveLength(1)
     const call = calls[0]
@@ -184,14 +185,14 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
   it('advertises the deployment default mode and stamps the deployment policy when none rides the request', async () => {
     const { executor, calls } = await setup()
     expect(executor.sandboxMode).toBe('workspace-write')
-    const result = await executor.run(executor.resolve({ command: 'echo fallback' }))
+    const result = await executor.run(executor.resolve({ command: 'echo fallback', signal: LIVE }))
     expect(result.exitCode).toBe(0)
     expect(calls[0]?.policy.mode).toBe('workspace-write')
   }, 30_000)
 
   it('danger-full-access bypasses confine entirely and stamps full-access facts', async () => {
     const { executor, calls } = await setup()
-    const result = await executor.run(executor.resolve({ command: 'echo full', sandboxPolicy: { mode: 'danger-full-access', workspaceRoot: '/ws' } }))
+    const result = await executor.run(executor.resolve({ command: 'echo full', sandboxPolicy: { mode: 'danger-full-access', workspaceRoot: '/ws' }, signal: LIVE }))
     expect(result.exitCode).toBe(0)
     expect(calls).toHaveLength(0)
     expect(result.sandbox).toEqual({ mode: 'danger-full-access', denied: false })
@@ -217,7 +218,7 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
     const { executor } = await setup()
     const result = await executor.run(executor.resolve({
       command: deniedWriteCommand,
-      sandboxPolicy: RO,
+      sandboxPolicy: RO, signal: LIVE,
     }))
     expect(result.exitCode).not.toBe(0)
     expect(result.sandbox).toEqual({ mode: 'read-only', denied: true, enforcement: 'full' })
@@ -230,7 +231,7 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
       denialSignatures: [],
       runnerFailureRules: [{ fatalSignatures: ['fake-runner: '] }],
     }))
-    await expect(executor.run(executor.resolve({ command: 'echo never-runs', sandboxPolicy: RO })))
+    await expect(executor.run(executor.resolve({ command: 'echo never-runs', sandboxPolicy: RO, signal: LIVE })))
       .rejects.toThrow(SandboxUnavailableError)
   }, 30_000)
 
@@ -242,12 +243,12 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
       denialSignatures: [],
       runnerFailureRules: [{ fatalSignatures: ['fake-runner: '] }],
     }), throwingSubprocessRuntime(attributable))
-    await expect(closed.run(closed.resolve({ command: 'echo never', sandboxPolicy: RO })))
+    await expect(closed.run(closed.resolve({ command: 'echo never', sandboxPolicy: RO, signal: LIVE })))
       .rejects.toThrow(SandboxUnavailableError)
 
     const foreign = Object.assign(new Error('sync-emfile'), { code: 'EMFILE', syscall: 'spawn', path: 'node' })
     const { executor: passthroughError } = await setup(undefined, throwingSubprocessRuntime(foreign))
-    await expect(passthroughError.run(passthroughError.resolve({ command: 'echo never', sandboxPolicy: RO })))
+    await expect(passthroughError.run(passthroughError.resolve({ command: 'echo never', sandboxPolicy: RO, signal: LIVE })))
       .rejects.toThrow('sync-emfile')
   }, 30_000)
 
@@ -259,12 +260,12 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
       denialSignatures: [],
       runnerFailureRules: [{ fatalSignatures: ['fake-runner: '] }],
     }), throwingSubprocessRuntime(attributable))
-    expect(() => closed.start(closed.resolve({ command: 'echo never', sandboxPolicy: RO })))
+    expect(() => closed.start(closed.resolve({ command: 'echo never', sandboxPolicy: RO, signal: LIVE })))
       .toThrow(SandboxUnavailableError)
 
     const foreign = Object.assign(new Error('sync-emfile-start'), { code: 'EMFILE', syscall: 'spawn', path: 'node' })
     const { executor: passthroughError } = await setup(undefined, throwingSubprocessRuntime(foreign))
-    expect(() => passthroughError.start(passthroughError.resolve({ command: 'echo never', sandboxPolicy: RO })))
+    expect(() => passthroughError.start(passthroughError.resolve({ command: 'echo never', sandboxPolicy: RO, signal: LIVE })))
       .toThrow('sync-emfile-start')
   }, 30_000)
 
@@ -275,13 +276,13 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
       denialSignatures: [],
       runnerFailureRules: [{ fatalSignatures: ['fake-runner: '] }],
     }))
-    await expect(executor.run(executor.resolve({ command: 'echo never-runs', sandboxPolicy: RO })))
+    await expect(executor.run(executor.resolve({ command: 'echo never-runs', sandboxPolicy: RO, signal: LIVE })))
       .rejects.toThrow(SandboxUnavailableError)
   }, 30_000)
 
   it('background confined runs stamp clean facts at settlement', async () => {
     const { executor } = await setup()
-    const clean = executor.start(executor.resolve({ command: 'echo background-ok', sandboxPolicy: RO }))
+    const clean = executor.start(executor.resolve({ command: 'echo background-ok', sandboxPolicy: RO, signal: LIVE }))
     await clean.done
     expect(clean.sandbox).toEqual({ mode: 'read-only', denied: false, enforcement: 'full' })
   }, 30_000)
@@ -292,7 +293,7 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
     const { executor } = await setup()
     const denied = executor.start(executor.resolve({
       command: deniedWriteCommand,
-      sandboxPolicy: RO,
+      sandboxPolicy: RO, signal: LIVE,
     }))
     await denied.done
     expect(denied.sandbox).toEqual({ mode: 'read-only', denied: true, enforcement: 'full' })
@@ -305,7 +306,7 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
       denialSignatures: [],
       runnerFailureRules: [{ fatalSignatures: ['fake-runner: '] }],
     }))
-    const proc = executor.start(executor.resolve({ command: 'echo never', sandboxPolicy: RO }))
+    const proc = executor.start(executor.resolve({ command: 'echo never', sandboxPolicy: RO, signal: LIVE }))
     await proc.done
     expect(proc.sandbox).toEqual({ mode: 'read-only', denied: false, enforcement: 'full', runnerFailed: true })
     // The failure note surfaces through the read path.
@@ -317,7 +318,7 @@ describe.skipIf(!pwshAvailable())('SandboxPwshExecutor', () => {
     const { executor, calls } = await setup()
     const proc = executor.start(executor.resolve({
       command: 'echo full-bg',
-      sandboxPolicy: { mode: 'danger-full-access', workspaceRoot: '/ws' },
+      sandboxPolicy: { mode: 'danger-full-access', workspaceRoot: '/ws' }, signal: LIVE,
     }))
     await proc.done
     expect(calls).toHaveLength(0)

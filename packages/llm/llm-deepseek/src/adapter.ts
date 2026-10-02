@@ -634,7 +634,6 @@ export class DeepSeekAdapter extends LlmAdapter {
         const id = requestId(response.headers)
         throw new LlmError(message, httpErrorCode(response.status, providerError), {
           cause: new Error(rawResponse.length > 0 ? rawResponse : `DeepSeek HTTP ${response.status}`),
-          status: response.status,
           ...delay === undefined ? {} : { providerRetryAfterMs: delay },
           ...id === undefined ? {} : { requestId: id },
         })

@@ -42,7 +42,7 @@ An upload is indexed only after the response returns a complete file object, mat
 
 A 16-bit RGB or RGBA PNG is normal admitted input and converts to 8-bit sRGB/sRGBA. If local conversion fails, `read_image` names the path, detected 16-bit PNG, required normalized form, and manual conversion remedy. If DeepSeek rejects a normalized request version, the primary error names the attachment or display name, durable message and image position, normalized media type, 8-bit sRGB/sRGBA depth, dimensions, and provider message. An ambiguous multi-image rejection lists every candidate. The raw provider body remains the error cause rather than the only visible message.
 
-Historical attachment objects that later disappear or fail integrity verification remain fail-loud. Durable quarantine and verified recovery require session events and are tracked by [Quarantine unreadable historical attachments](../../proposed/bug-fix/2026-08-20-attachment-read-quarantine.md).
+Historical attachment objects that later disappear or fail integrity verification remain fail-loud. Durable quarantine and verified recovery require session events and are tracked by [Quarantine unreadable historical attachments](../../implemented/bug-fix/2026-08-20-attachment-read-quarantine.md).
 
 ## Alternatives considered
 

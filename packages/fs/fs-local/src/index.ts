@@ -103,10 +103,10 @@ export class LocalFileSystem extends FileSystem {
     }
   }
 
-  override async resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal }): Promise<FsTarget> {
-    if (opts?.signal?.aborted) throw new FsError('resolve aborted', 'FS_ABORTED')
-    const local = await resolveLocalTarget(opts?.cwd ?? this.config.cwd, path)
-    if (opts?.signal?.aborted) throw new FsError('resolve aborted', 'FS_ABORTED')
+  override async resolve(path: string, opts: { cwd?: string; signal: AbortSignal }): Promise<FsTarget> {
+    if (opts.signal.aborted) throw new FsError('resolve aborted', 'FS_ABORTED')
+    const local = await resolveLocalTarget(opts.cwd ?? this.config.cwd, path)
+    if (opts.signal.aborted) throw new FsError('resolve aborted', 'FS_ABORTED')
     return { targetKey: local.targetKey, displayPath: local.displayPath }
   }
 
@@ -123,36 +123,36 @@ export class LocalFileSystem extends FileSystem {
     return path === '' || (path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path))
   }
 
-  override async stat(target: FsTarget, signal?: AbortSignal): Promise<FsInfo | undefined> {
-    if (signal?.aborted) throw new FsError('stat aborted', 'FS_ABORTED')
+  override async stat(target: FsTarget, signal: AbortSignal): Promise<FsInfo | undefined> {
+    if (signal.aborted) throw new FsError('stat aborted', 'FS_ABORTED')
     const info = await probe(target.targetKey)
-    if (signal?.aborted) throw new FsError('stat aborted', 'FS_ABORTED')
+    if (signal.aborted) throw new FsError('stat aborted', 'FS_ABORTED')
     if (!info) return undefined
     return { version: info.version, type: info.type, size: info.size }
   }
 
-  override async lstat(path: string, opts?: { cwd?: string }, signal?: AbortSignal): Promise<FsPathInfo | undefined> {
-    if (signal?.aborted) throw new FsError('lstat aborted', 'FS_ABORTED')
+  override async lstat(path: string, opts: { cwd?: string } | undefined, signal: AbortSignal): Promise<FsPathInfo | undefined> {
+    if (signal.aborted) throw new FsError('lstat aborted', 'FS_ABORTED')
     if (path.trim().length === 0) throw new FsError('file_path must be a non-empty string', 'FS_NOT_FOUND')
     const info = await probeNoFollow(resolve(opts?.cwd ?? this.config.cwd, path))
-    if (signal?.aborted) throw new FsError('lstat aborted', 'FS_ABORTED')
+    if (signal.aborted) throw new FsError('lstat aborted', 'FS_ABORTED')
     if (!info) return undefined
     return { version: info.version, type: info.type, size: info.size }
   }
 
-  override async readText(target: FsTarget, signal?: AbortSignal): Promise<string> {
+  override async readText(target: FsTarget, signal: AbortSignal): Promise<string> {
     return readWholeText({ displayPath: target.displayPath, targetKey: target.targetKey }, signal)
   }
 
-  override streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>> {
+  override streamText(target: FsTarget, signal: AbortSignal): Promise<AsyncIterable<string>> {
     return Promise.resolve(streamWholeText({ displayPath: target.displayPath, targetKey: target.targetKey }, signal))
   }
 
-  override async readBytes(target: FsTarget, signal: AbortSignal | undefined, maxBytes: number): Promise<Uint8Array> {
+  override async readBytes(target: FsTarget, signal: AbortSignal, maxBytes: number): Promise<Uint8Array> {
     return readWholeBytes({ displayPath: target.displayPath, targetKey: target.targetKey }, signal, maxBytes, this.internals)
   }
 
-  override async listDir(target: FsTarget, signal?: AbortSignal): Promise<FsDirEntry[]> {
+  override async listDir(target: FsTarget, signal: AbortSignal): Promise<FsDirEntry[]> {
     const entries = await listDirectory({ displayPath: target.displayPath, targetKey: target.targetKey }, signal)
     return entries.map(entry => ({
       name: entry.name,
@@ -166,8 +166,8 @@ export class LocalFileSystem extends FileSystem {
   override async writeText(
     target: FsTarget,
     content: string,
-    expected?: FsWriteIntent,
-    signal?: AbortSignal,
+    expected: FsWriteIntent | undefined,
+    signal: AbortSignal,
   ): Promise<FsWriteOutcome> {
     return this.withLock(target.targetKey, async () => {
       const existing = await probe(target.targetKey)
@@ -221,8 +221,8 @@ export class LocalFileSystem extends FileSystem {
   override async editText(
     target: FsTarget,
     edit: FsEditRequest,
-    expected?: { version: FsVersion },
-    signal?: AbortSignal,
+    expected: { version: FsVersion } | undefined,
+    signal: AbortSignal,
   ): Promise<FsEditOutcome> {
     return this.withLock(target.targetKey, async () => {
       const existing = await probe(target.targetKey)

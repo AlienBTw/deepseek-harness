@@ -9,6 +9,13 @@ import { Context, Service } from '@maple/cordis'
 import { SessionPreparation } from '@maple/session'
 import type { SessionEvent, SessionId, SessionHeader } from '@maple/session'
 import type { SessionPersistenceRevision } from './revision.ts'
+import {
+  pageSessionHeaders,
+  selectGcVictims,
+  type SessionListPage,
+  type SessionListQuery,
+  type SessionRetentionPolicy,
+} from './retention.ts'
 
 // Re-export the metadata vocabulary so Consumers import it from the Service Definition.
 export type { SessionHeader } from '@maple/session'
@@ -56,6 +63,24 @@ export type {
   StoredPrefix,
   StoredSuffix,
 } from './coordinator.ts'
+export {
+  foldLastPromptAt,
+  isHumanPromptEvent,
+  reduceLastPromptAt,
+} from './last-activity.ts'
+export {
+  compareSessionHeadersNewestFirst,
+  pageSessionHeaders,
+  pageSessionListKeys,
+  selectGcVictims,
+  sessionActivityAt,
+} from './retention.ts'
+export type {
+  SessionListKey,
+  SessionListPage,
+  SessionListQuery,
+  SessionRetentionPolicy,
+} from './retention.ts'
 
 declare module '@maple/cordis' {
   interface Context {
@@ -226,6 +251,60 @@ export abstract class SessionPersistence extends Service {
    * @returns one header per materialized session.
    */
   abstract list(signal?: AbortSignal): Promise<SessionHeader[]>
+
+  /**
+   * Paginated newest-first listing over the same metadata {@link list} returns.
+   * Default implementation sorts and slices the full list in memory; backends
+   * that can seek may override. A malformed cursor fails loud.
+   * @param query - limit plus optional opaque continuation cursor.
+   * @param signal - optional cancellation for backend listing work.
+   * @returns one page of headers and an optional next cursor.
+   */
+  async listPage(query: SessionListQuery, signal?: AbortSignal): Promise<SessionListPage> {
+    return pageSessionHeaders(await this.list(signal), query)
+  }
+
+  /**
+   * Durably remove one materialized session's storage. Refuses while a live
+   * {@link Session} with the same id is attached to `ctx.sessions`. An absent
+   * id is a no-op success so retries stay idempotent.
+   * @param id - persisted session to delete.
+   * @param signal - optional cancellation for backend delete work.
+   */
+  abstract delete(id: SessionId, signal?: AbortSignal): Promise<void>
+
+  /**
+   * Apply this backend's configured retention policy, deleting eligible cold
+   * sessions. A backend without retention config returns an empty deleted list.
+   * Live attached sessions are never collected.
+   * @param signal - optional cancellation for listing and delete work.
+   * @returns the ids that were deleted, in deletion order.
+   */
+  async gc(signal?: AbortSignal): Promise<{ deleted: readonly SessionId[] }> {
+    signal?.throwIfAborted()
+    const policy = this.retentionPolicy()
+    if (policy === undefined) return { deleted: [] }
+    const live = new Set((this.ctx.get('sessions')?.list() ?? []).map(session => session.id))
+    const headers = (await this.list(signal)).filter(header => !live.has(header.id))
+    signal?.throwIfAborted()
+    const victims = selectGcVictims(headers, policy, Date.now())
+    const deleted: SessionId[] = []
+    for (const id of victims) {
+      signal?.throwIfAborted()
+      await this.delete(id, signal)
+      deleted.push(id)
+    }
+    return { deleted }
+  }
+
+  /**
+   * Retention ceilings this backend applies during {@link gc}. Default is
+   * none; concrete backends override when their Config carries retention.
+   * @returns the active policy, or `undefined` when GC is a no-op.
+   */
+  protected retentionPolicy(): SessionRetentionPolicy | undefined {
+    return undefined
+  }
 
   /**
    * List materialized sessions with cheap per-log change tokens.

@@ -37,7 +37,7 @@ function appendRetryTurn(session: Session, turn: number) {
   session.append('llm/retry', { turn, step: 1, ...normal })
 }
 
-const failure = { message: 'provider busy', code: 'RATE_LIMIT', status: 429 }
+const failure = { message: 'provider busy', code: 'RATE_LIMIT' }
 const normal = {
   retryId: RetryId('normal-retry-chain'),
   provider: 'mock',
@@ -93,7 +93,6 @@ describe('llm-retry invariants', () => {
         failure: {
           message: 'provider busy',
           code: 'RATE_LIMIT',
-          status: 429,
           providerRetryAfterMs: 25,
           requestId: ProviderRequestId('request-1'),
         },
@@ -106,9 +105,6 @@ describe('llm-retry invariants', () => {
       ['message-empty', { message: '', code: 'RATE_LIMIT' }, /failure\.message/],
       ['code-type', { message: 'failed', code: 1 }, /failure\.code/],
       ['code-empty', { message: 'failed', code: '' }, /failure\.code/],
-      ['status-type', { message: 'failed', code: 'RATE_LIMIT', status: 429.5 }, /failure\.status/],
-      ['status-low', { message: 'failed', code: 'RATE_LIMIT', status: 99 }, /failure\.status/],
-      ['status-high', { message: 'failed', code: 'RATE_LIMIT', status: 600 }, /failure\.status/],
       [
         'retry-after-type',
         { message: 'failed', code: 'RATE_LIMIT', providerRetryAfterMs: '25' },

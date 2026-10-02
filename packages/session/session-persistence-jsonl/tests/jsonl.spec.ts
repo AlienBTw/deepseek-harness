@@ -813,6 +813,63 @@ describe('JsonlSessionPersistence: write path (session/event → flush)', () => 
 
 })
 
+describe('JsonlSessionPersistence: durable last-activity index', () => {
+  it('writes a session.activity sidecar and serves lastPromptAt from list without opening the log', async () => {
+    root = await freshRoot()
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
+    const id = SessionId('activity-list')
+    const header = meta(id, '/proj')
+    await ctx.sessionPersistence.create(header)
+    const events = oneTurnLog()
+    await ctx.sessionPersistence.append(id, events)
+
+    const listed = await ctx.sessionPersistence.list()
+    expect(listed).toEqual([expect.objectContaining({
+      id,
+      lastPromptAt: events.find(event => event.type === 'user/message')!.time,
+    })])
+
+    const sidecar = JSON.parse(await readFile(
+      join(sessionDir(root, '/proj', id), 'session.activity'),
+      'utf8',
+    )) as { seq: number; lastPromptAt: number | null }
+    expect(sidecar).toEqual({
+      seq: events.at(-1)!.seq,
+      lastPromptAt: events.find(event => event.type === 'user/message')!.time,
+    })
+
+    // Immutable header line must not carry the mutable index field.
+    const log = await readFile(logPath(root, '/proj', id, 'none'), 'utf8')
+    expect(JSON.parse(log.split('\n', 1)[0]!)).not.toHaveProperty('lastPromptAt')
+    await ctx.fiber.dispose()
+  }, 30_000)
+
+  it('reconciles a missing sidecar on open and treats pre-field absence as createdAt on list', async () => {
+    root = await freshRoot()
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
+    const id = SessionId('activity-reconcile')
+    const header = meta(id, '/proj')
+    await ctx.sessionPersistence.create(header)
+    const events = oneTurnLog()
+    await ctx.sessionPersistence.append(id, events)
+    const activity = join(sessionDir(root, '/proj', id), 'session.activity')
+    await rm(activity)
+
+    const listed = await ctx.sessionPersistence.list()
+    expect(listed[0]?.lastPromptAt).toBeUndefined()
+
+    const loaded = await ctx.sessionPersistence.load(id)
+    expect(loaded.meta.lastPromptAt).toBe(events.find(event => event.type === 'user/message')!.time)
+    const sidecar = JSON.parse(await readFile(activity, 'utf8')) as { seq: number; lastPromptAt: number }
+    expect(sidecar.lastPromptAt).toBe(loaded.meta.lastPromptAt)
+    await ctx.fiber.dispose()
+  }, 30_000)
+})
+
 
 describe('JsonlSessionPersistence: scanLog unit', () => {
   it('requires exactly one newline-terminated header record', () => {
