@@ -862,7 +862,7 @@ export class SlotCore {
       }
       case 'chain': {
         if (options.select === undefined) throw new Error(`chain slot "${options.name}" requires options.select`)
-        const phases = Array.isArray(spec.phases) ? spec.phases : undefined
+        const phases = Array.isArray(spec.phases) ? spec.phases as readonly string[] : undefined
         if (phases !== undefined) {
           if (options.phase === undefined) {
             throw new Error(
@@ -920,7 +920,7 @@ export class SlotCore {
     // phases (when declared) dominate local priority; every other kind sorts
     // by priority ascending. Ties keep registration sequence — a cell's
     // winner is its first occurrence, chain tries earlier entries first.
-    const phases = Array.isArray(spec.phases) ? spec.phases : undefined
+    const phases = Array.isArray(spec.phases) ? spec.phases as readonly string[] : undefined
     next.sort(spec.kind === 'list'
       ? (a, b) => ((a.options.priority ?? 0) - (b.options.priority ?? 0)) || ((a.options.order ?? 0) - (b.options.order ?? 0))
       : spec.kind === 'chain' && phases !== undefined

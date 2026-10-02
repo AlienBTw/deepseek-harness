@@ -30,6 +30,9 @@
       "path": "../ui-slots"
     },
     {
+      "path": "../ui-tool"
+    },
+    {
       "path": "../../task-surface/task-surface"
     },
     {

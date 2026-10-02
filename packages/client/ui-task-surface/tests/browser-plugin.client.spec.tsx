@@ -207,7 +207,8 @@ describe('TaskSurfacePanel adapter', () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1)
     })
-    expect(onSubmit.mock.calls[0]![0]).toMatchObject({
+    const submitArgs = onSubmit.mock.calls.at(0)?.at(0)
+    expect(submitArgs).toMatchObject({
       surfaceId: TaskSurfaceId('surf-1'),
       values: { env: 'staging' },
     })
@@ -247,7 +248,8 @@ describe('TaskSurfacePanel adapter', () => {
     await waitFor(() => {
       expect(onDismiss).toHaveBeenCalledTimes(1)
     })
-    expect(onDismiss.mock.calls[0]![0]).toMatchObject({
+    const dismissArgs = onDismiss.mock.calls.at(0)?.at(0)
+    expect(dismissArgs).toMatchObject({
       surfaceId: TaskSurfaceId('surf-1'),
     })
   }, 15_000)

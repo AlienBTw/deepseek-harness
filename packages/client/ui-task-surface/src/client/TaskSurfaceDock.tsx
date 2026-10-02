@@ -64,11 +64,22 @@ function initialValues(model: TaskSurfaceModelV1): FieldValues {
 
 function layoutClass(layout: TaskSurfaceLayout | undefined): string {
   switch (layout) {
-    case 'grid-2': return css.grid2
-    case 'grid-3': return css.grid3
+    case 'grid-2': {
+      const className = css.grid2
+      if (className === undefined) throw new Error('TaskSurfaceDock.module.css is missing .grid2')
+      return className
+    }
+    case 'grid-3': {
+      const className = css.grid3
+      if (className === undefined) throw new Error('TaskSurfaceDock.module.css is missing .grid3')
+      return className
+    }
     case 'stack':
-    case undefined:
-      return css.stack
+    case undefined: {
+      const className = css.stack
+      if (className === undefined) throw new Error('TaskSurfaceDock.module.css is missing .stack')
+      return className
+    }
     default:
       return assertNever(layout)
   }
