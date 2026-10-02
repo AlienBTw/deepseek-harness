@@ -46,6 +46,13 @@ const IMPLEMENTATION_PULL_REQUEST_ACTIONS = new Set([
   'unlabeled',
 ])
 
+/** Prefer the Actions repository when present so fork checkouts stay self-correcting. */
+const githubRepository = process.env.GITHUB_REPOSITORY?.split('/')
+if (githubRepository?.length === 2) {
+  config.organization = githubRepository[0]
+  config.repository = githubRepository[1]
+}
+
 for (const status of ['In progress', 'In review']) {
   if (!ACTIVE_STATUS_ORDER.includes(status)) throw new Error(`config.statuses 缺少 ${status}`)
 }
