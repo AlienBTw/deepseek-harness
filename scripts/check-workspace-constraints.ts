@@ -61,7 +61,6 @@ const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
   // The Web build emits sourcemaps for browser debugging; publishing them is
   // what the payload policy forbids, so the bundle ships without them.
   '@maple/web-frontend': ['dist', '!dist/**/*.map'],
-  '@maple/cli': ['lib/*.js', 'config'],
   // The desktop shell ships its Tauri sources and splash page, not lib output.
   '@maple/desktop': ['README.md', 'dist'],
 }
