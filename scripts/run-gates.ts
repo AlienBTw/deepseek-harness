@@ -95,7 +95,7 @@ async function main(args: string[]): Promise<number> {
   const mode = parseMode(args[0])
   const gates = gatesForMode(mode)
   const concurrencyDefault = defaultConcurrency(mode, gates.length)
-  const concurrencyOverride = process.env.MAPLE_GATE_CONCURRENCY
+  const concurrencyOverride = envLookup('MAPLE_GATE_CONCURRENCY')
   const maxConcurrency = concurrencyFromEnv('MAPLE_GATE_CONCURRENCY', concurrencyDefault.workers)
   const concurrencySource = concurrencyOverride === undefined || concurrencyOverride === ''
     ? concurrencyDefault.source
@@ -161,13 +161,27 @@ export function defaultConcurrency(
 }
 
 function concurrencyFromEnv(name: string, fallback: number): number {
-  const raw = process.env[name]
+  const raw = envLookup(name)
   if (raw === undefined || raw === '') return fallback
   const parsed = Number.parseInt(raw, 10)
   if (!Number.isSafeInteger(parsed) || parsed < 1) {
     throw new Error(`run-gates: ${name} must be a positive integer, got ${JSON.stringify(raw)}.`)
   }
   return parsed
+}
+
+/**
+ * Prefer the Maple-prefixed env var; accept the pre-rebrand `DSH_` twin so
+ * workflows that still export the old name keep driving the same gates.
+ */
+function envLookup(name: string): string | undefined {
+  const value = process.env[name]
+  if (value !== undefined && value !== '') return value
+  if (name.startsWith('MAPLE_')) {
+    const legacy = process.env[`DSH_${name.slice('MAPLE_'.length)}`]
+    if (legacy !== undefined && legacy !== '') return legacy
+  }
+  return value
 }
 
 function pnpmScript(id: string, script: string, options: Partial<Gate> = {}): Gate {
@@ -446,7 +460,7 @@ function ciConsumerGates(): Gate[] {
 }
 
 function webSnapshotGate(needs: string[]): Gate {
-  const workerRaw = process.env.MAPLE_WEB_SNAPSHOT_WORKERS
+  const workerRaw = envLookup('MAPLE_WEB_SNAPSHOT_WORKERS')
   if (workerRaw !== undefined && workerRaw !== '') {
     const workers = Number.parseInt(workerRaw, 10)
     if (!Number.isSafeInteger(workers) || workers < 2 || String(workers) !== workerRaw) {
@@ -517,7 +531,7 @@ function typertContractsGate(): Gate {
 }
 
 function lintGate(options: { needs?: string[] } = {}): Gate {
-  const raw = process.env.MAPLE_OXLINT_THREADS
+  const raw = envLookup('MAPLE_OXLINT_THREADS')
   const script = 'lint:contracts-ready'
   return pnpmScript('lint', script, {
     ...raw === undefined || raw === ''
@@ -618,7 +632,7 @@ function positiveIntArg(envName: string, flag: string): string[] {
 }
 
 function flagEnabled(envName: string): boolean {
-  const raw = process.env[envName]
+  const raw = envLookup(envName)
   if (raw === undefined || raw === '') return false
   if (raw !== '1') throw new Error(`run-gates: ${envName} must be 1 when set, got ${JSON.stringify(raw)}.`)
   return true
@@ -937,7 +951,7 @@ export function formatGateResultReason(result: GateResult): string {
 }
 
 function printResult(result: GateResult): void {
-  const verbose = process.env.MAPLE_GATE_VERBOSE === '1'
+  const verbose = envLookup('MAPLE_GATE_VERBOSE') === '1'
   const seconds = (result.durationMs / 1000).toFixed(2)
   if (result.status === 'passed' && !verbose) {
     console.log(`run-gates: PASS ${result.gate.label} (${seconds}s)`)
