@@ -9,7 +9,14 @@
  * automatically through package.json.
  */
 
-import { chmodSync, copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs'
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -20,6 +27,39 @@ const repoRoot = resolve(desktopRoot, '../..')
 const sidecarRoot = join(desktopRoot, 'src-tauri', 'sidecar')
 const cliOut = join(sidecarRoot, 'cli', 'bin.js')
 const cliSrc = join(repoRoot, 'apps', 'cli', 'lib', 'bin.js')
+const splashOut = join(desktopRoot, 'dist', 'index.html')
+
+/** Static splash shown until the web host prints its readiness URL. */
+const SPLASH_HTML = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maple</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: grid;
+        place-items: center;
+        background: #14161a;
+        color: #9aa3af;
+        font: 15px/1.6 system-ui, sans-serif;
+      }
+      .mark { font-size: 34px; font-weight: 650; color: #e8eaed; letter-spacing: 0.02em; }
+      .status { margin-top: 10px; }
+      @media (prefers-reduced-motion: no-preference) {
+        .status::after { content: '…'; animation: dots 1.2s steps(4) infinite; }
+        @keyframes dots { 0% { content: ''; } 75% { content: '…'; } }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">Maple</div>
+      <div class="status">Starting the local harness</div>
+    </main>
+  </body>
+</html>
+`
 
 if (!existsSync(cliSrc)) {
   console.error(`[prepare-sidecar] missing ${cliSrc}; run pnpm run build at the repo root first`)
@@ -28,6 +68,10 @@ if (!existsSync(cliSrc)) {
 
 mkdirSync(dirname(cliOut), { recursive: true })
 copyFileSync(cliSrc, cliOut)
+
+mkdirSync(dirname(splashOut), { recursive: true })
+writeFileSync(splashOut, SPLASH_HTML)
+console.log(`[prepare-sidecar] wrote ${splashOut}`)
 
 const nodeSrc = process.env.NODE_SIDECAR
   ?? (process.platform === 'win32'

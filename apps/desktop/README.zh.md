@@ -32,7 +32,7 @@ pnpm run build              # produces apps/cli/lib/bin.js
 pnpm desktop:build          # stages sidecar resources, then NSIS installer
 ```
 
-`pnpm desktop:build` 会运行 `scripts/prepare-sidecar.mjs`，将 `apps/cli/lib/bin.js` 与 Node 二进制复制到 `src-tauri/sidecar/`，再由 Tauri 作为资源打包。可用 `NODE_SIDECAR=/absolute/path/to/node` 覆盖 Node 副本。
+`pnpm desktop:build` 会运行 `scripts/prepare-sidecar.mjs`：写出 `dist/` 下的启动页，将 `apps/cli/lib/bin.js` 与 Node 二进制复制到 `src-tauri/sidecar/`，再由 Tauri 作为资源打包。可用 `NODE_SIDECAR=/absolute/path/to/node` 覆盖 Node 副本。
 
 在 Windows 上，检出路径若包含空格可能破坏 Tauri 资源打包。当 `pnpm desktop:build` 因资源 glob 失败时，请从指向该检出的无空格 junction 或 subst 盘符构建（例如 `C:\maple-harness-build`）。
 

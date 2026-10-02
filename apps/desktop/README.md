@@ -32,7 +32,7 @@ pnpm run build              # produces apps/cli/lib/bin.js
 pnpm desktop:build          # stages sidecar resources, then NSIS installer
 ```
 
-`pnpm desktop:build` runs `scripts/prepare-sidecar.mjs`, which copies `apps/cli/lib/bin.js` and a Node binary into `src-tauri/sidecar/` before Tauri bundles them as resources. Override the Node copy with `NODE_SIDECAR=/absolute/path/to/node`.
+`pnpm desktop:build` runs `scripts/prepare-sidecar.mjs`, which writes the splash page under `dist/`, copies `apps/cli/lib/bin.js` and a Node binary into `src-tauri/sidecar/`, then lets Tauri bundle them as resources. Override the Node copy with `NODE_SIDECAR=/absolute/path/to/node`.
 
 On Windows, a checkout path that contains a space can break Tauri resource packing. Build from a space-free junction or subst drive that points at the checkout (for example `C:\maple-harness-build`) when `pnpm desktop:build` fails on resource globs.
 
