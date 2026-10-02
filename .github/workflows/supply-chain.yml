@@ -8,7 +8,7 @@ name: Supply chain
 on:
   workflow_dispatch:
   schedule:
-    # 03:17 UTC nightly — offset from e2e's 00:17 stampede.
+    # 03:17 UTC nightly â€” offset from e2e's 00:17 stampede.
     - cron: '17 3 * * *'
   push:
     paths:
@@ -49,7 +49,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           dest: ${{ runner.temp }}/setup-pnpm
 
@@ -65,7 +65,7 @@ jobs:
           store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
           echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}

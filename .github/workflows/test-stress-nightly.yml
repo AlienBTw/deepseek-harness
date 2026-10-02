@@ -2,11 +2,11 @@ name: Nightly agent-loop stress
 
 # Skeleton for Wave 4.1 race stress: shuffle the agent-loop and agent (inbox)
 # suites repeatedly so scheduling-dependent failures surface. A flake found
-# here is a bug to fix — never add --retry to paper over it.
+# here is a bug to fix â€” never add --retry to paper over it.
 #
 # Vitest 4.x has no --repeats CLI; this job loops `test:stress:agent-loop`
 # instead. When the runner gains --repeats (Vitest 5+), replace the loop with
-# a single `vitest run --repeats=200 --sequence.shuffle …` invocation.
+# a single `vitest run --repeats=200 --sequence.shuffle â€¦` invocation.
 # Full sleep-free migration and higher repeat counts land after the suite
 # drops remaining allowlisted setTimeout uses
 # (see .agents/notes/implemented/testing/2026-06-11-deterministic-and-stress-testing.md).
@@ -19,7 +19,7 @@ on:
         required: false
         default: '20'
   schedule:
-    # 03:41 UTC nightly — offset from the real-API e2e cron.
+    # 03:41 UTC nightly â€” offset from the real-API e2e cron.
     - cron: '41 3 * * *'
 
 concurrency:
@@ -42,7 +42,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
       - uses: actions/setup-node@v6
         with:

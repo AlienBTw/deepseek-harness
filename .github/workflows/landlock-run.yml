@@ -62,11 +62,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           package_json_file: package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
@@ -100,7 +100,7 @@ jobs:
         env:
           NALR_REQUIRE_LANDLOCK: 1
 
-      - name: Pack rehearsal (pack → install → confine, this platform only)
+      - name: Pack rehearsal (pack â†’ install â†’ confine, this platform only)
         run: |
           node ./scripts/pack-release.mjs .release/npm --current-platform-only
           node ./scripts/verify-packed-install.mjs .release/npm --current-platform-only
@@ -108,16 +108,16 @@ jobs:
           NALR_REQUIRE_LANDLOCK: 1
 
   darwin:
-    name: darwin (no platform package — degradation proof)
+    name: darwin (no platform package â€” degradation proof)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           package_json_file: package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
@@ -138,7 +138,7 @@ jobs:
       - name: Launcher tests (must self-skip cleanly)
         run: node ./test/launcher.test.js
 
-      - name: Pack rehearsal (entry only — fallback resolution + unusable probe)
+      - name: Pack rehearsal (entry only â€” fallback resolution + unusable probe)
         run: |
           node ./scripts/pack-release.mjs .release/npm --current-platform-only
           node ./scripts/verify-packed-install.mjs .release/npm --current-platform-only
