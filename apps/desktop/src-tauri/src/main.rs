@@ -216,7 +216,7 @@ fn spawn_host(root: &Path, plane: LaunchPlane, app: &tauri::AppHandle) -> Result
     let mut command = match plane {
         LaunchPlane::Bundled => {
             let sidecar = bundled_sidecar(app).ok_or_else(|| {
-                "release sidecar resources are missing; run pnpm desktop:build after pnpm run build".into()
+                "release sidecar resources are missing; run pnpm desktop:build after pnpm run build".to_string()
             })?;
             let mut command = Command::new(&sidecar.node);
             command.arg(&sidecar.cli);

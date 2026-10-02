@@ -34,6 +34,8 @@ pnpm desktop:build          # stages sidecar resources, then NSIS installer
 
 `pnpm desktop:build` 会运行 `scripts/prepare-sidecar.mjs`，将 `apps/cli/lib/bin.js` 与 Node 二进制复制到 `src-tauri/sidecar/`，再由 Tauri 作为资源打包。可用 `NODE_SIDECAR=/absolute/path/to/node` 覆盖 Node 副本。
 
+在 Windows 上，检出路径若包含空格可能破坏 Tauri 资源打包。当 `pnpm desktop:build` 因资源 glob 失败时，请从指向该检出的无空格 junction 或 subst 盘符构建（例如 `C:\maple-harness-build`）。
+
 Release 安装优先使用捆绑 sidecar（`sidecar/node` + `sidecar/cli/bin.js`）；未准备这些资源的解包 `cargo build --release` 会回退到系统 `node` 加检出中的 `apps/cli/lib/bin.js`。
 
 仓库根通过从工作目录与可执行文件向上查找来定位，再读取本应用数据目录（`%APPDATA%\app.maple.desktop\`）下的 `repo-root.txt` 提示文件或可执行文件旁的 `maple-desktop.repo` 文件；`MAPLE_DESKTOP_REPO_ROOT` 覆盖一切。任一提示文件指向检出后，双击已安装二进制即可工作。

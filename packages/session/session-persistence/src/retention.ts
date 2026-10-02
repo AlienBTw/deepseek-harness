@@ -112,10 +112,11 @@ export function pageSessionListKeys<T extends SessionListKey>(
     if (activity !== 0) return activity
     return right.id < left.id ? -1 : right.id > left.id ? 1 : 0
   })
-  const start = query.cursor === undefined
+  const cursor = query.cursor
+  const start = cursor === undefined
     ? 0
-    : sorted.findIndex(row => afterCursor(row.activityAt, row.id, decodeCursor(query.cursor)))
-  if (query.cursor !== undefined && start < 0) {
+    : sorted.findIndex(row => afterCursor(row.activityAt, row.id, decodeCursor(cursor)))
+  if (cursor !== undefined && start < 0) {
     return { items: [] }
   }
   const items = sorted.slice(start, start + query.limit)
