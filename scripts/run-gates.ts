@@ -330,11 +330,16 @@ function ciPrimaryGates(): Gate[] {
 }
 
 function nodeCompatGates(): Gate[] {
-  const typecheck = flagEnabled('MAPLE_NODE_COMPAT_SKIP_TYPECHECK')
-    ? []
-    : [pnpmScript('typecheck', 'typecheck')]
+  const skipHeavy = flagEnabled('MAPLE_NODE_COMPAT_SKIP_TYPECHECK')
+  const typecheck = skipHeavy ? [] : [pnpmScript('typecheck', 'typecheck')]
   if (runningNodeMajor() !== 22) {
     return [...typecheck, ...nodeCompatSmokeGates()]
+  }
+  // Node 22's native TypeScript stripping rejects `as` assertions that still
+  // appear on the Host tsdown/plugin load path; keep the source smokes and
+  // leave the full build matrix to Node 24+.
+  if (skipHeavy) {
+    return [...nodeCompatSmokeGates()]
   }
   return [
     ...typecheck,
