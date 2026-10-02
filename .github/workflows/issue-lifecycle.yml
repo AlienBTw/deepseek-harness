@@ -40,7 +40,9 @@ jobs:
     # than a gray "skipped" segment. The token-creating and board-mutating steps
     # are gated at step level (a skipped step does not gray the job): only a
     # changes_requested review drives the Project board; approved/commented
-    # reviews never mint a write-capable App token.
+    # reviews never mint a write-capable App token. Skip entirely when the
+    # fork has not configured the Issue Management GitHub App credentials.
+    if: ${{ vars.DSH_ISSUE_APP_CLIENT_ID != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out trusted policy
@@ -55,8 +57,8 @@ jobs:
         with:
           client-id: ${{ vars.DSH_ISSUE_APP_CLIENT_ID }}
           private-key: ${{ secrets.DSH_ISSUE_APP_PRIVATE_KEY }}
-          owner: AlienBTw
-          repositories: AlienBTw
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
       - name: Handle repository event
         if: ${{ github.event_name != 'pull_request_review' || github.event.review.state == 'changes_requested' }}
         env:

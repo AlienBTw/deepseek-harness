@@ -27,6 +27,10 @@ linkWorkspacePackages: true
 overrides:
   '@maple/cosmokit': 'link:vendor/cosmokit'
   '@maple/schemastery': 'link:vendor/schemastery'
+  # GHSA-qhr7-859c-m2p7 / GHSA-6j4f-fj2g-mc7p — DoS via parseCommaParts
+  'brace-expansion@^1.1.12': '1.1.12'
+  'brace-expansion@^2.0.0': '2.1.5'
+  'brace-expansion@^5.0.0': '5.0.10'
 
 peerDependencyRules:
   allowedVersions:
