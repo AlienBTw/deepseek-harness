@@ -12,6 +12,7 @@ import TokenMeter from '@maple/token-meter'
 import type { ContextBreakdownProjection } from '@maple/token-meter/client'
 import { CompactionId } from '@maple/compaction'
 import { contextBreakdownProjectionDefinition } from '../src/breakdown-projection.ts'
+import { estimateTokensExact } from '@maple/token-count'
 import {
   estimateContent,
   estimateHeader,
@@ -284,28 +285,36 @@ describe('contextBreakdown session projection', () => {
 })
 
 describe('shared estimator', () => {
-  it('prices every content-block shape under the fixed heuristic', () => {
-    expect(estimateContent([{ type: 'text', text: 'abcd' }])).toBe(5)
-    expect(estimateContent([{ type: 'reasoning', text: 'abcdefgh' }] as ContentBlock[])).toBe(6)
-    expect(estimateContent([{ type: 'tool-call', id: 'c' as never, name: 'bash', arguments: '{"a":1}' }])).toBe(7)
+  it('prices every content-block shape under cl100k_base', () => {
+    expect(estimateContent([{ type: 'text', text: 'abcd' }])).toBe(1 + 4)
+    expect(estimateContent([{ type: 'reasoning', text: 'abcdefgh' }] as ContentBlock[])).toBe(estimateTokensExact('abcdefgh') + 4)
+    expect(estimateContent([{ type: 'tool-call', id: 'c' as never, name: 'bash', arguments: '{"a":1}' }]))
+      .toBe(estimateTokensExact('bash') + estimateTokensExact('{"a":1}') + 4)
     expect(estimateContent([{
       type: 'tool-result', toolCallId: 'c' as never,
       content: [{ type: 'text', text: 'abcd' }],
-    }])).toBe(9)
+    }])).toBe(1 + 4 + 4)
     const unknown = { type: 'mystery', payload: 'abc' } as unknown as ContentBlock
-    expect(estimateContent([unknown])).toBe(4 + Math.ceil(JSON.stringify(unknown).length / 4))
+    expect(estimateContent([unknown])).toBe(4 + estimateTokensExact(JSON.stringify(unknown)))
+  })
+
+  it('prices CJK text above the old chars/4 heuristic', () => {
+    const cjk = '你好世界'
+    // chars/4 would be 1; cl100k_base is higher for CJK.
+    expect(estimateTokensExact(cjk)).toBeGreaterThan(Math.ceil(cjk.length / 4))
+    expect(estimateContent([{ type: 'text', text: cjk }])).toBe(estimateTokensExact(cjk) + 4)
   })
 
   it('prices envelope parts independently and absent parts to zero', () => {
     expect(estimateSystemTokens(undefined)).toBe(0)
     expect(estimateSystemTokens({ config: CONFIG })).toBe(0)
-    expect(estimateSystemTokens({ config: CONFIG, system: 'abcdefgh' })).toBe(6)
+    expect(estimateSystemTokens({ config: CONFIG, system: 'abcdefgh' })).toBe(estimateTokensExact('abcdefgh') + 4)
     expect(estimateToolsTokens(undefined)).toBe(0)
     expect(estimateToolsTokens({ config: CONFIG, tools: [] })).toBe(0)
     expect(estimateToolsTokens({ config: CONFIG, tools: TOOLS }))
-      .toBe(Math.ceil(JSON.stringify(TOOLS).length / 4) + 4)
+      .toBe(estimateTokensExact(JSON.stringify(TOOLS)) + 4)
     expect(estimateHeader(undefined)).toBe(0)
     expect(estimateHeader({ config: CONFIG, system: 'abcdefgh', tools: TOOLS }))
-      .toBe(6 + Math.ceil(JSON.stringify(TOOLS).length / 4) + 4)
+      .toBe(estimateTokensExact('abcdefgh') + 4 + estimateTokensExact(JSON.stringify(TOOLS)) + 4)
   })
 })

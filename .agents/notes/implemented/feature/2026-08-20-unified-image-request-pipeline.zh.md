@@ -42,7 +42,7 @@ Status: implemented
 
 16-bit RGB 或 RGBA PNG 属于普通可接纳输入，会转换为 8-bit sRGB/sRGBA。本地转换失败时，`read_image` 会写明路径、检测到的 16-bit PNG、所需规范形式和手工转换方法。如果 DeepSeek 拒绝已规范化请求版本，主错误会写明附件 ID 或显示名称、持久消息和图片位置、规范化媒体类型、8-bit sRGB/sRGBA 位深、尺寸和提供方消息。多图片错误无法确定对象时会列出全部候选图片。原始提供方正文保留为错误 cause，不会成为唯一可见消息。
 
-持久附件对象之后缺失或无法通过完整性校验时，系统仍会明确失败。持久隔离和经校验恢复需要新增会话事件，由[隔离不可读历史附件](../../proposed/bug-fix/2026-08-20-attachment-read-quarantine.zh.md)继续跟踪。
+持久附件对象之后缺失或无法通过完整性校验时，系统仍会明确失败。持久隔离和经校验恢复需要新增会话事件，由[自动附件隔离](../../implemented/bug-fix/2026-08-20-attachment-read-quarantine.zh.md)继续跟踪。
 
 ## Alternatives considered
 

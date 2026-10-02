@@ -16,6 +16,8 @@ import SystemPrompt from '@maple/system-prompt'
 import ToolRuntime from '@maple/tools'
 import * as ToolStrReplaceEditor from '@maple/tool-str-replace-editor'
 
+const LIVE = new AbortController().signal
+
 const contexts: Context[] = []
 const roots: string[] = []
 let callNumber = 0
@@ -256,7 +258,7 @@ describe('tool-str-replace-editor', () => {
     await writeFile(join(root, 'dir', '__pycache__', 'module.pyc'), 'cache')
     await writeFile(join(root, 'dir', '__pycache__backup', 'kept.py'), 'visible source')
     const listDir = ctx.fs.listDir.bind(ctx.fs)
-    const otherTarget = await ctx.fs.resolve(join(root, 'dir', 'other'))
+    const otherTarget = await ctx.fs.resolve(join(root, 'dir', 'other'), { signal: LIVE })
     ctx.fs.listDir = async (target, signal) => {
       const entries = await listDir(target, signal)
       return target.displayPath === join(root, 'dir')

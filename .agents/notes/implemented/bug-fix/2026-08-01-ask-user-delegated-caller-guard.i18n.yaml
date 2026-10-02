@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-01-ask-user-delegated-caller-guard.md
-2026-08-01-ask-user-delegated-caller-guard.md: ed4bfae1b647cdbb58e9f09abe544a9ac58b6bf5
-2026-08-01-ask-user-delegated-caller-guard.zh.md: 82779d0b31710356c1465ca9bc102a923f03410a
+2026-08-01-ask-user-delegated-caller-guard.md: 2ccd1d3f31cf8971c8f429895de1ba0c45e8e006
+2026-08-01-ask-user-delegated-caller-guard.zh.md: ce0abdeb89448b99e5fd2dd4993ed19a2aa1cd02

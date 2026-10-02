@@ -131,4 +131,9 @@ function applyStructured(output: HookOutput, parsed: Record<string, unknown>, ex
     const updated = obj(hso.updatedInput)
     if (updated !== undefined) output.updatedInput = updated
   }
+  // Codex-style top-level updatedInput when hookSpecificOutput did not supply one.
+  if (output.updatedInput === undefined) {
+    const topUpdated = obj(parsed.updatedInput)
+    if (topUpdated !== undefined) output.updatedInput = topUpdated
+  }
 }

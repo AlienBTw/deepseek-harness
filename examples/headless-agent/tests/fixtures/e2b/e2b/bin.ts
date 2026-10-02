@@ -9,6 +9,7 @@ import type {} from '@maple/bash-local'
 import type {} from '@maple/lsp-stdio'
 import type {} from '@maple/terminal-bash'
 
+const LIVE = new AbortController().signal
 const configPath = process.argv[2]
 if (configPath === undefined) throw new Error('usage: bin.ts <cordis.yml>')
 
@@ -35,9 +36,9 @@ const unregisterOwner = ctx.agents.register(owner)
 let terminalId: Awaited<ReturnType<typeof ctx.terminals.spawn>>['sessionId'] | undefined
 try {
   const sandbox = await ctx.e2b.getSandbox()
-  const fromFs = await ctx.fs.resolve('from-fs.txt')
-  const written = await ctx.fs.writeText(fromFs, 'written-by-fs\n', { kind: 'createIfAbsent' })
-  const observed = await ctx.fs.stat(fromFs)
+  const fromFs = await ctx.fs.resolve('from-fs.txt', { signal: LIVE })
+  const written = await ctx.fs.writeText(fromFs, 'written-by-fs\n', { kind: 'createIfAbsent' }, LIVE)
+  const observed = await ctx.fs.stat(fromFs, LIVE)
   if (observed?.version !== written.version) {
     throw new Error(`E2B rename did not preserve version metadata: ${JSON.stringify({ written, observed })}`)
   }
@@ -45,18 +46,19 @@ try {
     fromFs,
     { oldString: 'written-by-fs', newString: 'versioned-by-fs', replaceAll: false },
     { version: observed.version },
+    LIVE,
   )
-  const bashRead = await ctx.shell.run(ctx.shell.resolve({ command: 'cat from-fs.txt' }))
+  const bashRead = await ctx.shell.run(ctx.shell.resolve({ command: 'cat from-fs.txt', signal: LIVE }))
   if (bashRead.exitCode !== 0 || bashRead.stdout.text !== 'versioned-by-fs\n') {
     throw new Error(`E2B Bash could not read the FS write: ${JSON.stringify(bashRead)}`)
   }
 
-  const bashWrite = await ctx.shell.run(ctx.shell.resolve({ command: "printf 'written-by-bash\\n' > from-bash.txt" }))
+  const bashWrite = await ctx.shell.run(ctx.shell.resolve({ command: "printf 'written-by-bash\\n' > from-bash.txt", signal: LIVE }))
   if (bashWrite.exitCode !== 0) {
     throw new Error(`E2B Bash could not write the shared filesystem: ${JSON.stringify(bashWrite)}`)
   }
-  const fromBash = await ctx.fs.resolve('from-bash.txt')
-  const fsRead = await ctx.fs.readText(fromBash)
+  const fromBash = await ctx.fs.resolve('from-bash.txt', { signal: LIVE })
+  const fsRead = await ctx.fs.readText(fromBash, LIVE)
 
   const environmentHandle = ctx.subprocess.spawn({
     argv: ['env'],
@@ -120,10 +122,10 @@ try {
   }
 
   const lspFixture = await readFile(new URL('./fixture-lsp.mjs', import.meta.url), 'utf8')
-  const remoteLspFixture = await ctx.fs.resolve('fixture-lsp.mjs')
-  await ctx.fs.writeText(remoteLspFixture, lspFixture, { kind: 'createIfAbsent' })
-  const remoteSource = await ctx.fs.resolve('multibyte # file.ts')
-  await ctx.fs.writeText(remoteSource, 'const café = "你好"\nconsole.log(café)\n', { kind: 'createIfAbsent' })
+  const remoteLspFixture = await ctx.fs.resolve('fixture-lsp.mjs', { signal: LIVE })
+  await ctx.fs.writeText(remoteLspFixture, lspFixture, { kind: 'createIfAbsent' }, LIVE)
+  const remoteSource = await ctx.fs.resolve('multibyte # file.ts', { signal: LIVE })
+  await ctx.fs.writeText(remoteSource, 'const café = "你好"\nconsole.log(café)\n', { kind: 'createIfAbsent' }, LIVE)
   const hover = await ctx.lsp.query({
     operation: 'hover',
     filePath: 'multibyte # file.ts',

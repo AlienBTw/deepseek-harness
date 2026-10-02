@@ -3,6 +3,7 @@ import { Context } from '@maple/cordis'
 import { ShellExecutor } from '@maple/shell'
 import type { ShellExecRequest, ShellExecSpec, ShellProcess, ShellProcessRead, ShellRunResult } from '@maple/shell'
 
+const LIVE = new AbortController().signal
 /**
  * Minimal concrete executor: canned foreground results, a hand-built process
  * handle. The seam is TASK-FREE (start returns a {@link ShellProcess} handle;
@@ -16,7 +17,7 @@ class StubExecutor extends ShellExecutor {
       workdir: request.workdir ?? '/stub',
       timeoutMs: request.timeoutMs ?? 1000,
       stdoutMaxBytes: request.stdoutMaxBytes ?? 64_000,
-      ...request.signal ? { signal: request.signal } : {},
+      signal: request.signal,
       sandboxPolicy: request.sandboxPolicy,
     }
   }
@@ -54,8 +55,15 @@ describe('ShellExecutor service seam', () => {
   it('a concrete subclass registers as ctx.shell and serves the abstract API', async () => {
     const ctx = new Context()
     await ctx.plugin(StubExecutor)
-    const spec = ctx.shell.resolve({ command: 'echo hi' })
-    expect(spec).toEqual({ command: 'echo hi', workdir: '/stub', timeoutMs: 1000, stdoutMaxBytes: 64_000, sandboxPolicy: undefined })
+    const spec = ctx.shell.resolve({ command: 'echo hi', signal: LIVE })
+    expect(spec).toEqual({
+      command: 'echo hi',
+      workdir: '/stub',
+      timeoutMs: 1000,
+      stdoutMaxBytes: 64_000,
+      signal: LIVE,
+      sandboxPolicy: undefined,
+    })
 
     const result = await ctx.shell.run(spec)
     expect(result.exitCode).toBe(0)

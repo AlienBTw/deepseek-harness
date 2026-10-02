@@ -6,7 +6,7 @@ English | [中文](2026-07-25-workspace-ui-product-flow.zh.md)
 
 ## Problem
 
-[Domain KV Storage and the Workspace Entity](../../proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md) defines the persistent Workspace entity, path conventions, and ordered Session ledger, but not the Host wiring, historical-data initialization, or GUI flow. The GUI presents both Workspaces and Sessions; users must be able to type immediately after entering New Session, even when no Host Session or Host Workspace exists yet.
+[Domain KV Storage and the Workspace Entity](../architecture/2026-07-24-domain-kv-storage-and-workspace.md) defines the persistent Workspace entity, path conventions, and ordered Session ledger, but not the Host wiring, historical-data initialization, or GUI flow. The GUI presents both Workspaces and Sessions; users must be able to type immediately after entering New Session, even when no Host Session or Host Workspace exists yet.
 
 Pending Workspaces, pending Sessions, retained input, and Host entity publication need clear owners and must preserve the same page identity when RPC completions and Host frames arrive in either order. Eagerly creating a Host Session for the zero state would bring a page with no input into the Host lifecycle. Historical Sessions also expose only the lightweight `SessionHeader.cwd` for grouping; initialization cannot read event bodies.
 

@@ -1,0 +1,65 @@
+name: Nightly agent-loop stress
+
+# Skeleton for Wave 4.1 race stress: shuffle the agent-loop and agent (inbox)
+# suites repeatedly so scheduling-dependent failures surface. A flake found
+# here is a bug to fix — never add --retry to paper over it.
+#
+# Vitest 4.x has no --repeats CLI; this job loops `test:stress:agent-loop`
+# instead. When the runner gains --repeats (Vitest 5+), replace the loop with
+# a single `vitest run --repeats=200 --sequence.shuffle …` invocation.
+# Full sleep-free migration and higher repeat counts land after the suite
+# drops remaining allowlisted setTimeout uses
+# (see .agents/notes/implemented/testing/2026-06-11-deterministic-and-stress-testing.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: Number of shuffled suite passes
+        required: false
+        default: '20'
+  schedule:
+    # 03:41 UTC nightly — offset from the real-API e2e cron.
+    - cron: '41 3 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
+
+permissions:
+  contents: read
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  agent-loop-stress:
+    runs-on: ubuntu-latest
+    name: agent-loop / agent stress
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Shuffled stress passes
+        env:
+          STRESS_ITERS: ${{ github.event_name == 'workflow_dispatch' && inputs.iterations || '50' }}
+        run: |
+          set -euo pipefail
+          echo "Running ${STRESS_ITERS} shuffled passes of agent-loop + agent suites"
+          for i in $(seq 1 "${STRESS_ITERS}"); do
+            echo "::group::stress iteration ${i}/${STRESS_ITERS}"
+            pnpm run test:stress:agent-loop
+            echo "::endgroup::"
+          done

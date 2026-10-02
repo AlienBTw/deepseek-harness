@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-[存储中心](../storage/README.zh.md)的 JSON 后端：配置根目录下每个单元使用一个人类可读的 `<unit>.json` 文件，注册为后端 `json`。设计见[领域 KV 存储 Agent Note](../../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.zh.md)。
+[存储中心](../storage/README.zh.md)的 JSON 后端：配置根目录下每个单元使用一个人类可读的 `<unit>.json` 文件，注册为后端 `json`。设计见[领域 KV 存储 Agent Note](../../../.agents/notes/implemented/architecture/2026-07-24-domain-kv-storage-and-workspace.zh.md)。
 
 ## 模型
 
@@ -14,7 +14,7 @@
 
 | Key | 类型 | 默认值 | 含义 |
 | --- | --- | --- | --- |
-| `root` | string | 必填，无默认值（cwd 回退会让文件散落各处） | 保存单元文件的目录；按需以 `0o700` 创建 |
+| `root` | string | 必填，无默认值（cwd 回退会让文件散落各处） | 保存单元文件的目录；构造时 resolve 一次，后续 `process.cwd()` 变化不会把同一后端劈到多个根下；按需以 `0o700` 创建 |
 
 ## 模型体验
 

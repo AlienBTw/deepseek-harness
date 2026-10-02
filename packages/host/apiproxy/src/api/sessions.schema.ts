@@ -55,20 +55,22 @@ export const sessionSummarySchema = z.object({
   running: z.boolean(),
   blank: z.boolean(),
   parentSessionId: sessionIdSchema.optional(),
-  origin: z.literal('subagent').optional(),
+  origin: z.enum(['subagent', 'sidechat']).optional(),
   cwd: z.string().optional(),
   agentPreset: z.string().optional(),
   projections: z.lazy(() => sessionProjectionsBlockSchema).optional(),
 }) as unknown as z.ZodType<Wire<SessionSummary>>
 
-/** session.list request payload (cursor is a reserved seat, unimplemented in v1). */
+/** session.list request payload (keyset cursor + optional page size). */
 export const sessionListRequestSchema = z.object({
   cursor: z.string().optional(),
+  limit: z.number().int().positive().max(200).optional(),
 }) satisfies z.ZodType<Wire<RequestPayload<'session.list'>>>
 
 /** session.list response value. */
 export const sessionListValueSchema: z.ZodType<Wire<ResponseValue<'session.list'>>> = z.object({
   items: z.array(sessionSummarySchema),
+  nextCursor: z.string().optional(),
 })
 
 /** Fixed wire bound for one interactive sidebar query. */

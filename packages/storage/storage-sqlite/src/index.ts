@@ -54,7 +54,10 @@ export const Config: z<Config> = z.object({
  */
 export class SqliteStorageBackend implements StorageBackend {
   /** The key-value facet; the only shape this backend serves. */
-  readonly kv: KvFacet = { open: descriptor => this.openUnit(descriptor) }
+  readonly kv: KvFacet = {
+    open: descriptor => this.openUnit(descriptor),
+    destroy: descriptor => this.destroyUnit(descriptor),
+  }
 
   private readonly ready: Promise<DatabaseSync>
   /** Open (or still-opening) units by name; presence is the double-open guard. */
@@ -93,6 +96,29 @@ export class SqliteStorageBackend implements StorageBackend {
     this.units.set(descriptor.name, pending)
     pending.catch(() => this.units.delete(descriptor.name))
     return pending
+  }
+
+  private async destroyUnit(descriptor: KvUnitDescriptor): Promise<void> {
+    if (this.closing !== undefined) {
+      throw new StorageError('closed', 'sqlite storage backend is closed')
+    }
+    if (!UNIT_NAME_RE.test(descriptor.name)) {
+      throw new Error(`kv unit name '${descriptor.name}' violates ${UNIT_NAME_RE}`)
+    }
+    for (const table of descriptor.tables) {
+      if (!UNIT_NAME_RE.test(table)) {
+        throw new Error(`kv table name '${table}' in unit '${descriptor.name}' violates ${UNIT_NAME_RE}`)
+      }
+    }
+    if (this.units.has(descriptor.name)) {
+      throw new Error(`kv unit '${descriptor.name}' is open; destroy requires a closed unit`)
+    }
+    const db = await this.ready
+    for (const table of descriptor.tables) {
+      db.exec(`DROP TABLE IF EXISTS "${recordTableName(descriptor.name, table)}"`)
+    }
+    db.prepare('DELETE FROM unit_globals WHERE unit = ?').run(descriptor.name)
+    db.prepare('DELETE FROM units WHERE name = ?').run(descriptor.name)
   }
 
   private async materializeUnit(descriptor: KvUnitDescriptor): Promise<SqliteKvUnit> {

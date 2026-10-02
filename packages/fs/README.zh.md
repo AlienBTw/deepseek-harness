@@ -20,6 +20,6 @@ Service Definition 位于 `fs/fs/`。沙箱化、远程或限定项目作用域�
 
 ## 文件 I/O 不设超时
 
-`read`/`write`/`edit` **不** 接受 `timeoutMs`，提供方约定也不设置 deadline：这里的文件 I/O 不计时运行，因为 deadline 只会杀掉操作系统仍会完成的工作——参见[文件系统子系统页面](../../docs/subsystems/filesystem.zh.md)。取消仍通过工具执行信号传播，在系统调用边界尽力中止。
+`read`/`write`/`edit` **不** 接受 `timeoutMs`，提供方约定也不设置 deadline：这里的文件 I/O 不计时运行，因为 deadline 只会杀掉操作系统仍会完成的工作——参见[文件系统子系统页面](../../docs/subsystems/filesystem.zh.md)。取消仍通过必填的工具执行信号传播到每一次被 await 的 `ctx.fs` 操作，在系统调用边界尽力中止。
 
 子系统参考——目标、结果、防护、策略事件、错误分类体系，以及文件 IO 为何不设超时——见 [docs/subsystems/filesystem.md](../../docs/subsystems/filesystem.zh.md)；沙箱围栏见[跨家族 fs 沙箱 Agent Note](../../.agents/notes/implemented/feature/2026-07-14-cross-family-fs-sandbox.zh.md)。

@@ -191,6 +191,7 @@ export class SqliteStore implements PersistenceBackend<number> {
 
       const insert = this.insertStatement()
       for (const record of packChunkRuns(events)) this.insertRecord(insert, meta.id, bindRecord(record))
+      if (isMaterialized) this.writeLastPromptAt(meta)
       this.incrementRevision(meta.id)
       this.db.exec(sql('commit'))
     } catch (error: unknown) {
@@ -243,6 +244,22 @@ export class SqliteStore implements PersistenceBackend<number> {
     const rows = this.sessionRows()
     signal?.throwIfAborted()
     return rows.map(rowToMeta)
+  }
+
+  /**
+   * Remove one session row (events cascade). Absent ids are a no-op success.
+   * @param id - persisted session to delete.
+   * @param signal - optional cancellation before opening or mutating.
+   */
+  async delete(id: SessionId, signal?: AbortSignal): Promise<void> {
+    await this.observe(signal)
+    this.db.exec(sql('begin-immediate'))
+    try {
+      this.db.prepare(sql('delete-session')).run({ id })
+      this.db.exec(sql('commit'))
+    } catch (error: unknown) {
+      this.rollback(error, 'delete')
+    }
   }
 
   /**
@@ -379,6 +396,14 @@ export class SqliteStore implements PersistenceBackend<number> {
       meta.delegationDepth ?? null,
       meta.agentPreset ?? null,
       randomUUID(),
+      meta.lastPromptAt ?? null,
+    )
+  }
+
+  private writeLastPromptAt(meta: SessionHeader): void {
+    this.db.prepare(sql('update-session-last-prompt-at')).run(
+      meta.lastPromptAt ?? null,
+      meta.id,
     )
   }
 }

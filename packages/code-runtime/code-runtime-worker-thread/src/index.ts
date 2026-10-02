@@ -244,7 +244,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
   })
 
   readonly language = 'typescript'
-  readonly isolation = 'worker-thread'
 
   private readonly config: ResolvedConfig
   private readonly live = new Set<LiveRun>()

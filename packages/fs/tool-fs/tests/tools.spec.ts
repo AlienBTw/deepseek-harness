@@ -45,7 +45,7 @@ class FakeFs extends FileSystem {
     if (this.rejectWith) throw this.rejectWith
   }
 
-  override async resolve(path: string): Promise<FsTarget> {
+  override async resolve(path: string, _opts: { cwd?: string; signal: AbortSignal }): Promise<FsTarget> {
     return { targetKey: FsTargetKey(`key:${path}`), displayPath: `/abs/${path}` }
   }
   override processPath(target: FsTarget): string { return String(target.targetKey) }
@@ -53,42 +53,52 @@ class FakeFs extends FileSystem {
   override contains(parent: FsTarget, child: FsTarget): boolean {
     return child.targetKey === parent.targetKey || String(child.targetKey).startsWith(`${parent.targetKey}/`)
   }
-  override async stat(target: FsTarget): Promise<FsInfo | undefined> {
+  override async stat(target: FsTarget, _signal: AbortSignal): Promise<FsInfo | undefined> {
     this.throwIfArmed()
     const content = this.files.get(target.targetKey)
     if (content === undefined) return undefined
     return { version: FsVersion('v1'), type: 'file', size: content.length }
   }
-  override async lstat(path: string): Promise<FsPathInfo | undefined> {
+  override async lstat(path: string, _opts: { cwd?: string } | undefined, _signal: AbortSignal): Promise<FsPathInfo | undefined> {
     const content = this.files.get(`key:${path}`)
     if (content === undefined) return undefined
     return { version: FsVersion('v1'), type: 'file', size: content.length }
   }
-  override async readText(target: FsTarget): Promise<string> {
+  override async readText(target: FsTarget, _signal: AbortSignal): Promise<string> {
     return this.files.get(target.targetKey) ?? ''
   }
-  override async streamText(target: FsTarget): Promise<AsyncIterable<string>> {
+  override async streamText(target: FsTarget, _signal: AbortSignal): Promise<AsyncIterable<string>> {
     const content = this.files.get(target.targetKey) ?? ''
     return (async function* () { yield content })()
   }
-  override async readBytes(target: FsTarget, _signal: AbortSignal | undefined, maxBytes: number): Promise<Uint8Array> {
+  override async readBytes(target: FsTarget, _signal: AbortSignal, maxBytes: number): Promise<Uint8Array> {
     const bytes = new TextEncoder().encode(this.files.get(target.targetKey) ?? '')
     if (bytes.length > maxBytes) {
       throw new FsError(`too large: ${target.displayPath}`, 'FS_TOO_LARGE')
     }
     return bytes
   }
-  override async listDir(_target: FsTarget): Promise<FsDirEntry[]> {
+  override async listDir(_target: FsTarget, _signal: AbortSignal): Promise<FsDirEntry[]> {
     return []
   }
-  override async writeText(target: FsTarget, content: string, expected?: FsWriteIntent): Promise<FsWriteOutcome> {
+  override async writeText(
+    target: FsTarget,
+    content: string,
+    expected: FsWriteIntent | undefined,
+    _signal: AbortSignal,
+  ): Promise<FsWriteOutcome> {
     this.throwIfArmed()
     this.writeIntents.push(expected)
     const before = this.files.get(target.targetKey) ?? null
     this.files.set(target.targetKey, content)
     return { operation: before !== null ? 'update' : 'create', version: FsVersion('v2'), before, after: content }
   }
-  override async editText(target: FsTarget, edit: FsEditRequest, expected?: { version: FsVersion }): Promise<FsEditOutcome> {
+  override async editText(
+    target: FsTarget,
+    edit: FsEditRequest,
+    expected: { version: FsVersion } | undefined,
+    _signal: AbortSignal,
+  ): Promise<FsEditOutcome> {
     this.throwIfArmed()
     this.editIntents.push(expected)
     const content = this.files.get(target.targetKey) ?? ''
@@ -769,22 +779,22 @@ describe('sandbox escalation API (write/edit)', () => {
     override async writeText(
       target: FsTarget,
       content: string,
-      expected?: FsWriteIntent,
-      _signal?: AbortSignal,
+      expected: FsWriteIntent | undefined,
+      signal: AbortSignal,
       sandboxPolicy?: SandboxExecutionPolicy,
     ): Promise<FsWriteOutcome> {
       this.stamped.push(sandboxPolicy)
-      return super.writeText(target, content, expected)
+      return super.writeText(target, content, expected, signal)
     }
     override async editText(
       target: FsTarget,
       edit: FsEditRequest,
-      expected?: { version: FsVersion },
-      _signal?: AbortSignal,
+      expected: { version: FsVersion } | undefined,
+      signal: AbortSignal,
       sandboxPolicy?: SandboxExecutionPolicy,
     ): Promise<FsEditOutcome> {
       this.stamped.push(sandboxPolicy)
-      return super.editText(target, edit, expected)
+      return super.editText(target, edit, expected, signal)
     }
   }
 

@@ -15,7 +15,7 @@ import {
 import { sql } from './sql.ts'
 
 /** Current physical-record schema with packed and compressed event rows. */
-export const SCHEMA_VERSION = 17
+export const SCHEMA_VERSION = 18
 /** Application id reserved for Maple Harness SQLite session databases. */
 export const SESSION_PERSISTENCE_SQLITE_APPLICATION_ID = 0x44534850
 
@@ -27,11 +27,13 @@ export interface SessionRow {
   readonly cwd: string | null
   readonly parent_session: string | null
   readonly seed_length: number | null
-  readonly origin: 'subagent' | null
+  readonly origin: 'subagent' | 'sidechat' | null
   readonly incarnation: string
   readonly revision: number
   readonly delegation_depth: number | null
   readonly agent_preset: string | null
+  /** Latest human-prompt time, or null when none has been recorded. */
+  readonly last_prompt_at: number | null
 }
 
 /** One physical event row; packed rows may represent multiple logical events. */
@@ -206,7 +208,7 @@ function initializeDatabase(db: DatabaseSync): void {
   db.exec(sql('schema'))
   db.prepare(sql('insert-persistence-state')).run(randomUUID())
   db.exec(sql('set-application-id'))
-  db.exec(sql('set-user-version-17'))
+  db.exec(sql('set-user-version-18'))
 }
 
 let canonicalSchema: readonly SchemaObjectRow[] | undefined
@@ -288,7 +290,9 @@ export function decodeSessionRow(value: unknown): SessionRow {
   if (cwd !== null && !isAbsolute(cwd)) throw new Error('stored session cwd must be absolute')
   const parent = nullableStringField(row, 'parent_session')
   const origin = nullableStringField(row, 'origin')
-  if (origin !== null && origin !== 'subagent') throw new Error('stored session origin must be subagent or null')
+  if (origin !== null && origin !== 'subagent' && origin !== 'sidechat') {
+    throw new Error('stored session origin must be subagent, sidechat, or null')
+  }
   const incarnation = nonemptyStringField(row, 'incarnation')
   if (!UUID.test(incarnation)) throw new Error('stored session incarnation must be a UUID')
   return {
@@ -303,6 +307,7 @@ export function decodeSessionRow(value: unknown): SessionRow {
     agent_preset: nullableStringField(row, 'agent_preset'),
     incarnation,
     revision: nonnegativeSafeIntegerField(row, 'revision'),
+    last_prompt_at: nullableNonnegativeSafeIntegerField(row, 'last_prompt_at'),
   }
 }
 
@@ -355,6 +360,7 @@ export function rowToMeta(row: SessionRow): SessionHeader {
     ...row.origin === null ? {} : { origin: row.origin },
     ...row.delegation_depth === null ? {} : { delegationDepth: row.delegation_depth },
     ...row.agent_preset === null ? {} : { agentPreset: row.agent_preset },
+    ...row.last_prompt_at === null ? {} : { lastPromptAt: row.last_prompt_at },
   }
 }
 

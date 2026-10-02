@@ -50,8 +50,8 @@ function isPermissionError(error: unknown): boolean {
   return error instanceof Error && 'code' in error && (error.code === 'EACCES' || error.code === 'EPERM')
 }
 
-function throwIfAborted(signal: AbortSignal | undefined, verb: string): void {
-  if (signal?.aborted) throw new FsError(`${verb} aborted`, 'FS_ABORTED')
+function throwIfAborted(signal: AbortSignal, verb: string): void {
+  if (signal.aborted) throw new FsError(`${verb} aborted`, 'FS_ABORTED')
 }
 
 /**
@@ -60,9 +60,9 @@ function throwIfAborted(signal: AbortSignal | undefined, verb: string): void {
  * `readFile` with a bare `AbortError`, which would otherwise escape the seam's
  * error taxonomy — the streaming/write paths translate it the same way).
  */
-async function readFileAbortable(absolutePath: string, verb: 'read' | 'edit', signal?: AbortSignal): Promise<Buffer> {
+async function readFileAbortable(absolutePath: string, verb: 'read' | 'edit', signal: AbortSignal): Promise<Buffer> {
   try {
-    return await readFile(absolutePath, signal ? { signal } : {})
+    return await readFile(absolutePath, { signal })
   } catch (error: unknown) {
     /* v8 ignore next 2 -- a non-abort readFile rejection needs a permission/IO fault racing an open file. */
     if (!isAbortError(error)) throw error
@@ -279,7 +279,7 @@ async function resolveListedChildTarget(parent: LocalTarget, name: string): Prom
  * @param signal - aborts the listing, checked between children (`FS_ABORTED`).
  * @returns one entry per direct child, sorted by name.
  */
-export async function listDirectory(target: LocalTarget, signal?: AbortSignal): Promise<LocalDirEntry[]> {
+export async function listDirectory(target: LocalTarget, signal: AbortSignal): Promise<LocalDirEntry[]> {
   throwIfAborted(signal, 'list')
   let info: PathInfo | null
   try {
@@ -351,7 +351,7 @@ function decodeUtf8Stream(
   }
 }
 
-async function statRegularFile(target: LocalTarget, verb: 'read', signal?: AbortSignal): Promise<Stats> {
+async function statRegularFile(target: LocalTarget, verb: 'read', signal: AbortSignal): Promise<Stats> {
   throwIfAborted(signal, verb)
   let info: Stats
   try {
@@ -372,7 +372,7 @@ async function statRegularFile(target: LocalTarget, verb: 'read', signal?: Abort
  * @param signal - aborts the read (`FS_ABORTED`).
  * @returns the full decoded text, byte-for-byte (no normalization).
  */
-export async function readWholeText(target: LocalTarget, signal?: AbortSignal): Promise<string> {
+export async function readWholeText(target: LocalTarget, signal: AbortSignal): Promise<string> {
   await statRegularFile(target, 'read', signal)
   const raw = await readFileAbortable(target.targetKey, 'read', signal)
   throwIfAborted(signal, 'read')
@@ -395,7 +395,7 @@ export async function readWholeText(target: LocalTarget, signal?: AbortSignal): 
  */
 export async function readWholeBytes(
   target: LocalTarget,
-  signal: AbortSignal | undefined,
+  signal: AbortSignal,
   maxBytes: number,
   internals: FsIoInternals = {},
 ): Promise<Uint8Array> {
@@ -406,7 +406,7 @@ export async function readWholeBytes(
   await internals.inspectReadBytesAfterStat?.(target)
   const stream = createReadStream(target.targetKey, {
     end: maxBytes,
-    ...signal ? { signal } : {},
+    signal,
   })
   const chunks: Buffer[] = []
   let bytes = 0
@@ -434,9 +434,9 @@ export async function readWholeBytes(
  * @param signal - aborts the stream, including between chunks (`FS_ABORTED`).
  * @returns decoded text chunks in file order; chunk boundaries carry no meaning.
  */
-export async function* streamWholeText(target: LocalTarget, signal?: AbortSignal): AsyncIterable<string> {
+export async function* streamWholeText(target: LocalTarget, signal: AbortSignal): AsyncIterable<string> {
   await statRegularFile(target, 'read', signal)
-  const stream = createReadStream(target.targetKey, signal ? { signal } : {})
+  const stream = createReadStream(target.targetKey, { signal })
   const decoder = new TextDecoder('utf-8', { fatal: true })
   let sampledBytes = 0
 
@@ -534,7 +534,7 @@ export async function writeFileAtomic(
   absolutePath: string,
   content: string,
   mode: number | undefined,
-  signal: AbortSignal | undefined,
+  signal: AbortSignal,
   internals: FsIoInternals = {},
   createIfAbsent?: { displayPath: string },
 ): Promise<void> {
@@ -567,7 +567,7 @@ export async function writeFileAtomic(
     if (platform === 'win32' && mode !== undefined) {
       await copyFileDacl(absolutePath, tempPath)
     }
-    await handle.writeFile(content, { encoding: 'utf8', ...signal ? { signal } : {} })
+    await handle.writeFile(content, { encoding: 'utf8', signal })
     await handle.sync()
     await internals.inspectTemp?.({ stagingDir, tempPath })
     if (mode !== undefined) await handle.chmod(mode)
@@ -670,7 +670,7 @@ function countOccurrences(content: string, needle: string): number {
 export async function readForEdit(
   absolutePath: string,
   displayPath: string,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<{ content: string; lineEndings: LineEndings }> {
   throwIfAborted(signal, 'edit')
   const buffer = await readFileAbortable(absolutePath, 'edit', signal)
@@ -695,7 +695,7 @@ export async function readForEdit(
 export async function readTextForDiff(
   absolutePath: string,
   maxBytes: number,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<string | null> {
   throwIfAborted(signal, 'read')
   try {

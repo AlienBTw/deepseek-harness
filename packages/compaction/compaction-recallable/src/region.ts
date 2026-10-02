@@ -1,12 +1,14 @@
 /**
- * Surface retention selection and the shared log-recorded compaction
- * transaction for automatic open-turn and manual idle-session compaction.
+ * Frozen-aware range selection and multi-checkpoint compaction transactions.
+ *
+ * A pass summarizes all planned regions concurrently, applies the inflation
+ * guard (unless resuming a mid-commit prefix), then commits left to right:
+ * index stubs first, state rewrite last.
  *
  * @module @maple/compaction-recallable/region
  */
 
 import { randomUUID } from 'node:crypto'
-import { isDeepStrictEqual } from 'node:util'
 import {
   CompactionId,
   ManualCompactionError,
@@ -17,16 +19,38 @@ import {
 import type { CompactionResult } from '@maple/compaction'
 import type { CommandId } from '@maple/commands/brand'
 import { createUserMessage, errorChain } from '@maple/llm'
-import type { Message } from '@maple/llm'
+import type { ContentBlock, Message } from '@maple/llm'
 import type { TokenMeasurement, TokenMeter } from '@maple/token-meter'
 import type { Session, SessionEvent } from '@maple/session'
 import type { Agent } from '@maple/agent'
 import type { SummarizationInput, SummaryResult } from '@maple/compaction-basic/src/summarizer.ts'
-import { frameRecallableSummary } from './summarizer.ts'
+import {
+  isIncompleteRecallablePass,
+  latestStateSummary,
+  listSurfaceCheckpoints,
+} from './checkpoint-class.ts'
+import { planPassRegions, selectCompactableRange, type PlannedRegion } from './chunk.ts'
+import {
+  codeOnlyPointerStub,
+  extractKeywordLine,
+  frameRecallableSummary,
+  summaryPlainText,
+  type RecallableSummarizationInput,
+} from './summarizer.ts'
+import type { CheckpointKind } from './types.ts'
+
+export { selectCompactableRange }
 
 interface RegionDependencies {
   readonly meter: TokenMeter
-  summarize(input: SummarizationInput, agent: Agent, signal?: AbortSignal): Promise<SummaryResult>
+  readonly chunkTokens: number
+  readonly stubTokens: number
+  readonly stateMaxTokens: number
+  summarize(
+    input: RecallableSummarizationInput,
+    agent: Agent,
+    signal?: AbortSignal,
+  ): Promise<SummaryResult>
 }
 
 /** One validated inclusive span of current surface positions. */
@@ -38,25 +62,13 @@ interface SurfaceSelection {
   readonly shadowedSeqs: readonly number[]
 }
 
-/** A selection with its priced snapshot and the replay input built from it. */
-interface PreparedCompaction extends SurfaceSelection {
-  readonly measurement: TokenMeasurement
-  readonly selectedNodes: TokenMeasurement['nodes']
-  readonly shadowedTokenCount: number
-  readonly input: SummarizationInput
-}
-
-type SummarizedCompaction = PreparedCompaction & SummaryResult
-
 interface CompactionTransactionOptions {
-  /** `current-turn` derives a numbered owner; `null` writes a standalone bracket. */
   readonly owner: 'current-turn' | null
-  /** Surface relationship that must survive asynchronous summarization. */
   readonly stability: 'whole-surface' | 'selected-span'
-  /** Optional durability checkpoint after a successfully closed bracket. */
   readonly flush?: () => Promise<void>
-  /** Manual command that initiated this transaction, when present. */
   readonly sourceCommandId?: CommandId
+  /** Skip the inflation guard when finishing a mid-commit resume. */
+  readonly skipInflationGuard?: boolean
 }
 
 interface CompactionEntryState {
@@ -65,90 +77,32 @@ interface CompactionEntryState {
   readonly latestEndSeedSeq: number | undefined
 }
 
-/**
- * Rejects a summary whose replacement boundaries are no longer the ones it was
- * built from, distinguished from summarizer and shrink failures so a manual
- * caller can report the two causes differently.
- */
 class SurfaceChangedError extends Error {}
-
-/** Rejects a compaction that would not strictly shrink total measured context. */
 class InflationGuardError extends Error {}
 
-/** Whether the summary may still replace the span it was built from. */
-type StabilityCheck = (
-  dependencies: RegionDependencies,
-  session: Session,
-  prepared: PreparedCompaction,
-) => void
-
-/** Failure captured after `compaction/start` has committed. */
-interface TransactionFailure {
-  readonly error: unknown
-  readonly stage: 'summary' | 'commit'
+interface BufferedRegion {
+  readonly planned: PlannedRegion
+  readonly prepared: {
+    readonly measurement: TokenMeasurement
+    readonly selectedNodes: TokenMeasurement['nodes']
+    readonly shadowedTokenCount: number
+    readonly input: RecallableSummarizationInput
+  }
+  readonly summary: SummaryResult
+  readonly framedTokenCount: number
 }
 
 /**
- * Resolve the next head-anchored range while retaining a priced recent tail
- * and never splitting an assistant tool-call/result pair.
- * @param session - session supplying authoritative current surface positions.
- * @param measurement - unified pressure and surface measurement from the conversation meter.
- * @param retainTokens - minimum recent tail budget retained verbatim.
- * @returns the inclusive positional seq range to compact, or `null`.
- */
-export function selectCompactableRange(
-  session: Session,
-  measurement: TokenMeasurement,
-  retainTokens: number,
-): { start: number; end: number } | null {
-  const pricedNodes = measurement.nodes
-  if (pricedNodes.length === 0) return null
-
-  const surfaceNodes = session.surface.nodes
-  if (surfaceNodes.length !== pricedNodes.length
-    || surfaceNodes.some((seq, index) => seq !== pricedNodes[index]?.seq)) {
-    throw new Error('compaction: token-meter surface does not match the current session surface')
-  }
-
-  let accumulated = 0
-  let keepFromIdx = pricedNodes.length
-  for (let index = pricedNodes.length - 1; index >= 0; index -= 1) {
-    // oxlint-disable-next-line typescript/no-non-null-assertion
-    accumulated += pricedNodes[index]!.tokens
-    keepFromIdx = index
-    if (accumulated >= retainTokens) break
-  }
-  if (keepFromIdx === 0) return null
-
-  while (keepFromIdx > 0) {
-    // oxlint-disable-next-line typescript/no-non-null-assertion
-    if (toolPairingBalancedBefore(session, surfaceNodes[keepFromIdx]!)) break
-    keepFromIdx -= 1
-  }
-  if (keepFromIdx === 0) return null
-
-  // oxlint-disable-next-line typescript/no-non-null-assertion
-  const first = surfaceNodes[0]!
-  // oxlint-disable-next-line typescript/no-non-null-assertion
-  const cutoff = surfaceNodes[keepFromIdx - 1]!
-  return { start: first, end: cutoff }
-}
-
-/**
- * Run the single compaction transaction over one selected positional span.
- * Selection and validation are read-only. Idle/log validation and
- * `compaction/start` are synchronously adjacent, so the durable opening marker is
- * the compaction lock before summarization yields. Every later failure makes
- * exactly one `compaction/end` attempt; a failed close deliberately leaves the
- * unmatched start detectable.
- * @param dependencies - conversation meter and dynamically dispatched summarizer hook.
+ * Run one recallable pass over an inclusive surface span: plan stub+state
+ * regions, summarize concurrently, guard inflation, commit left to right.
+ * @param dependencies - meter, budgets, and summarizer hook.
  * @param session - session whose surface is mutated.
  * @param start - inclusive first surface-node seq.
  * @param end - inclusive last surface-node seq.
  * @param agent - agent used by the summarizer.
  * @param options - bracket owner, stability rule, and optional durability checkpoint.
  * @param signal - optional summarization cancellation signal.
- * @returns the successful durable compaction result.
+ * @returns the final (state) compaction result.
  */
 export async function compactSurfaceRegion(
   dependencies: RegionDependencies,
@@ -160,7 +114,7 @@ export async function compactSurfaceRegion(
   signal?: AbortSignal,
 ): Promise<CompactionResult> {
   if (options.owner === null) signal?.throwIfAborted()
-  const selection = validateSurfaceRegion(session, start, end)
+  validateSurfaceRegion(session, start, end)
   const entryState = inspectCompactionEntryState(session.events)
   assertCompactionInactive(
     entryState.unmatchedCompactionStart,
@@ -168,121 +122,96 @@ export async function compactSurfaceRegion(
     'compaction',
   )
 
-  let owner: number | null
-  if (options.owner === null) {
-    if (entryState.openTurn !== null) {
-      throw new ManualCompactionError('busy', 'manual compaction: the session already has an open turn')
-    }
-    owner = null
-  } else {
-    if (entryState.openTurn === null) {
-      throw new Error('compactRegion: no open turn — automatic compaction events must be enclosed in a turn')
-    }
-    owner = entryState.openTurn
-  }
+  const measurement = dependencies.meter.measure(session)
+  const plan = planPassRegions(
+    session,
+    measurement,
+    start,
+    end,
+    dependencies.chunkTokens,
+  )
+  const resume = options.skipInflationGuard === true || isIncompleteRecallablePass(session)
+  const passStartState = readPassStartStateText(session)
+  const preTotalTokens = measurement.totalTokens
 
-  const compactionId = CompactionId(randomUUID())
-  const lifecycle = {
-    compactionId,
-    ...options.sourceCommandId === undefined ? {} : { sourceCommandId: options.sourceCommandId },
-    turn: owner,
-  }
-  const startEvent = session.append('compaction/start', lifecycle)
-  const assertStable: StabilityCheck = options.stability === 'whole-surface'
-    ? assertWholeSurfaceUnchanged
-    : assertSelectedSpanStable
-  let failure: TransactionFailure | undefined
-  let flushFailure: unknown
-  let result: CompactionResult | undefined
-  let closed = false
-  let closing = false
-  let stage: TransactionFailure['stage'] = 'summary'
-
-  try {
-    const prepared = prepareCompaction(dependencies, session, selection)
-    const summarized = await summarizeCompaction(
-      dependencies,
-      prepared,
-      agent,
-      compactionId,
-      options.sourceCommandId,
-      signal,
-    )
-    if (options.owner === null) signal?.throwIfAborted()
-    assertStable(dependencies, session, summarized)
-    stage = 'commit'
-    const pending = commitCompactionBody(session, startEvent, summarized)
-    closing = true
-    const endEvent = session.append('compaction/end', lifecycle)
-    closed = true
-    result = completeCompaction(pending, endEvent)
-  } catch (error: unknown) {
-    failure = { error, stage: closing ? 'commit' : stage }
-    if (!closing) {
-      closing = true
+  const buffered = await Promise.all(plan.all.map(async (planned, index) => {
+    const prepared = prepareRegion(dependencies, session, planned, passStartState, [])
+    let summary: SummaryResult
+    if (planned.role === 'index' && regionIsRecalledContent(session, planned)) {
+      summary = {
+        summary: codeOnlyPointerStub({ start: planned.start, end: planned.end }),
+        provider: 'code',
+        model: 'pointer-stub',
+      }
+    } else {
       try {
-        session.append('compaction/end', { ...lifecycle, error: errorChain(error) })
-        closed = true
-      } catch (closeError: unknown) {
-        failure = { error: closeError, stage: 'commit' }
+        summary = await dependencies.summarize(prepared.input, agent, signal)
+      } catch (error: unknown) {
+        if (planned.role !== 'index') throw error
+        summary = {
+          summary: codeOnlyPointerStub({ start: planned.start, end: planned.end }),
+          provider: 'code',
+          model: 'pointer-stub-fallback',
+        }
       }
     }
-  }
+    // Predicted framed size uses a provisional seq; commit reframes with the real seq.
+    const provisionalSeq = session.seq + index
+    const framed = frameRecallableSummary(
+      summary.summary,
+      provisionalSeq,
+      { start: planned.start, end: planned.end },
+      planned.role,
+    )
+    const framedTokenCount = dependencies.meter.estimateMessage(createUserMessage({
+      content: framed,
+      source: compactCheckpointSource(CompactionId(randomUUID())),
+    }))
+    return {
+      planned,
+      prepared,
+      summary,
+      framedTokenCount,
+    } satisfies BufferedRegion
+  }))
 
-  if (closed && options.flush !== undefined) {
-    try {
-      await options.flush()
-    } catch (error: unknown) {
-      flushFailure = error
-    }
-  }
-
-  if (options.owner === null) signal?.throwIfAborted()
-  if (failure !== undefined) {
-    if (options.owner === null) throwManualFailure(failure)
-    throw failure.error
-  }
-  if (flushFailure !== undefined) {
-    throw new ManualCompactionError(
-      'persistence',
-      'manual compaction durability checkpoint failed',
-      { cause: flushFailure },
+  // Refresh keyword / recent-stub layering is advisory for the LLM; concurrent
+  // calls already ran. Recompute post size from buffered framed tokens.
+  const shadowedTotal = buffered.reduce((total, region) => total + region.prepared.shadowedTokenCount, 0)
+  const framedTotal = buffered.reduce((total, region) => total + region.framedTokenCount, 0)
+  const postTotalTokens = preTotalTokens - shadowedTotal + framedTotal
+  if (!resume && postTotalTokens >= preTotalTokens) {
+    throw new InflationGuardError(
+      `inflation guard: compaction would not reduce total context (${postTotalTokens} estimated tokens >= ${preTotalTokens})`,
     )
   }
-  /* v8 ignore next -- every path without a result records and throws a failure above. */
-  if (result === undefined) throw new Error('compaction committed without a result')
-  return result
-}
 
-/** Classify one closed manual attempt without weakening cancellation precedence. */
-function throwManualFailure(failure: TransactionFailure): never {
-  if (failure.stage === 'commit') {
-    throw new ManualCompactionError(
-      'commit',
-      'manual compaction did not commit cleanly',
-      { cause: failure.error },
+  let lastResult: CompactionResult | undefined
+  for (const region of buffered) {
+    // Re-resolve the planned span against the live surface after prior replaces.
+    const live = relocateRegion(session, region.planned)
+    lastResult = await commitOneRegion(
+      dependencies,
+      session,
+      live,
+      region.summary,
+      region.planned.role,
+      agent,
+      {
+        ...options,
+        skipInflationGuard: true, // pass-level guard already applied
+      },
+      signal,
     )
   }
-  if (failure.error instanceof SurfaceChangedError) {
-    throw new ManualCompactionError(
-      'changed',
-      'the compacted history changed during manual compaction',
-      { cause: failure.error },
-    )
-  }
-  throw new ManualCompactionError(
-    'summary',
-    'manual compaction could not produce a smaller summary',
-    { cause: failure.error },
-  )
+  /* v8 ignore next -- every successful path commits at least the state region. */
+  if (lastResult === undefined) throw new Error('recallable compaction committed no regions')
+  return lastResult
 }
 
 /**
  * Reject a durable unmatched compaction marker unless a later constructor-seed
  * boundary proves that its owner belongs to an earlier session lifecycle.
- * @param unmatchedCompactionStart - latest unmatched opening marker, if any.
- * @param latestEndSeedSeq - newest constructor-seed boundary, if any.
- * @param stage - operation label included in the busy diagnostic.
  */
 function assertCompactionInactive(
   unmatchedCompactionStart: SessionEvent<'compaction/start'> | undefined,
@@ -336,111 +265,209 @@ function validateSurfaceRegion(session: Session, start: number, end: number): Su
   return { start, end, startIdx, endIdx, shadowedSeqs: nodes.slice(startIdx, endIdx + 1) }
 }
 
-/** Snapshot pricing and replay input for a validated surface range. */
-function prepareCompaction(
+/** After prior left-to-right replaces, re-bind a planned region by remaining seq identity. */
+function relocateRegion(session: Session, planned: PlannedRegion): SurfaceSelection {
+  const nodes = session.surface.nodes
+  const remaining = planned.shadowedSeqs.filter(seq => nodes.includes(seq))
+  if (remaining.length === 0) {
+    throw new SurfaceChangedError('compaction: planned region no longer present on the surface')
+  }
+  // oxlint-disable-next-line typescript/no-non-null-assertion
+  const start = remaining[0]!
+  // oxlint-disable-next-line typescript/no-non-null-assertion
+  const end = remaining.at(-1)!
+  return validateSurfaceRegion(session, start, end)
+}
+
+/** Snapshot pricing and replay input for one planned region. */
+function prepareRegion(
   dependencies: RegionDependencies,
   session: Session,
-  selection: SurfaceSelection,
-): PreparedCompaction {
+  planned: PlannedRegion,
+  passStartState: string | undefined,
+  priorKeywords: readonly string[],
+): BufferedRegion['prepared'] {
+  const selection = validateSurfaceRegion(session, planned.start, planned.end)
   const measurement = dependencies.meter.measure(session)
   const selectedNodes = measurement.nodes.slice(selection.startIdx, selection.endIdx + 1)
   if (selectedNodes.length !== selection.shadowedSeqs.length
     || selectedNodes.some((node, index) => node.seq !== selection.shadowedSeqs[index])) {
     throw new SurfaceChangedError('compaction: selected surface changed before summarization began')
   }
+  const base = buildSummarizationInput(session, selection.shadowedSeqs)
+  const input: RecallableSummarizationInput = {
+    ...base,
+    kind: planned.role,
+    ...passStartState === undefined ? {} : { passStartState },
+    ...priorKeywords.length === 0 ? {} : { priorStubKeywords: priorKeywords },
+  }
   return {
-    ...selection,
     measurement,
     selectedNodes,
     shadowedTokenCount: selectedNodes.reduce((total, node) => total + node.tokens, 0),
-    input: buildSummarizationInput(session, selection.shadowedSeqs),
+    input,
   }
 }
 
-/** Run the summarizer and frame its replacement checkpoint. */
-async function summarizeCompaction(
+/** Commit one buffered region as its own start/summary/replace/end bracket. */
+async function commitOneRegion(
   dependencies: RegionDependencies,
-  prepared: PreparedCompaction,
+  session: Session,
+  selection: SurfaceSelection,
+  summaryResult: SummaryResult,
+  kind: CheckpointKind,
   agent: Agent,
-  compactionId: CompactionResult['compactionId'],
-  sourceCommandId: CommandId | undefined,
+  options: CompactionTransactionOptions,
   signal?: AbortSignal,
-): Promise<SummarizedCompaction> {
-  const summaryResult = await dependencies.summarize(prepared.input, agent, signal)
-  const predictedSummarySeq = agent.session.seq
-  const checkpointMessage = createUserMessage({
-    content: frameRecallableSummary(
-      summaryResult.summary,
-      predictedSummarySeq,
-      { start: prepared.start, end: prepared.end },
-    ),
-    source: compactCheckpointSource(compactionId, sourceCommandId),
-  })
-  const framedSummaryTokenCount = dependencies.meter.estimateMessage(checkpointMessage)
-  if (framedSummaryTokenCount >= prepared.shadowedTokenCount) {
-    throw new Error(
-      `summary is not smaller than the shadowed content (${framedSummaryTokenCount} estimated framed tokens >= ${prepared.shadowedTokenCount})`,
-    )
-  }
-  const preTotalTokens = prepared.measurement.totalTokens
-  const postTotalTokens = preTotalTokens - prepared.shadowedTokenCount + framedSummaryTokenCount
-  if (postTotalTokens >= preTotalTokens) {
-    throw new InflationGuardError(
-      `inflation guard: compaction would not reduce total context (${postTotalTokens} estimated tokens >= ${preTotalTokens})`,
-    )
-  }
-  return {
-    ...prepared,
-    ...summaryResult,
-  }
-}
+): Promise<CompactionResult> {
+  if (options.owner === null) signal?.throwIfAborted()
+  const entryState = inspectCompactionEntryState(session.events)
+  assertCompactionInactive(
+    entryState.unmatchedCompactionStart,
+    entryState.latestEndSeedSeq,
+    'compaction',
+  )
 
-/** Reject a summary prepared against any earlier surface generation. */
-function assertWholeSurfaceUnchanged(
-  dependencies: RegionDependencies,
-  session: Session,
-  prepared: PreparedCompaction,
-): void {
-  const current = dependencies.meter.measure(session)
-  if (!isDeepStrictEqual(current.nodes, prepared.measurement.nodes)) {
-    throw new SurfaceChangedError('compaction: session surface changed during summarization')
+  let owner: number | null
+  if (options.owner === null) {
+    if (entryState.openTurn !== null) {
+      throw new ManualCompactionError('busy', 'manual compaction: the session already has an open turn')
+    }
+    owner = null
+  } else {
+    if (entryState.openTurn === null) {
+      throw new Error('compactRegion: no open turn — automatic compaction events must be enclosed in a turn')
+    }
+    owner = entryState.openTurn
   }
-}
 
-/**
- * Require only that the selected span remain the same present, contiguous,
- * equally priced, balanced replacement target. Nodes added outside it remain
- * visible and do not invalidate the summary.
- */
-function assertSelectedSpanStable(
-  dependencies: RegionDependencies,
-  session: Session,
-  prepared: PreparedCompaction,
-): void {
-  let current: SurfaceSelection
+  const compactionId = CompactionId(randomUUID())
+  const lifecycle = {
+    compactionId,
+    ...options.sourceCommandId === undefined ? {} : { sourceCommandId: options.sourceCommandId },
+    turn: owner,
+  }
+  const startEvent = session.append('compaction/start', lifecycle)
+  let failure: { error: unknown; stage: 'summary' | 'commit' } | undefined
+  let flushFailure: unknown
+  let result: CompactionResult | undefined
+  let closed = false
+  let closing = false
+  let stage: 'summary' | 'commit' = 'summary'
+
   try {
-    current = validateSurfaceRegion(session, prepared.start, prepared.end)
+    const measurement = dependencies.meter.measure(session)
+    const selectedNodes = measurement.nodes.slice(selection.startIdx, selection.endIdx + 1)
+    const shadowedTokenCount = selectedNodes.reduce((total, node) => total + node.tokens, 0)
+    const framedPreview = frameRecallableSummary(
+      summaryResult.summary,
+      session.seq,
+      { start: selection.start, end: selection.end },
+      kind,
+    )
+    const framedSummaryTokenCount = dependencies.meter.estimateMessage(createUserMessage({
+      content: framedPreview,
+      source: compactCheckpointSource(compactionId, options.sourceCommandId),
+    }))
+    if (framedSummaryTokenCount >= shadowedTokenCount && options.skipInflationGuard !== true) {
+      throw new Error(
+        `summary is not smaller than the shadowed content (${framedSummaryTokenCount} estimated framed tokens >= ${shadowedTokenCount})`,
+      )
+    }
+    stage = 'commit'
+    const pending = commitCompactionBody(
+      session,
+      startEvent,
+      {
+        start: selection.start,
+        end: selection.end,
+        shadowedSeqs: selection.shadowedSeqs,
+        shadowedTokenCount,
+        kind,
+        ...summaryResult,
+      },
+    )
+    closing = true
+    session.append('compaction/end', lifecycle)
+    closed = true
+    result = pending
   } catch (error: unknown) {
-    throw new SurfaceChangedError(
-      'compaction: the selected span is no longer a valid replacement target',
-      { cause: error },
+    failure = { error, stage: closing ? 'commit' : stage }
+    if (!closing) {
+      closing = true
+      try {
+        session.append('compaction/end', { ...lifecycle, error: errorChain(error) })
+        closed = true
+      } catch (closeError: unknown) {
+        failure = { error: closeError, stage: 'commit' }
+      }
+    }
+  }
+
+  if (closed && options.flush !== undefined) {
+    try {
+      await options.flush()
+    } catch (error: unknown) {
+      flushFailure = error
+    }
+  }
+
+  if (options.owner === null) signal?.throwIfAborted()
+  if (failure !== undefined) {
+    if (options.owner === null) throwManualFailure(failure)
+    throw failure.error
+  }
+  if (flushFailure !== undefined) {
+    throw new ManualCompactionError(
+      'persistence',
+      'manual compaction durability checkpoint failed',
+      { cause: flushFailure },
     )
   }
-  if (!isDeepStrictEqual([...current.shadowedSeqs], [...prepared.shadowedSeqs])) {
-    throw new SurfaceChangedError('compaction: the selected span changed during summarization')
+  /* v8 ignore next -- every path without a result records and throws a failure above. */
+  if (result === undefined) throw new Error('compaction committed without a result')
+  // Silence unused agent in this path; summarize already completed.
+  void agent
+  return result
+}
+
+/** Classify one closed manual attempt without weakening cancellation precedence. */
+function throwManualFailure(failure: { error: unknown; stage: 'summary' | 'commit' }): never {
+  if (failure.stage === 'commit') {
+    throw new ManualCompactionError(
+      'commit',
+      'manual compaction did not commit cleanly',
+      { cause: failure.error },
+    )
   }
-  const measured = dependencies.meter.measure(session).nodes.slice(current.startIdx, current.endIdx + 1)
-  if (!isDeepStrictEqual(measured, prepared.selectedNodes)) {
-    throw new SurfaceChangedError('compaction: the selected span was rewritten during summarization')
+  if (failure.error instanceof SurfaceChangedError) {
+    throw new ManualCompactionError(
+      'changed',
+      'the compacted history changed during manual compaction',
+      { cause: failure.error },
+    )
   }
+  throw new ManualCompactionError(
+    'summary',
+    'manual compaction could not produce a smaller summary',
+    { cause: failure.error },
+  )
+}
+
+type CommitBodyInput = SummaryResult & {
+  readonly start: number
+  readonly end: number
+  readonly shadowedSeqs: readonly number[]
+  readonly shadowedTokenCount: number
+  readonly kind: CheckpointKind
 }
 
 /** Append one completed summary record and replacement body without yielding. */
 function commitCompactionBody(
   session: Session,
   startEvent: SessionEvent<'compaction/start'>,
-  summarized: SummarizedCompaction,
-): Omit<CompactionResult, 'endSeq'> {
+  summarized: CommitBodyInput,
+): CompactionResult {
   const {
     start,
     end,
@@ -451,6 +478,7 @@ function commitCompactionBody(
     model,
     maxTokens,
     usage,
+    kind,
   } = summarized
   const callProvenance = summarized.llmStreamCall === true
     ? { rawOutput: summarized.rawOutput, llmStreamCall: true as const }
@@ -461,6 +489,7 @@ function commitCompactionBody(
       ? {}
       : { sourceCommandId: startEvent.data.sourceCommandId },
     summary,
+    kind,
     ...callProvenance,
     shadowedRange: { start, end },
     shadowedSeqs: [...shadowedSeqs],
@@ -471,7 +500,7 @@ function commitCompactionBody(
     ...usage === undefined ? {} : { usage },
   })
   const checkpointMessage = createUserMessage({
-    content: frameRecallableSummary(summary, summaryEvent.seq, { start, end }),
+    content: frameRecallableSummary(summary, summaryEvent.seq, { start, end }, kind),
     source: compactCheckpointSource(startEvent.data.compactionId, startEvent.data.sourceCommandId),
   })
   session.append('user/message', checkpointMessage, {
@@ -483,33 +512,13 @@ function commitCompactionBody(
     ...startEvent.data.sourceCommandId === undefined
       ? {}
       : { sourceCommandId: startEvent.data.sourceCommandId },
-    startSeq: startEvent.seq,
-    summarySeq: summaryEvent.seq,
-    summary,
     shadowedRange: { start, end },
     shadowedSeqs: [...shadowedSeqs],
     shadowedTokenCount,
   }
 }
 
-/** Attach the successfully appended close event to a pending result. */
-function completeCompaction(
-  pending: Omit<CompactionResult, 'endSeq'>,
-  endEvent: SessionEvent<'compaction/end'>,
-): CompactionResult {
-  return { ...pending, endSeq: endEvent.seq }
-}
-
-/**
- * Reconstruct the last routed request's cacheable prefix for the shadowed
- * region: its system prompt and tool schemas, then the region's own derived
- * messages in surface order. The summarizer appends only the compaction
- * instruction after this, so the call is a genuine prefix of the conversation
- * and reuses the provider's KV cache.
- * @param session - session supplying the request header and per-node projection.
- * @param shadowedSeqs - the surface-node seqs, in order, being compacted.
- * @returns the replayed conversation prefix to condense.
- */
+/** Reconstruct the last routed request's cacheable prefix for the shadowed region. */
 function buildSummarizationInput(
   session: Session,
   shadowedSeqs: readonly number[],
@@ -517,7 +526,6 @@ function buildSummarizationInput(
   const header = session.requestHeader()
   const events = session.events
   const regionMessages = shadowedSeqs
-    // shadowedSeqs are current surface seqs, so each is a valid log index.
     // oxlint-disable-next-line typescript/no-non-null-assertion
     .map(seq => session.deriveEventMessage(events[seq]!))
     .filter((message): message is Message => message !== null)
@@ -526,6 +534,64 @@ function buildSummarizationInput(
     ...header?.tools === undefined ? {} : { tools: header.tools },
     messages: regionMessages,
   }
+}
+
+/** Read pass-start state text from the surface state checkpoint or latest log state. */
+function readPassStartStateText(session: Session): string | undefined {
+  const surface = listSurfaceCheckpoints(session).findLast(checkpoint => checkpoint.kind === 'state')
+  if (surface !== undefined) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const event = session.events[surface.seq]!
+    if (event.type === 'user/message') {
+      const message = ('message' in event.data ? event.data.message : event.data) as {
+        content: ContentBlock[]
+      }
+      return summaryPlainText(message.content)
+    }
+  }
+  const logged = latestStateSummary(session)
+  if (logged === undefined) return undefined
+  return summaryPlainText(logged.data.summary)
+}
+
+/** Whether every surface message in the region is a history_read/search tool result. */
+function regionIsRecalledContent(session: Session, planned: PlannedRegion): boolean {
+  let sawRecall = false
+  for (const seq of planned.shadowedSeqs) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const event = session.events[seq]!
+    if (event.type === 'tool/result') {
+      const name = findToolName(session, event)
+      if (name !== 'history_read' && name !== 'history_search') return false
+      sawRecall = true
+      continue
+    }
+    if (event.type === 'tool/call') {
+      const data = event.data as { name?: string }
+      if (data.name !== 'history_read' && data.name !== 'history_search') return false
+      sawRecall = true
+      continue
+    }
+    if (event.type === 'user/message' || event.type === 'assistant/message') {
+      return false
+    }
+  }
+  return sawRecall
+}
+
+/** Resolve the tool name for a tool/result via its callId. */
+function findToolName(session: Session, result: SessionEvent): string | undefined {
+  const callId = (result.data as { message?: { source?: { callId?: string } }; callId?: string }).message?.source?.callId
+    ?? (result.data as { callId?: string }).callId
+  if (callId === undefined) return undefined
+  for (let index = result.seq - 1; index >= 0; index -= 1) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const event = session.events[index]!
+    if (event.type !== 'tool/call') continue
+    const data = event.data as { callId?: string; name?: string }
+    if (data.callId === callId) return data.name
+  }
+  return undefined
 }
 
 /** Inspect open-turn, unmatched-compaction, and latest seed-boundary state independently. */
@@ -562,4 +628,11 @@ function inspectCompactionEntryState(events: readonly SessionEvent[]): Compactio
       && latestEndSeedSeq !== undefined) break
   }
   return { openTurn, unmatchedCompactionStart, latestEndSeedSeq }
+}
+
+// Re-export helpers tests may need.
+export {
+  extractKeywordLine,
+  isIncompleteRecallablePass,
+  planPassRegions,
 }

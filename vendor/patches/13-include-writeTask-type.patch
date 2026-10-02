@@ -1,0 +1,13 @@
+diff --git a/include/src/index.ts b/include/src/index.ts
+--- a/include/src/index.ts
++++ b/include/src/index.ts
+@@ -186,7 +186,7 @@
+   private type?: string
+   private readonly: boolean
+   private content?: string
+   private data?: EntryOptions[]
+-  private writeTask?: NodeJS.Timeout
++  private writeTask?: NodeJS.Timeout | undefined
+   private pendingWrite?: EntryOptions[]
+   private writeQueue: Promise<void> = Promise.resolve()
+   private applyQueue: Promise<unknown> = Promise.resolve()

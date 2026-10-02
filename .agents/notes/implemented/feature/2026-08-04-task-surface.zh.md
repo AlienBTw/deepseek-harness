@@ -18,10 +18,12 @@ Status: implemented
 |---|---|
 | `@maple/task-surface` | 解析器、限制、投影折叠、`task-surface/dismissed` 以及 Host `taskSurface` 服务（`getActive`、`submit`、`dismiss`） |
 | `@maple/tool-task-surface` | 带呈现元数据与 `concludeTurn()` 的 `show_task_surface` |
-| `@maple/client-ui-task-surface` | `conversation.input.dock` Task Surface 面板与经 Remote 转发的提交面 |
+| `@maple/client-ui-task-surface` | `conversation.input.dock` Task Surface 面板（sections/fields + 关闭）、带 key 的 `show_task_surface` transcript 行，以及经 Remote 转发的提交/关闭面 |
 | `@maple/host/apiproxy` | `taskSurface.getActive`、`taskSurface.submit`、`taskSurface.dismiss` RPC |
 
 `maple-base` 挂载 `@maple/task-surface`；`standard` 预设挂载 `@maple/tool-task-surface`；`maple-web-app` 挂载 `@maple/client-ui-task-surface`。每个会话最多一个打开的 Surface；重复打开、嵌套调用以及提交仍处理中时均失败并报错。
+
+Web dock 从权威 `getActive` 模型渲染声明式 sections（`markdown`、`metric`、`diff`、`table`）与 fields（`choice`、`text`、`order`），将取值写入 `submit`，并通过 dismiss 关闭且不排队 prompt。带 key 的 transcript 行从持久化 call/result 切片汇总打开的 Surface（标题 + 等待提交）；交互捕获留在 dock。
 
 ## 已考虑的替代方案
 
@@ -39,5 +41,5 @@ Status: implemented
 
 - `packages/task-surface/task-surface/tests/` — 解析器、投影、服务提交/关闭、loader 组合。
 - `packages/task-surface/tool-task-surface/tests/` — 工具注册与不变量伴随项。
-- `packages/client/ui-task-surface/tests/browser-plugin.client.spec.tsx` — 停靠区注册与 Remote 动词转发。
-- `apps/web/tests/task-surface.e2e.ts` — 无密钥种子组合在已记录的 `show_task_surface` 结果上展示停靠区。
+- `packages/client/ui-task-surface/tests/browser-plugin.client.spec.tsx` — 停靠区注册、Remote 动词转发（getActive/submit/dismiss）、section/field 渲染、带 key 行。
+- `apps/web/tests/task-surface.e2e.ts` — 无密钥种子组合在已记录的 `show_task_surface` 结果上展示停靠区（sections、choice 字段、关闭、提交）。

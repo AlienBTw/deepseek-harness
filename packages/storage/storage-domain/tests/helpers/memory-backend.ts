@@ -6,12 +6,13 @@
  * `tests/`, never `src/`, so it stays out of the published surface).
  *
  * Fidelity to the backend contract (`dsh-storage` `src/backend.ts`): version
- * stamping and `version-mismatch` on reopen, `malformed` never (memory cannot
- * corrupt), per-call atomicity trivially, `closed` after close, delete
- * idempotence. Media survive across backends through the shared `media` map
- * passed into the constructor, which simulates process restarts; stamp
- * `versions` directly to fabricate an on-medium version and force a
- * `version-mismatch` without a prior open.
+ * stamping and `version-mismatch` on reopen, `malformed-medium` via the
+ * injectable `malformed` set, per-call atomicity trivially, `closed` after
+ * close, delete idempotence, and `destroy` clearing the pooled medium.
+ * Media survive across backends through the shared `media` map passed into
+ * the constructor, which simulates process restarts; stamp `versions`
+ * directly to fabricate an on-medium version and force a `version-mismatch`
+ * without a prior open.
  * @module
  */
 
@@ -36,6 +37,11 @@ export class MemoryMediaPool {
   readonly media = new Map<string, MemoryMedium>()
   /** Unit name → stamped version; tests may pre-stamp to force `version-mismatch`. */
   readonly versions = new Map<string, number>()
+  /**
+   * Unit names whose next open rejects with `malformed-medium`. Cleared by
+   * {@link MemoryStorageBackend}'s `destroy` so a reset recovery can reopen.
+   */
+  readonly malformed = new Set<string>()
   /**
    * When positive, that many subsequent write primitives (putRecord /
    * deleteRecord / setGlobal) reject without touching the medium, decrementing
@@ -133,6 +139,12 @@ export class MemoryStorageBackend implements StorageBackend {
         if (this.openUnits.has(descriptor.name)) {
           throw new Error(`memory unit '${descriptor.name}' is already open (double-open is a caller bug)`)
         }
+        if (this.pool.malformed.has(descriptor.name)) {
+          throw new StorageError(
+            'malformed-medium',
+            `memory unit '${descriptor.name}' is injected as malformed`,
+          )
+        }
         const stamped = this.pool.versions.get(descriptor.name)
         if (stamped === undefined) {
           this.pool.versions.set(descriptor.name, descriptor.version)
@@ -149,6 +161,17 @@ export class MemoryStorageBackend implements StorageBackend {
         }
         this.openUnits.add(descriptor.name)
         return new MemoryKvUnit(this.pool, medium, descriptor, () => this.openUnits.delete(descriptor.name))
+      },
+      destroy: async (descriptor: KvUnitDescriptor): Promise<void> => {
+        if (this.closed) {
+          throw new StorageError('closed', 'memory backend is closed')
+        }
+        if (this.openUnits.has(descriptor.name)) {
+          throw new Error(`memory unit '${descriptor.name}' is open; destroy requires a closed unit`)
+        }
+        this.pool.media.delete(descriptor.name)
+        this.pool.versions.delete(descriptor.name)
+        this.pool.malformed.delete(descriptor.name)
       },
     }
   }

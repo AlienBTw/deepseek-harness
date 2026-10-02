@@ -380,6 +380,24 @@ export function defineCoverageCases(groups: CoverageGroup | readonly CoverageGro
       expect(ran).toBe(true)
     })
 
+    it('honors updatedInput by splicing command into object tool arguments', async () => {
+      const d = dir()
+      hooks(d, { PreToolUse: [{ hooks: [{ type: 'command', command: sh(d, 'u.sh', '#!/usr/bin/env bash\necho \'{"updatedInput":{"command":"rewritten"}}\'\n') }] }] })
+      const adapter = new MockAdapter([toolCallResponse('c1', 'Bash', { command: 'original', description: 'keep' }), textResponse('done')])
+      const ctx = await harness(join(d, 'hooks.json'), adapter)
+      let sawArgs: unknown
+      ctx.tools.register(defineContentToolFixture({
+        name: 'Bash', description: 'b',
+        parameters: { command: { type: 'string' }, description: { type: 'string' } },
+        async execute(args) { sawArgs = args; return [{ type: 'text', text: 'ok' }] },
+      }))
+      const agent = ctx.agentLoop.create(SessionId('rewrite'), { provider: 'mock', model: 'mock' })
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } })); await waitForIdle(ctx, agent)
+      expect(sawArgs).toEqual({ command: 'rewritten', description: 'keep' })
+      const call = events(agent).find(e => e.type === 'tool/call')
+      expect(call?.type === 'tool/call' && call.data.originalArguments).toBe(JSON.stringify({ command: 'original', description: 'keep' }))
+    })
+
     it('a non-matching regex matcher skips the hook (matchesMatcher false → continue)', async () => {
       const d = dir()
       // /^Edit$/ does not match the tool name "Bash" → the group is skipped.

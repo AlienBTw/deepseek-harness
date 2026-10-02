@@ -29,7 +29,6 @@ describe('WorkerThreadCodeRuntime — programs and bindings (real workers)', () 
   it('registers with the seam descriptors', async () => {
     const { runtime } = await setup()
     expect(runtime.language).toBe('typescript')
-    expect(runtime.isolation).toBe('worker-thread')
   })
 
   it('runs TypeScript (erasable syntax), captures output in order, returns the value', async () => {

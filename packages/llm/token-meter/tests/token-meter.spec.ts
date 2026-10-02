@@ -129,7 +129,7 @@ describe('TokenMeter configuration and registration', () => {
 })
 
 describe('TokenMeter pricing', () => {
-  it('prices every built-in content shape and merge-extended blocks with one fixed heuristic', () => {
+  it('prices every built-in content shape and merge-extended blocks with cl100k_base', () => {
     const service = meter()
     const blocks: ContentBlock[] = [
       { type: 'text', text: 'abcd' },

@@ -56,7 +56,7 @@ await ctx.credentials.deleteRecord(key)                  // no-op when absent
 
 ## 提供方
 
-[`dsh-credentials-local`](../credentials-local/README.zh.md) 把继承的进程环境叠加在其受管 `$MAPLE_HOME/.credentials.yaml` 文档之上，并以启动器的项目和用户 `.env` 层作为后备。该 seam 的接口为 keyring、辅助命令和 KMS 后端提供方预留了扩展空间；远端设置提供方永远不必携带机密。
+[`dsh-credentials-local`](../credentials-local/README.zh.md) 把继承的进程环境叠加在其受管 `$MAPLE_HOME/.credentials.yaml` 文档之上，并以启动器的项目和用户 `.env` 层作为后备。[`dsh-credentials-keychain`](../credentials-keychain/README.zh.md) 保持同一套分层，并把受管存储移入 OS 钥匙串——在文件文档的同 UID 边界不够时可选地替换组合。远端设置提供方永远不必携带机密。
 
 ## 模型体验
 

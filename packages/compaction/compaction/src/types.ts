@@ -37,6 +37,12 @@ declare module '@maple/session/types' {
       shadowedRange: { start: number; end: number }
       shadowedSeqs: number[]
       shadowedTokenCount: number
+      /**
+       * Checkpoint class for recallable multi-checkpoint layouts.
+       * `index` is a frozen stub; `state` is the mutable working-memory document.
+       * Absent on legacy / basic-backend summaries (treated as `state`).
+       */
+      kind?: 'index' | 'state'
       /** The provider route that wrote the summary. */
       provider: string
       /**
@@ -89,20 +95,17 @@ declare module '@maple/session/types' {
   }
 }
 
-/** Result of a successful compaction operation. */
+/**
+ * Result of a successful compaction operation. Durable event identity and
+ * summary content live on the session log (`compaction/start`,
+ * `compaction/summary`, `compaction/end`); this value carries only shadowed
+ * range and token accounting the caller needs without re-folding the log.
+ */
 export interface CompactionResult {
   /** Stable identity shared by this compaction's complete durable lifecycle. */
   compactionId: CompactionId
   /** Human command that initiated this compaction, when it was manual. */
   sourceCommandId?: CommandId
-  /** The seq of the appended `compaction/start` event. */
-  startSeq: number
-  /** The seq of the appended `compaction/summary` event. */
-  summarySeq: number
-  /** The seq of the appended `compaction/end` event. */
-  endSeq: number
-  /** The summary content blocks produced by the backend. */
-  summary: ContentBlock[]
   /**
    * The surface-boundary pair that was shadowed: the seqs of the first
    * (`start`) and last (`end`) surface nodes of the replaced range. A

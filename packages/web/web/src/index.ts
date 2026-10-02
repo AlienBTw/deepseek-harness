@@ -134,10 +134,10 @@ export class WebRuntime extends Service {
    * capability cannot run. The seam enforces `request.maxResults` on the result:
    * if the provider over-returns, `sources[]` is truncated and `truncated` set.
    * @param request - the query and optional result limit.
-   * @param signal - optional cancellation signal forwarded to the provider.
+   * @param signal - required caller-owned cancellation forwarded to the provider.
    * @returns the provider's results, capped to `request.maxResults`.
    */
-  async search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult> {
+  async search(request: WebSearchRequest, signal: AbortSignal): Promise<WebSearchResult> {
     const provider = resolveProvider({
       providers: this.searchProviders,
       ...this.searchProviderId !== undefined ? { configuredId: this.searchProviderId } : {},
@@ -151,10 +151,10 @@ export class WebRuntime extends Service {
    * call time with the selection rules above; throws {@link WebError} when the
    * capability cannot run. A non-2xx response is a result, not a throw.
    * @param request - the URL plus retrieval options.
-   * @param signal - optional cancellation signal forwarded to the provider.
+   * @param signal - required caller-owned cancellation forwarded to the provider.
    * @returns the retrieval outcome; non-2xx responses resolve descriptively.
    */
-  async fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult> {
+  async fetch(request: WebFetchRequest, signal: AbortSignal): Promise<WebFetchResult> {
     const provider = resolveProvider({
       providers: this.fetchProviders,
       ...this.fetchProviderId !== undefined ? { configuredId: this.fetchProviderId } : {},

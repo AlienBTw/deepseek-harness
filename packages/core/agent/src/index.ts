@@ -95,7 +95,7 @@ export interface CreateAgentOptions {
     readonly cwd?: string
     readonly parentSession?: SessionId
     readonly seedLength?: number
-    readonly origin?: 'subagent'
+    readonly origin?: 'subagent' | 'sidechat'
     readonly delegationDepth?: number
     readonly agentPreset?: string
   }
@@ -383,7 +383,6 @@ export class AgentRegistry extends Service {
     // caller's composite effect can yield it for in-order teardown; the
     // loop's constructor effect returns it directly, identity-nesting the
     // registration under that effect.
-    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous cleanup; direct return preserves disposer identity
     return dispose
   }
 
@@ -410,7 +409,6 @@ export class AgentRegistry extends Service {
     // capability and need no Cordis tracker magic.
     const { target } = this.requireFactory()
     const receiver = getTraceable(ownerCtx, target)
-    // oxlint-disable-next-line typescript/unbound-method -- Reflect.apply intentionally supplies the caller-traced receiver
     return Reflect.apply(target.createAgent, receiver, [ownerCtx, options])
   }
 
@@ -425,7 +423,6 @@ export class AgentRegistry extends Service {
     const ownerCtx = this.ctx
     const { target } = this.requireFactory()
     const receiver = getTraceable(ownerCtx, target)
-    // oxlint-disable-next-line typescript/unbound-method -- Reflect.apply intentionally supplies the caller-traced receiver
     return Reflect.apply(target.resume, receiver, [ownerCtx, options])
   }
 
@@ -452,7 +449,6 @@ export class AgentRegistry extends Service {
       yield this.enter(agent, this.ctx.agent)
       this.announce(agent)
     }.bind(this), 'agents.register()')
-    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous cleanup; direct return preserves disposer identity
     return dispose
   }
 

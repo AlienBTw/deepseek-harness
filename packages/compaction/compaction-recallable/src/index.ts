@@ -1,5 +1,6 @@
 /**
- * Recallable compaction backend with deterministic checkpoint footers and inflation guard.
+ * Recallable compaction backend: frozen index stubs, mutable state rewrite,
+ * deterministic footers, and an inflation guard.
  *
  * @module @maple/compaction-recallable
  */
@@ -21,14 +22,16 @@ import {
   resolveConfig,
   resolveTargetPolicy,
   TargetPressureConfigError,
-} from '@maple/compaction-basic/src/config.ts'
+} from './config.ts'
 import {
   assertNoActiveCompaction,
   compactSurfaceRegion,
+  isIncompleteRecallablePass,
   selectCompactableRange,
 } from './region.ts'
-import { summarizeWithLlm } from '@maple/compaction-basic/src/summarizer.ts'
-import type { SummarizationInput, SummaryResult } from '@maple/compaction-basic/src/summarizer.ts'
+import { summarizeRecallableWithLlm } from './summarizer.ts'
+import type { RecallableSummarizationInput } from './summarizer.ts'
+import type { SummaryResult } from '@maple/compaction-basic/src/summarizer.ts'
 import type {
   ModelCompactPolicyConfig,
   RecallableCompactionConfig,
@@ -36,6 +39,7 @@ import type {
 } from './types.ts'
 
 export type {
+  CheckpointKind,
   CompactionPolicyConfig,
   ModelCompactPolicyConfig,
   RecallableCompactionConfig,
@@ -45,8 +49,31 @@ export type {
   ResolvedTargetPolicy,
 } from './types.ts'
 
+export {
+  composeRecallFooter,
+  type ShadowedRange,
+} from './footer.ts'
+export {
+  frameRecallableSummary,
+  codeOnlyPointerStub,
+} from './summarizer.ts'
+export {
+  selectCompactableRange,
+  planPassRegions,
+  isIncompleteRecallablePass,
+} from './region.ts'
+export {
+  listSurfaceCheckpoints,
+  lastIndexStubSurfaceIdx,
+  summaryCheckpointKind,
+} from './checkpoint-class.ts'
+
 /** The region transaction's view of this service's dynamically dispatched summarizer. */
-type RegionSummarize = (input: SummarizationInput, agent: Agent, signal?: AbortSignal) => Promise<SummaryResult>
+type RegionSummarize = (
+  input: RecallableSummarizationInput,
+  agent: Agent,
+  signal?: AbortSignal,
+) => Promise<SummaryResult>
 
 /** Resolve the exact provider/model durably routed for the latest request. */
 function routedTarget(
@@ -78,6 +105,8 @@ const summarizationModelSchema = z.string()
 const maxTokensSchema = z.number().step(1).min(1)
 const compactionRetriesSchema = z.number().step(1).min(0)
 const maxOverflowRetriesSchema = z.number().step(1).min(0)
+const chunkTokensSchema = z.number().step(1).min(1)
+const stubTokensSchema = z.number().step(1).min(1)
 
 const modelPolicy: z<ModelCompactPolicyConfig> = z.object({
   provider: z.string().required(),
@@ -93,12 +122,8 @@ const modelPolicy: z<ModelCompactPolicyConfig> = z.object({
 })
 
 /**
- * Dependency-light compaction backend using `ctx.tokenMeter` for pressure,
- * retention, cited source events, and summary-convergence pricing.
- *
- * `summarize()` is the sole subclass customization hook; the replay and durable
- * mutation strategy stays fixed so every pricing decision uses the singleton
- * token meter.
+ * Recallable multi-checkpoint compaction backend on `ctx.compaction`.
+ * `summarize()` is the sole subclass customization hook.
  */
 export class RecallableCompactionEngine extends CompactionEngine {
   static inject = ['llm', 'tokenMeter', 'sessions']
@@ -112,6 +137,8 @@ export class RecallableCompactionEngine extends CompactionEngine {
     maxTokens: maxTokensSchema,
     compactionRetries: compactionRetriesSchema,
     maxOverflowRetries: maxOverflowRetriesSchema,
+    chunkTokens: chunkTokensSchema,
+    stubTokens: stubTokensSchema,
     modelPolicies: z.array(modelPolicy),
     auto: z.boolean(),
   })
@@ -158,7 +185,12 @@ export class RecallableCompactionEngine extends CompactionEngine {
             this.warnedPressureConfigTargets.add(error.targetKey)
           }
           const message = error instanceof Error ? error.message : String(error)
-          ctx.logger.warn(`step compaction failed: ${message}; continuing the turn`)
+          // Inflation guard aborts without failing the turn.
+          if (message.includes('inflation guard:')) {
+            ctx.logger.info(`${message}; deferring compaction`)
+          } else {
+            ctx.logger.warn(`step compaction failed: ${message}; continuing the turn`)
+          }
         }
       }
       return next()
@@ -168,8 +200,6 @@ export class RecallableCompactionEngine extends CompactionEngine {
       if (status === 'idle') this.overflowRetries.delete(agent)
     })
 
-    // A successful response starts a fresh overflow-recovery sequence even
-    // when tool calls continue the same turn into another request.
     ctx.on('session/event', (session, event) => {
       if (event.type !== 'assistant/message') return
       const agent = this.overflowAgents.get(session)
@@ -194,10 +224,6 @@ export class RecallableCompactionEngine extends CompactionEngine {
         result = await this.compactIfNeeded(agent, 'context-overflow', signal)
       } catch (recoveryError: unknown) {
         const message = recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
-        // A model-free prune can land before later summary work fails. That
-        // durable reduction is sufficient retry proof; do not discard it just
-        // because the optional second phase threw. Cancellation still wins.
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- the signal can abort while recovery is awaited.
         if (!signal.aborted && agent.session.surface.replaceGeneration > generation) {
           ctx.logger.warn(
             `context-overflow compaction failed after durable surface progress: ${message}; `
@@ -207,14 +233,12 @@ export class RecallableCompactionEngine extends CompactionEngine {
           return { kind: 'retry' }
         }
         ctx.logger.warn(
-          // oxlint-disable-next-line typescript/no-unnecessary-condition -- the signal can abort while recovery is awaited.
           `context-overflow compaction failed: ${message}; ${signal.aborted
             ? 'cancellation prevents retry'
             : 'preserving the original request error'}`,
         )
         return next()
       }
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- the signal can abort while compaction is awaited.
       if (signal.aborted
         || agent.session.surface.replaceGeneration <= generation) return next()
       if (result !== null) logResult(result, 'context overflow recovery')
@@ -224,17 +248,15 @@ export class RecallableCompactionEngine extends CompactionEngine {
   }
 
   /**
-   * Summarize the replayed conversation region through a direct one-shot
-   * `ctx.llm.stream()` call whose prefix reuses the conversation's own system
-   * prompt, tools, and messages so the provider's KV cache is not invalidated.
+   * Summarize one planned region through a direct one-shot `ctx.llm.stream()` call.
    * Override this sole hook for a template or remote summarizer.
-   * @param input - replayed conversation prefix (system, tools, and leading messages) to condense.
+   * @param input - recallable layered summarization input.
    * @param agent - supplies routed-model history, fallback model, and session id.
    * @param signal - optional cancellation forwarded to the adapter.
    * @returns safe text summary blocks and the exact auxiliary call envelope and output.
    */
   protected async summarize(
-    input: SummarizationInput,
+    input: RecallableSummarizationInput,
     agent: Agent,
     signal?: AbortSignal,
   ): Promise<SummaryResult> {
@@ -242,18 +264,27 @@ export class RecallableCompactionEngine extends CompactionEngine {
     const config = target === undefined
       ? this.config
       : resolveTargetPolicy(this.config, target)
-    return summarizeWithLlm(this.ctx, config, input, agent, signal)
+    const maxTokens = input.kind === 'index' ? config.stubTokens : config.maxTokens
+    return summarizeRecallableWithLlm(
+      this.ctx,
+      {
+        summarizationProvider: config.summarizationProvider,
+        summarizationModel: config.summarizationModel,
+        maxTokens,
+      },
+      input,
+      agent,
+      signal,
+    )
   }
 
   /**
    * Compact for replayed step-boundary pressure or one provider-confirmed context
-   * overflow. Both triggers price the latest durable routed request envelope;
-   * overflow bypasses the normal threshold and retained-tail policy so it can
-   * force one useful balanced reduction.
+   * overflow. Both triggers price the latest durable routed request envelope.
    * @param agent - agent whose latest durable routed request is measured.
    * @param trigger - normal step-boundary pressure or context-overflow recovery.
    * @param signal - live turn cancellation signal forwarded to summarization.
-   * @returns the latest summary compaction result, or `null` when no summary ran.
+   * @returns the latest (state) summary compaction result, or `null` when no summary ran.
    */
   override async compactIfNeeded(
     agent: Agent,
@@ -275,10 +306,8 @@ export class RecallableCompactionEngine extends CompactionEngine {
         assertNever(trigger, 'compaction trigger')
     }
 
-    // Pruning is optional so compaction-basic remains independently composable.
-    // Overflow always qualifies; pressure first resolves the routed model's
-    // capacity and checks its target-specific threshold.
     const prune = this.ctx.get('toolResultPruner')
+    const resume = isIncompleteRecallablePass(agent.session)
 
     if (trigger === 'context-overflow') {
       if (prune !== undefined) {
@@ -296,31 +325,39 @@ export class RecallableCompactionEngine extends CompactionEngine {
     if (context === undefined) {
       throw new TargetPressureConfigError(
         targetKey,
-        `compaction-basic: no context capacity for ${targetKey}; `
+        `compaction-recallable: no context capacity for ${targetKey}; `
         + 'configure contextWindow on that adapter model',
       )
     }
     const spec = resolveCompactSpec(policy, context.contextWindow)
-    if (measurement.totalTokens < spec.thresholdTokens) return null
+    if (!resume && measurement.totalTokens < spec.thresholdTokens) return null
 
-    // Once pressure qualifies, land the model-free pass before choosing a
-    // summary range, then remeasure through the singleton replay fold.
     if (prune !== undefined) {
       prune.pruneSession(agent.session)
       measurement = meter.measure(agent.session)
     }
-    if (measurement.totalTokens < spec.thresholdTokens) return null
+    if (!resume && measurement.totalTokens < spec.thresholdTokens) return null
 
     let result: CompactionResult | null = null
     for (let attempt = 0; attempt <= spec.compactionRetries; attempt += 1) {
-      const range = selectCompactableRange(agent.session, measurement, spec.retainTokens)
+      const range = selectCompactableRange(agent.session, measurement, resume ? 0 : spec.retainTokens)
       if (range === null) {
-        /* v8 ignore else -- concrete replacement preserves a compactable checkpoint; subclass hooks cannot mutate it. */
         if (result === null) return null
-        /* v8 ignore next -- paired with the defensive post-success branch above. */
         break
       }
-      result = await this.compactRegion(range.start, range.end, agent, signal)
+      result = await compactSurfaceRegion(
+        this.regionDependencies(),
+        agent.session,
+        range.start,
+        range.end,
+        agent,
+        {
+          owner: 'current-turn',
+          stability: 'whole-surface',
+          skipInflationGuard: resume,
+        },
+        signal,
+      )
       measurement = meter.measure(agent.session)
       if (measurement.totalTokens < spec.thresholdTokens) return result
     }
@@ -332,13 +369,12 @@ export class RecallableCompactionEngine extends CompactionEngine {
   }
 
   /**
-   * Compact one inclusive positional range from the agent-owned surface using
-   * the effective token meter for all retention and shrink pricing.
+   * Compact one inclusive positional range using the recallable multi-checkpoint pass.
    * @param start - inclusive first surface-node seq.
    * @param end - inclusive last surface-node seq.
    * @param agent - owner of the target session, used by the summarizer.
    * @param signal - optional summarization cancellation signal.
-   * @returns the successful durable compaction result.
+   * @returns the successful durable state-region compaction result.
    */
   override async compactRegion(
     start: number,
@@ -352,14 +388,17 @@ export class RecallableCompactionEngine extends CompactionEngine {
       start,
       end,
       agent,
-      { owner: 'current-turn', stability: 'whole-surface' },
+      {
+        owner: 'current-turn',
+        stability: 'whole-surface',
+        skipInflationGuard: isIncompleteRecallablePass(agent.session),
+      },
       signal,
     )
   }
 
   /**
-   * Force one useful idle-session compaction below the pressure threshold, and
-   * resolve only after its standalone marker pair is durably checkpointed.
+   * Force one useful idle-session compaction below the pressure threshold.
    * @param agent - idle agent whose next-turn admission this call reserves.
    * @param signal - cancellation scoped to this compaction request.
    * @param sourceCommandId - initiating command identity for presentation correlation.
@@ -376,6 +415,7 @@ export class RecallableCompactionEngine extends CompactionEngine {
         const operationSignal = AbortSignal.any([agentSignal, signal])
         try {
           operationSignal.throwIfAborted()
+          const resume = isIncompleteRecallablePass(agent.session)
           const range = selectCompactableRange(
             agent.session,
             this.ctx.tokenMeter.measure(agent.session),
@@ -391,6 +431,7 @@ export class RecallableCompactionEngine extends CompactionEngine {
             {
               owner: null,
               stability: 'selected-span',
+              skipInflationGuard: resume,
               ...sourceCommandId === undefined ? {} : { sourceCommandId },
               flush: async () => {
                 await this.ctx.sessions.flush(agent.session)
@@ -419,10 +460,19 @@ export class RecallableCompactionEngine extends CompactionEngine {
     }
   }
 
-  /** Bind the effective token meter and dynamically dispatched summarizer hook. */
-  private regionDependencies(): { meter: TokenMeter; summarize: RegionSummarize } {
+  /** Bind the effective token meter, budgets, and dynamically dispatched summarizer hook. */
+  private regionDependencies(): {
+    meter: TokenMeter
+    chunkTokens: number
+    stubTokens: number
+    stateMaxTokens: number
+    summarize: RegionSummarize
+  } {
     return {
       meter: this.ctx.tokenMeter,
+      chunkTokens: this.config.chunkTokens,
+      stubTokens: this.config.stubTokens,
+      stateMaxTokens: this.config.maxTokens,
       summarize: (input, owner, abort) => this.summarize(input, owner, abort),
     }
   }

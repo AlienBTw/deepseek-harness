@@ -33,7 +33,7 @@
   "license": "MIT",
   "dependencies": {
     "@maple/schemastery": "workspace:^",
-    "js-tiktoken": "1.0.21",
+    "@maple/token-count": "workspace:^",
     "tree-sitter-wasms": "0.1.13",
     "web-tree-sitter": "0.22.6"
   },

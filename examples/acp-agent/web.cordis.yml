@@ -13,6 +13,9 @@
             name: '@maple/web'
           - id: web-fetch-http
             name: '@maple/web-fetch-http'
+            config:
+              # Loopback fixture server for this snapshot scenario only.
+              allowPrivateNetwork: true
           - id: web-fetch-fixture
             name: './web-fetch-fixture-server.mjs'
           - id: tool-web

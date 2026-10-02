@@ -61,10 +61,12 @@ export type CheckpointRecord = z.infer<typeof checkpointRecord>
 /**
  * The session-projcache domain spec. Version bumps discard the whole medium
  * (cache semantics: a stale or unreadable cache costs a longer tail replay,
- * never a wrong value).
+ * never a wrong value). `recovery: 'reset'` makes that discard real at open:
+ * a damaged medium is destroyed and reopened empty instead of failing boot.
  */
 export const projectionCacheDomainSpec = defineDomain({
   name: 'session_projcache',
   version: 3,
+  recovery: 'reset',
   tables: { sessions: domainTable<SessionId, CheckpointRecord>(checkpointRecord) },
 })

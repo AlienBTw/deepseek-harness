@@ -19,7 +19,16 @@ async function bench() {
   const slots = ctx.get('slots') as SlotRegistry
   // The composer slot exists only while its declaring entry is live.
   slots.register(
-    { name: 'root', children: { 'conversation.composer': { kind: 'chain', scope: 'session' } } } as never,
+    {
+      name: 'root',
+      children: {
+        'conversation.composer': {
+          kind: 'chain',
+          scope: 'session',
+          phases: ['interaction', 'restriction'],
+        },
+      },
+    } as never,
     () => null,
   )
   ctx.provide('locale', new LocaleRuntime(ctx))
@@ -39,7 +48,16 @@ describe('apply', () => {
     await fiber.await()
     expect(ctx.slots.entries('conversation.composer')).toHaveLength(0)
     ctx.slots.register(
-      { name: 'root', children: { 'conversation.composer': { kind: 'chain', scope: 'session' } } } as never,
+      {
+        name: 'root',
+        children: {
+          'conversation.composer': {
+            kind: 'chain',
+            scope: 'session',
+            phases: ['interaction', 'restriction'],
+          },
+        },
+      } as never,
       () => null,
     )
     await Promise.resolve()
@@ -55,6 +73,7 @@ describe('apply', () => {
     // copy rides the standard locale seat.
     expect(entry.inject).toBeUndefined()
     expect(entry.locale).toBe('question')
+    expect(entry.options.phase).toBe('interaction')
     // The selector narrows the chain currency: question wait in → that wait; none → null.
     const select = entry.select as (owner: { interactions: readonly { kind: string }[] }) => unknown
     const question = { kind: 'question' }

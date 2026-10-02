@@ -10,6 +10,7 @@ import * as deepseekPlugin from '@maple/web-search-deepseek'
 import { WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE } from '@maple/web-search-deepseek'
 
 /** The smallest real provider: one in-memory document, always writable. */
+const aliveSignal = new AbortController().signal
 class MemorySettings extends SettingsProvider {
   doc: Record<string, unknown> = {}
 
@@ -70,7 +71,7 @@ async function searchOnce(ctx: Context): Promise<string> {
   const fetchSpy = vi.spyOn(globalThis, 'fetch')
     .mockImplementation(() => Promise.resolve(jsonResponse(ONE_RESULT)))
   fetchSpy.mockClear()
-  await ctx.web.search({ query: 'anything' })
+  await ctx.web.search({ query: 'anything' }, aliveSignal)
   return String((fetchSpy.mock.calls.at(-1)?.[0] as URL | string | undefined) ?? '')
 }
 

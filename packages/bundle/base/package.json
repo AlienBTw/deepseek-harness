@@ -68,6 +68,8 @@
     "@maple/plan-mode": "workspace:^",
     "@maple/pwsh-sandbox": "workspace:^",
     "@maple/repeat-tool-reminder": "workspace:^",
+    "@maple/run-budget": "workspace:^",
+    "@maple/sidechat": "workspace:^",
     "@maple/sandbox-local": "workspace:^",
     "@maple/sandbox-policy": "workspace:^",
     "@maple/session": "workspace:^",

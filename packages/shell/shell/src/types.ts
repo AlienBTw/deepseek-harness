@@ -48,8 +48,14 @@ export interface ShellExecRequest {
    * tool does not expose it as a parameter.
    */
   stdoutMaxBytes?: number | undefined
-  /** Abort signal — implementations kill the command when it fires. */
-  signal?: AbortSignal | undefined
+  /**
+   * Caller-owned abort signal. Required on every tool-reachable shell call:
+   * implementations kill the command when it fires. Direct callers supply the
+   * signal they own or forward from their own required operation context;
+   * after an explicit detached-ownership handoff (for example `ctx.jobs`), the
+   * new owner supplies its own controller.
+   */
+  signal: AbortSignal
   /**
    * Bytes to write to the command's stdin, then close it. Absent leaves stdin
    * closed/empty (the default for model-driven tool calls). Set by in-process
@@ -92,8 +98,11 @@ export interface ShellExecSpec {
    * stdout; background jobs and stderr keep the executor's own output cap.
    */
   stdoutMaxBytes: number
-  /** Abort signal — implementations kill the command when it fires. */
-  signal?: AbortSignal | undefined
+  /**
+   * Resolved caller-owned abort signal from {@link ShellExecRequest.signal}.
+   * Implementations kill the command when it fires.
+   */
+  signal: AbortSignal
   /** Bytes to write to stdin before closing it; absent means no stdin. */
   stdin?: string | undefined
   /**

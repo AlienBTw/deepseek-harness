@@ -29,7 +29,7 @@
 - id: sandbox-policy
   name: '@maple/sandbox-policy'
   config:
-    mode: !!js "process.env.DSH_PERMISSION_MODE ?? (process.env.DSH_SNAPSHOT === undefined ? 'workspace-write' : 'danger-full-access')"
+    mode: !!js "process.env.DSH_PERMISSION_MODE ?? ((process.env.MAPLE_SNAPSHOT ?? process.env.DSH_SNAPSHOT) === undefined ? 'workspace-write' : 'danger-full-access')"
     workspaceRoot: !!js process.cwd()
 
 # Managed child-process groups for the bash executor (spawn/kill/output plumbing).
@@ -44,10 +44,10 @@
 - id: approval
   name: '@maple/user-approval'
   config:
-    policy: !!js "(process.env.DSH_PERMISSION_MODE ?? (process.env.DSH_SNAPSHOT === undefined ? 'workspace-write' : 'danger-full-access')) === 'danger-full-access' ? 'never' : 'ask'"
+    policy: !!js "(process.env.DSH_PERMISSION_MODE ?? ((process.env.MAPLE_SNAPSHOT ?? process.env.DSH_SNAPSHOT) === undefined ? 'workspace-write' : 'danger-full-access')) === 'danger-full-access' ? 'never' : 'ask'"
 
 # The ACP automation app: agent spine + JSONL persistence + protocol bridge.
-# Persistence root: $DSH_SNAPSHOT_SESSIONS_ROOT when the snapshot harness sets it
+# Persistence root: $MAPLE_SNAPSHOT_SESSIONS_ROOT / $DSH_SNAPSHOT_SESSIONS_ROOT when the snapshot harness sets it
 # (so it can harvest / isolate the log), else ./.sessions for the demo.
 # Snapshot modes use raw JSONL fixtures; ordinary runs keep the compressed default.
 - id: acp-agent
@@ -55,8 +55,8 @@
   config:
     provider: deepseek-official
     model: deepseek-v4-pro
-    persistenceRoot: !!js process.env.DSH_SNAPSHOT_SESSIONS_ROOT ?? './.sessions'
-    persistenceCompression: !!js "process.env.DSH_SNAPSHOT === undefined ? 'zstd' : 'none'"
+    persistenceRoot: !!js process.env.MAPLE_SNAPSHOT_SESSIONS_ROOT ?? process.env.DSH_SNAPSHOT_SESSIONS_ROOT ?? './.sessions'
+    persistenceCompression: !!js "(process.env.MAPLE_SNAPSHOT ?? process.env.DSH_SNAPSHOT) === undefined ? 'zstd' : 'none'"
     workspaceContext:
       maxBytes: 65536
     # Keep the persona to identity and behavior; tool plugins own tool guidance.

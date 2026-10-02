@@ -13,6 +13,8 @@ import { canonicalizeWorkspace, readHostSource } from '@maple/lsp-stdio'
 
 const execFileAsync = promisify(execFile)
 
+const LIVE = new AbortController().signal
+
 let root: string
 let ws: string
 let ctx: Context
@@ -34,12 +36,12 @@ afterEach(async () => {
 
 const BIG = 1_000_000
 
-async function workspace() {
-  return await canonicalizeWorkspace(fs, ws)
+async function workspace(signal: AbortSignal = LIVE) {
+  return await canonicalizeWorkspace(fs, ws, signal)
 }
 
-async function readSource(filePath: string, maxBytes = BIG, signal?: AbortSignal) {
-  return await readHostSource(fs, filePath, await workspace(), maxBytes, signal)
+async function readSource(filePath: string, maxBytes = BIG, signal: AbortSignal = LIVE) {
+  return await readHostSource(fs, filePath, await workspace(signal), maxBytes, signal)
 }
 
 describe('canonicalizeWorkspace', () => {
@@ -50,29 +52,29 @@ describe('canonicalizeWorkspace', () => {
   it('resolves a symlinked workspace to its target so aliases share identity', async () => {
     const link = join(root, 'ws-link')
     await symlink(ws, link)
-    expect((await canonicalizeWorkspace(fs, link)).canonicalPath).toBe(ws)
+    expect((await canonicalizeWorkspace(fs, link, LIVE)).canonicalPath).toBe(ws)
   })
 
   it('rejects a missing workspace', async () => {
-    await expect(canonicalizeWorkspace(fs, join(root, 'nope'))).rejects.toThrow(/not a directory/)
+    await expect(canonicalizeWorkspace(fs, join(root, 'nope'), LIVE)).rejects.toThrow(/not a directory/)
   })
 
   it('wraps a provider failure while resolving the workspace', async () => {
     fs.resolve = async () => { throw 'raw workspace resolve failure' }
-    await expect(canonicalizeWorkspace(fs, ws))
+    await expect(canonicalizeWorkspace(fs, ws, LIVE))
       .rejects.toThrow(`workspace root "${ws}" cannot be resolved: raw workspace resolve failure`)
   })
 
   it('rejects a non-directory workspace', async () => {
     const file = join(root, 'file.txt')
     await writeFile(file, 'x')
-    await expect(canonicalizeWorkspace(fs, file)).rejects.toThrow(/not a directory/)
+    await expect(canonicalizeWorkspace(fs, file, LIVE)).rejects.toThrow(/not a directory/)
   })
 
   it('normalizes workspace metadata cancellation and preserves other provider failures', async () => {
     const providerFailure = new Error('workspace metadata failed')
     fs.stat = async () => { throw providerFailure }
-    await expect(canonicalizeWorkspace(fs, ws)).rejects.toBe(providerFailure)
+    await expect(canonicalizeWorkspace(fs, ws, LIVE)).rejects.toBe(providerFailure)
 
     const controller = new AbortController()
     fs.stat = async () => {
@@ -127,7 +129,7 @@ describe('readHostSource', () => {
   it('wraps a provider failure while resolving the source', async () => {
     const canonical = await workspace()
     fs.resolve = async () => { throw 'raw resolve failure' }
-    await expect(readHostSource(fs, 'broken.ts', canonical, BIG))
+    await expect(readHostSource(fs, 'broken.ts', canonical, BIG, LIVE))
       .rejects.toThrow('source "broken.ts" cannot be resolved: raw resolve failure')
   })
 

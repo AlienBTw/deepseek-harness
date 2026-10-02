@@ -1,0 +1,55 @@
+{
+  "name": "@maple/sidechat",
+  "description": "Interactive side-session advisors: completed-turn fork, read-only deny gate, and capped merge-back",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlienBTw/maple-harness.git",
+    "directory": "packages/session/sidechat"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@maple/schemastery": "workspace:^"
+  },
+  "peerDependencies": {
+    "@maple/agent": "workspace:^",
+    "@maple/cordis": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/tools": "workspace:^"
+  },
+  "devDependencies": {
+    "@maple/agent": "workspace:^",
+    "@maple/agent-loop": "workspace:^",
+    "@maple/agent-loop-testkit": "workspace:^",
+    "@maple/cordis": "workspace:^",
+    "@maple/invariants": "workspace:^",
+    "@maple/llm": "workspace:^",
+    "@maple/session": "workspace:^",
+    "@maple/tools": "workspace:^"
+  }
+}

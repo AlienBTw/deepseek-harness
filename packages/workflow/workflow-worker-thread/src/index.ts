@@ -17,17 +17,6 @@ import { WorkerRun } from './host.ts'
 import { validateMeta } from './meta.ts'
 import type { WorkerInit, WorkerLimits } from './types.ts'
 
-export { validateMeta } from './meta.ts'
-export { materializeFromRealm, MaterializeError } from './realm.ts'
-export type {
-  ChildHandle,
-  ChildPort,
-  ChildResult,
-  ChildStartRequest,
-  WorkerInit,
-  WorkerLimits,
-} from './types.ts'
-
 /** Plugin config (all optional — `static Config` supplies the defaults). */
 export interface Config {
   /** The `ctx.subagents` provider children run on (default `spawn`). */

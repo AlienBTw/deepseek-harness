@@ -5,6 +5,7 @@ import { ExaSearchProvider, EXA_DEFAULT_BASE_URL, EXA_DEFAULT_HIGHLIGHTS_PER_RES
  * Real-API smoke for the Exa search provider. Self-skips without `$EXA_API_KEY`
  * (CI has no secrets), per the with-key e2e policy in docs/testing.md.
  */
+const aliveSignal = new AbortController().signal
 const apiKey = process.env.EXA_API_KEY
 const maybe = apiKey !== undefined && apiKey.length > 0 ? describe : describe.skip
 
@@ -16,7 +17,7 @@ maybe('ExaSearchProvider real API', () => {
       searchType: EXA_DEFAULT_SEARCH_TYPE,
       highlightsPerResult: EXA_DEFAULT_HIGHLIGHTS_PER_RESULT,
     })
-    const result = await provider.search({ query: 'Maple Harness', maxResults: 5 })
+    const result = await provider.search({ query: 'Maple Harness', maxResults: 5 }, aliveSignal)
     expect(result.sources.length).toBeGreaterThan(0)
     for (const source of result.sources) expect(source.url).toMatch(/^https?:\/\//)
   }, 30_000)

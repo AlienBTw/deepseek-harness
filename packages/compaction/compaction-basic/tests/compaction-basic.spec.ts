@@ -1677,10 +1677,6 @@ describe('automatic listener and loader composition', () => {
     const session = conversation(2)
     const fakeResult: CompactionResult = {
       compactionId: CompactionId('fake-compaction'),
-      startSeq: 1,
-      summarySeq: 2,
-      endSeq: 3,
-      summary: [{ type: 'text', text: 'fake' }],
       shadowedRange: { start: 1, end: 2 },
       shadowedSeqs: [1, 2],
       shadowedTokenCount: 10,

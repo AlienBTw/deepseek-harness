@@ -199,7 +199,11 @@ export function apply(ctx: Context): void {
     children: {
       'conversation.session': { kind: 'single', scope: 'session' },
       'conversation.session.header': { kind: 'single', scope: 'session' },
-      'conversation.composer': { kind: 'chain', scope: 'session' },
+      'conversation.composer': {
+        kind: 'chain',
+        scope: 'session',
+        phases: ['interaction', 'restriction'],
+      },
       'conversation.composer.bar': { kind: 'single', scope: 'session-maybe' },
       'conversation.input.overlay': { kind: 'list', scope: 'session' },
       'conversation.input.dock': { kind: 'list', scope: 'session' },
@@ -368,11 +372,18 @@ export function apply(ctx: Context): void {
   // just declared (the ui-user-questions registration pattern; the entry lives here
   // because approval answering is core conversation UX, not an optional tool).
   // Zero business face — data and verbs both ride the matched carrier.
-  // priority 1: question takeovers (default 0) win when both kinds are
-  // pending — a question is a conversation the model is waiting on, while an
-  // approval only blocks one tool call; answering the question first cannot
-  // strand the approval (it re-elects the moment the question resolves).
-  slots.register({ name: 'conversation.composer', select: selectApproval, priority: 1, locale: NS }, ApprovalPanel)
+  // `interaction` phase: resolve a live Host wait before any restriction.
+  // Within-phase priority 1: question takeovers (default 0) win when both
+  // kinds are pending — a question is a conversation the model is waiting on,
+  // while an approval only blocks one tool call; answering the question first
+  // cannot strand the approval (it re-elects the moment the question resolves).
+  slots.register({
+    name: 'conversation.composer',
+    select: selectApproval,
+    phase: 'interaction',
+    priority: 1,
+    locale: NS,
+  }, ApprovalPanel)
 
   // The chat view: first entry of the ring this package just declared.
   // ChatView owns only the stable ordered Node list. Business renderers are

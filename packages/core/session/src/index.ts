@@ -123,8 +123,8 @@ function validateSessionHeader(id: SessionId, input: unknown): SessionHeader {
     && (typeof record.seedLength !== 'number' || !Number.isSafeInteger(record.seedLength) || record.seedLength < 0)) {
     throw new Error('session header seedLength must be a non-negative safe integer')
   }
-  if (record.origin !== undefined && record.origin !== 'subagent') {
-    throw new Error('session header origin must be "subagent"')
+  if (record.origin !== undefined && record.origin !== 'subagent' && record.origin !== 'sidechat') {
+    throw new Error('session header origin must be "subagent" or "sidechat"')
   }
   if (record.delegationDepth !== undefined
     && (typeof record.delegationDepth !== 'number' || !Number.isSafeInteger(record.delegationDepth) || record.delegationDepth < 0)) {
@@ -132,6 +132,12 @@ function validateSessionHeader(id: SessionId, input: unknown): SessionHeader {
   }
   if (record.agentPreset !== undefined && typeof record.agentPreset !== 'string') {
     throw new Error('session header agentPreset must be a string')
+  }
+  if (record.lastPromptAt !== undefined
+    && (typeof record.lastPromptAt !== 'number'
+      || !Number.isSafeInteger(record.lastPromptAt)
+      || record.lastPromptAt < 0)) {
+    throw new Error('session header lastPromptAt must be a non-negative safe integer')
   }
   return deepFreeze(record as unknown as SessionHeader)
 }
@@ -1030,7 +1036,6 @@ export class SessionStore extends Service {
       } catch (error: unknown) {
         // Preserve the listener's exact rejection value; flush is a caller-owned
         // failure boundary, and Cordis listeners may throw arbitrary values.
-        // oxlint-disable-next-line typescript/prefer-promise-reject-errors
         return Promise.reject(error)
       }
     }))

@@ -16,7 +16,7 @@ Status: rejected — 计划增加更多压缩后端，因此 Service Definition 
 
 保留 `summarize()` 作为受保护的自定义钩子。部署专用的摘要器可以通过继承或拦截现有 LLM（大语言模型）调用完成定制，无需第二个能力包。只有在第二个完整后端与独立消费方确实需要替换实现时，才重新引入独立的 Service Definition 包。
 
-如果本提案获准，应同步修订已实现的压缩决策与[可回忆压缩提案](../../proposed/feature/2026-07-06-recallable-compaction.zh.md)，使包所有权只有一处持久说明。
+如果本提案获准，应同步修订已实现的压缩决策与[可回忆压缩决策](../../implemented/feature/2026-07-06-recallable-compaction.zh.md)，使包所有权只有一处持久说明。
 
 ## 备选方案
 

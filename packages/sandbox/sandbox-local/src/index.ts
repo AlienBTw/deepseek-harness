@@ -62,6 +62,14 @@ export interface Config {
   runnerFailureSignatures?: string[]
   /** Positive timeout for each functional probe; zero would mean unbounded to Node. */
   probeTimeoutMs?: number
+  /**
+   * When true, `confine()` rejects backends that report `enforcement: 'partial'`
+   * with {@link SandboxUnavailableError} instead of returning a wrap. Default
+   * desktop and web compositions leave this false (soft: partial enforcement is
+   * reported on the result and may be warned); high-trust profiles set it true.
+   * Windows ACL always reports partial (Everyone / hard-link / FAT gaps).
+   */
+  requireFullSandboxEnforcement?: boolean
 }
 
 /** Probe whether `bwrap` can create the profile; the provider caches the bounded result. */
@@ -253,6 +261,7 @@ export class LocalSandboxProvider extends SandboxProvider {
     runnerCommand: z.array(z.string()).default([]),
     runnerFailureSignatures: z.array(z.string()).default([]),
     probeTimeoutMs: z.natural().default(5_000),
+    requireFullSandboxEnforcement: z.boolean().default(false),
   })
 
   /** Test hook (mirrors the bash executors' `internals`). */
@@ -261,6 +270,7 @@ export class LocalSandboxProvider extends SandboxProvider {
   private readonly runnerCommand: string[] | undefined
   private readonly configuredRunnerFailureSignatures: string[]
   private readonly probeTimeoutMs: number
+  private readonly requireFullSandboxEnforcement: boolean
   /** Cached chain verdict; undefined until the first confined wrap needs it. */
   private selectedRunner: SelectedRunner | 'unavailable' | undefined
   /**
@@ -292,6 +302,7 @@ export class LocalSandboxProvider extends SandboxProvider {
     this.runnerCommand = runner.length > 0 ? runner : undefined
     this.configuredRunnerFailureSignatures = runnerFailureSignatures
     this.probeTimeoutMs = config.probeTimeoutMs as number
+    this.requireFullSandboxEnforcement = config.requireFullSandboxEnforcement as boolean
     assertPositiveFinite('probeTimeoutMs', this.probeTimeoutMs)
     // The temp grants are revoked with the provider: a clean server
     // shutdown leaves no temp ACEs behind (workspace ACEs stand by design —
@@ -323,6 +334,12 @@ export class LocalSandboxProvider extends SandboxProvider {
       }
     }
     const selected = this.selectRunner(policy.mode)
+    if (this.requireFullSandboxEnforcement && selected.enforcement === 'partial') {
+      throw new SandboxUnavailableError(
+        policy.mode,
+        `requireFullSandboxEnforcement rejects partial backend "${selected.runner}"`,
+      )
+    }
     const runnerArgv = this.runnerArgv(selected.runner, policy)
     return {
       argv: [...runnerArgv, '--', ...argv],

@@ -41,6 +41,8 @@
       "@maple/invariants": ["./packages/runtime-diagnostics/invariants/src/index.ts"],
       "@maple/tool-call-timeout-policy": ["./packages/guard/timeout-policy/src"],
       "@maple/tool-call-timeout-policy/invariant": ["./packages/guard/timeout-policy/src/invariant.ts"],
+      "@maple/run-budget": ["./packages/guard/run-budget/src"],
+      "@maple/run-budget/invariant": ["./packages/guard/run-budget/src/invariant.ts"],
       "@maple/typert-registry": ["./packages/typert/registry/src/index.ts"],
       "@maple/typert-registry/client": ["./packages/typert/registry/src/client/index.ts"],
       "@maple/api-gateway": ["./packages/api/gateway/src/index.ts"],

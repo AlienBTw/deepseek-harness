@@ -45,8 +45,9 @@
   "dependencies": {
     "@maple/schemastery": "workspace:^"
   },
-  "devDependencies": {
+    "devDependencies": {
     "@maple/agent": "workspace:^",
+    "@maple/agent-loop-testkit": "workspace:^",
     "@maple/invariants": "workspace:^",
     "@maple/llm": "workspace:^",
     "@maple/scope": "workspace:^",

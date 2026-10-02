@@ -1,21 +1,66 @@
 /**
- * URL validation and content-type classification for the local HTTP(S) fetch
- * provider — the pure, network-free half. The provider's `fetch()` composes
- * these with transport (redirect following, byte caps, decoding).
+ * URL validation, destination IP policy, and content-type classification for
+ * the local HTTP(S) fetch provider. Destination checks resolve DNS then classify
+ * addresses; the provider's `fetch()` composes these with transport (redirect
+ * following, byte caps, decoding).
  *
  * @module @maple/web-fetch-http/policy
  */
 
+import { lookup as defaultDnsLookup } from 'node:dns/promises'
+import { BlockList, isIP } from 'node:net'
 import { WebError } from '@maple/web'
+
+/** DNS lookup compatible with `dns.promises.lookup(..., { all: true })`. */
+export type DnsLookupAll = (
+  hostname: string,
+  options: { all: true; verbatim: true },
+) => Promise<Array<{ address: string; family: number }>>
+
+/** Test / process override for hostname resolution. Defaults to `dns.promises.lookup`. */
+let dnsLookupAll: DnsLookupAll = defaultDnsLookup
+
+/**
+ * Replace the DNS lookup used by {@link assertPublicFetchDestination}.
+ * Production code never calls this; tests inject a stub because ESM cannot
+ * spy on `node:dns/promises` exports.
+ *
+ * @param lookup - resolver to use, or `undefined` to restore the Node default.
+ */
+export function setDnsLookupForTests(lookup: DnsLookupAll | undefined): void {
+  dnsLookupAll = lookup ?? defaultDnsLookup
+}
 
 /** The body kinds this provider decodes. */
 export type FetchableKind = 'html' | 'text'
 
 /**
+ * Addresses refused when `allowPrivateNetwork` is false: RFC1918 private,
+ * loopback, link-local (including cloud metadata `169.254.169.254`), CGNAT,
+ * multicast, IPv6 ULA/link-local/multicast/loopback/unspecified, and
+ * IPv4-mapped forms of the IPv4 ranges above.
+ */
+const BLOCKED_DESTINATIONS = new BlockList()
+BLOCKED_DESTINATIONS.addSubnet('0.0.0.0', 8, 'ipv4')
+BLOCKED_DESTINATIONS.addSubnet('10.0.0.0', 8, 'ipv4')
+BLOCKED_DESTINATIONS.addSubnet('100.64.0.0', 10, 'ipv4')
+BLOCKED_DESTINATIONS.addSubnet('127.0.0.0', 8, 'ipv4')
+BLOCKED_DESTINATIONS.addSubnet('169.254.0.0', 16, 'ipv4')
+BLOCKED_DESTINATIONS.addSubnet('172.16.0.0', 12, 'ipv4')
+BLOCKED_DESTINATIONS.addSubnet('192.168.0.0', 16, 'ipv4')
+BLOCKED_DESTINATIONS.addSubnet('224.0.0.0', 4, 'ipv4')
+BLOCKED_DESTINATIONS.addAddress('::', 'ipv6')
+BLOCKED_DESTINATIONS.addAddress('::1', 'ipv6')
+BLOCKED_DESTINATIONS.addSubnet('fc00::', 7, 'ipv6')
+BLOCKED_DESTINATIONS.addSubnet('fe80::', 10, 'ipv6')
+BLOCKED_DESTINATIONS.addSubnet('ff00::', 8, 'ipv6')
+
+/**
  * Validate a request URL against the basic transport hygiene the provider
  * enforces before any network access: http(s) only, no embedded credentials,
  * bounded length. Returns the parsed `URL`. Throws {@link WebError} otherwise.
- * (SSRF / private-network blocking is deferred — see the package Agent Note.)
+ * Destination IP policy is {@link assertPublicFetchDestination}, applied after
+ * this check on every hop.
  *
  * @param input - the raw URL string from the fetch request.
  * @param maxUrlLength - inclusive upper bound on `input`'s length.
@@ -38,6 +83,55 @@ export function validateFetchUrl(input: string, maxUrlLength: number): URL {
     throw new WebError('credentials in URLs are not allowed', 'WEB_BLOCKED_URL')
   }
   return url
+}
+
+/**
+ * Whether a literal IP address is a disallowed fetch destination under the
+ * default SSRF policy (private, loopback, link-local, multicast, metadata).
+ * IPv4-mapped IPv6 addresses are classified by their embedded IPv4 address.
+ *
+ * @param address - a dotted IPv4 or IPv6 address string (no brackets).
+ * @returns true when the address must not be fetched unless `allowPrivateNetwork` is set.
+ */
+export function isBlockedIpAddress(address: string): boolean {
+  const normalized = unwrapIpv4Mapped(address)
+  const version = isIP(normalized)
+  if (version === 4) return BLOCKED_DESTINATIONS.check(normalized, 'ipv4')
+  if (version === 6) return BLOCKED_DESTINATIONS.check(normalized, 'ipv6')
+  return true
+}
+
+/**
+ * Resolve `url.hostname` (or use a literal IP) and refuse any address that
+ * {@link isBlockedIpAddress} rejects, unless `allowPrivateNetwork` is true.
+ * Call on the initial URL and again on every redirect hop.
+ *
+ * @param url - validated http(s) URL for this hop.
+ * @param allowPrivateNetwork - explicit escape hatch; when true, skip IP checks.
+ * @returns resolves when the destination is allowed.
+ */
+export async function assertPublicFetchDestination(url: URL, allowPrivateNetwork: boolean): Promise<void> {
+  if (allowPrivateNetwork) return
+
+  const host = url.hostname
+  if (isIP(host) !== 0) {
+    if (isBlockedIpAddress(host)) {
+      throw new WebError(`destination address ${host} is not allowed`, 'WEB_BLOCKED_URL')
+    }
+    return
+  }
+
+  let addresses: Array<{ address: string }>
+  try {
+    addresses = await dnsLookupAll(host, { all: true, verbatim: true })
+  } catch (error: unknown) {
+    throw new WebError(`web fetch failed: ${String(error)}`, 'WEB_PROVIDER_ERROR', { cause: error })
+  }
+  for (const { address } of addresses) {
+    if (isBlockedIpAddress(address)) {
+      throw new WebError(`destination resolves to disallowed address ${address}`, 'WEB_BLOCKED_URL')
+    }
+  }
 }
 
 /**
@@ -102,4 +196,15 @@ export function decoderForCharset(charset: string | undefined): TextDecoder {
   } catch (error: unknown) {
     throw new WebError(`unsupported charset "${charset}"`, 'WEB_UNSUPPORTED_CONTENT_TYPE', { cause: error })
   }
+}
+
+/** Map `::ffff:a.b.c.d` / `::ffff:HHHH:LLLL` to dotted IPv4 for BlockList checks. */
+function unwrapIpv4Mapped(address: string): string {
+  const dotted = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(address)
+  if (dotted?.[1] !== undefined) return dotted[1]
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(address)
+  if (hex?.[1] === undefined || hex[2] === undefined) return address
+  const hi = Number.parseInt(hex[1], 16)
+  const lo = Number.parseInt(hex[2], 16)
+  return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`
 }

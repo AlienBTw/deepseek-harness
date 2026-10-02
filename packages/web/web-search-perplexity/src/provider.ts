@@ -98,7 +98,7 @@ export class PerplexitySearchProvider implements WebSearchProvider {
   }
   /* jscpd:ignore-end */
 
-  async search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult> {
+  async search(request: WebSearchRequest, signal: AbortSignal): Promise<WebSearchResult> {
     let response: Response
     try {
       response = await fetch(`${this.options.baseURL}/chat/completions`, {
@@ -116,7 +116,7 @@ export class PerplexitySearchProvider implements WebSearchProvider {
           messages: [{ role: 'user', content: request.query }],
           ...this.options.searchRecency !== undefined ? { search_recency_filter: this.options.searchRecency } : {},
         }),
-        ...signal !== undefined ? { signal } : {},
+        signal,
       })
     } catch (error: unknown) {
       if (isAbortError(error)) throw new WebError('Perplexity search aborted', 'WEB_ABORTED', { cause: error })

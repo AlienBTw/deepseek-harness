@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-19-required-cancellation-through-tool-capability-seams.md
+2026-07-19-required-cancellation-through-tool-capability-seams.md: 2220355d587383d72a6ebc75dc69ba32f64c4c27
+2026-07-19-required-cancellation-through-tool-capability-seams.zh.md: 94b1cad0361ae8c493d989b1f20aeceb7352df17

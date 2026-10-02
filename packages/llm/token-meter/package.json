@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "@maple/schemastery": "workspace:^",
+    "@maple/token-count": "workspace:^",
     "zod": "^4.4.3"
   },
   "devDependencies": {

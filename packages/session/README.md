@@ -40,6 +40,14 @@ Derives durable session titles from the session log, with an optional model-back
 
 Deployments may register one model-backed provider; the service retains a deterministic fallback when none is present.
 
+## Side sessions
+
+Interactive advisor children forked from a live parent without changing its main context.
+
+| Package | Role | ctx key |
+|---|---|---|
+| [`sidechat/`](sidechat/README.md) | Completed-turn advisor fork, hard read-only deny gate, capped merge-back | `ctx.sidechat` |
+
 ## SessionTelemetryBackend
 
 Projects session activity into outbound telemetry and delegates delivery to a configured reporting backend. The [telemetry decision](../../.agents/notes/implemented/feature/2026-07-23-session-telemetry-otel-revival.md) records the reporting boundary; the [mode decision](../../.agents/notes/implemented/feature/2026-08-05-feedback-gated-session-telemetry.md) records immediate, feedback-gated, and disabled delivery.

@@ -42,7 +42,7 @@ Status: implemented
 
 工具主体一旦启动，注册表就会等待它完成。取消通过融合信号到达工具主体，但注册表不会与其 promise 竞速或丢弃该 promise。协作式实现会停止自身工作或继续转发取消，并在所持有的工作完全停稳后完成；不协作的同进程实现可能让注册表无限期保持等待。进程、worker、网络和提供方层仍负责各自的终止机制。
 
-这项决策只要求工具调用边界携带取消信号。让工具主体可达的异步能力也必须接收信号，属于另一项迁移，见提议中的[工具可达能力 seam 中的必填取消](../../proposed/architecture/2026-07-19-required-cancellation-through-tool-capability-seams.zh.md)。
+这项决策只要求工具调用边界携带取消信号。让工具主体可达的异步能力也必须接收信号，属于另一项迁移，见[工具可达能力 seam 中的必填取消](./2026-07-19-required-cancellation-through-tool-capability-seams.zh.md)。
 
 ## 验证
 

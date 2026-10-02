@@ -182,8 +182,10 @@ export interface SessionSummary {
   sessionId: SessionId
   /**
    * The later of creation and the latest human-authored prompt. Attached
-   * Sessions fold their live log; cold Sessions use a projection-cache hint or
-   * an exact small-artifact read, falling back to creation time.
+   * Sessions fold their live log; cold Sessions read the durable persistence
+   * index (`SessionHeader.lastPromptAt`), falling back to an exact
+   * small-artifact probe fold, then to creation time. Projection-cache
+   * recency hints are not used for cold `updatedAt`.
    */
   updatedAt: number
   /** Status of the attached agent; always false for cold (unattached) sessions. */
@@ -201,7 +203,7 @@ export interface SessionSummary {
   /** fork/spawn lineage (session.header.parentSession passthrough); absent for root sessions. */
   parentSessionId?: SessionId
   /** Coarse durable origin used by navigation surfaces; never proves resumability. */
-  origin?: 'subagent'
+  origin?: 'subagent' | 'sidechat'
   /** Session working directory (header.cwd passthrough); absent when unrecorded. */
   cwd?: string
   /**
@@ -234,8 +236,12 @@ export interface SessionSearchItem {
 
 /** Session-domain unary methods (the map keys session.* of RpcMethodMap). */
 export interface SessionsApi {
-  /** Lists persisted sessions (updatedAt descending). v1 returns everything; cursor is a reserved seat, unimplemented. */
-  list(request: RpcRequest<{ cursor?: string }>): Promise<RpcResponse<{ items: SessionSummary[] }>>
+  /**
+   * Lists persisted sessions newest-first. `limit` defaults to 50 and is capped
+   * at 200; `cursor` continues from a previous page's `nextCursor`.
+   */
+  list(request: RpcRequest<{ cursor?: string; limit?: number }>):
+  Promise<RpcResponse<{ items: SessionSummary[]; nextCursor?: string }>>
 
   /**
    * Searches the current user/assistant/steering message surface across

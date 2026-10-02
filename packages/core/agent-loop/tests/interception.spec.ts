@@ -812,3 +812,89 @@ describe('worked example: a native hook plugin is just a cordis plugin on the se
     expect(events(agent).some(e => e.type === 'user/message')).toBe(true)
   })
 })
+
+describe('tools/pre-rewrite', () => {
+  it('rewrites before tool/call, aligns audit, derived history, presentation args, and execution', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('c1', 'echo', { text: 'original' }),
+      textResponse('done'),
+    ])
+    const ctx = await harness(adapter)
+    let sawArgs: unknown
+    let sawFrozen: boolean | undefined
+    ctx.tools.register(defineContentToolFixture({
+      name: 'echo',
+      description: 'echo',
+      parameters: { text: { type: 'string', required: true } },
+      async execute(args, exec) {
+        sawArgs = args
+        sawFrozen = Object.isFrozen(exec.arguments)
+        return [{ type: 'text', text: String(args.text) }]
+      },
+    }))
+    const agent = ctx.agentLoop.create(SessionId('rewrite-native'), { provider: 'mock', model: 'mock' })
+    const rewriteOrder: string[] = []
+    ctx.on('tools/pre-rewrite', async (pending, next) => {
+      rewriteOrder.push(`rewrite:${String(pending.arguments && typeof pending.arguments === 'object' && 'text' in pending.arguments ? pending.arguments.text : '')}`)
+      const downstream = await next()
+      if (downstream.kind === 'rewrite') return downstream
+      return { kind: 'rewrite', arguments: { text: 'rewritten' } }
+    })
+    ctx.on('tools/pre-execute', async (exec, next) => {
+      rewriteOrder.push(`pre:${String(exec.arguments && typeof exec.arguments === 'object' && 'text' in exec.arguments ? exec.arguments.text : '')}`)
+      return next()
+    })
+
+    send(agent, 'go')
+    await waitForIdle(ctx, agent)
+
+    expect(rewriteOrder).toEqual(['rewrite:original', 'pre:rewritten'])
+    expect(sawArgs).toEqual({ text: 'rewritten' })
+    expect(sawFrozen).toBe(true)
+
+    const call = events(agent).find(e => e.type === 'tool/call')
+    expect(call?.type === 'tool/call' && call.data.arguments).toBe(JSON.stringify({ text: 'rewritten' }))
+    expect(call?.type === 'tool/call' && call.data.originalArguments).toBe(JSON.stringify({ text: 'original' }))
+
+    const derived = agent.session.deriveMessages()
+    const assistant = derived.find(m => m.role === 'assistant')
+    const toolCall = assistant?.content.find(b => b.type === 'tool-call')
+    expect(toolCall?.type === 'tool-call' && toolCall.arguments).toBe(JSON.stringify({ text: 'rewritten' }))
+
+    // Second model request must carry the rewritten tool-call arguments.
+    const second = adapter.requests[1]?.messages.find(m => m.role === 'assistant')
+    const secondCall = second?.content.find(b => b.type === 'tool-call')
+    expect(secondCall?.type === 'tool-call' && secondCall.arguments).toBe(JSON.stringify({ text: 'rewritten' }))
+  })
+
+  it('ask observes the rewritten ToolExecution arguments', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('c1', 'echo', { text: 'original' }),
+      textResponse('done'),
+    ])
+    const ctx = await harness(adapter)
+    let askedArgs: unknown
+    ctx.tools.register(defineContentToolFixture({
+      name: 'echo',
+      description: 'echo',
+      parameters: { text: { type: 'string', required: true } },
+      async execute() { return [{ type: 'text', text: 'ran' }] },
+    }))
+    const agent = ctx.agentLoop.create(SessionId('rewrite-ask'), { provider: 'mock', model: 'mock' })
+    ctx.on('tools/pre-rewrite', async (_pending, next) => {
+      await next()
+      return { kind: 'rewrite', arguments: { text: 'rewritten' } }
+    })
+    ctx.on('tools/pre-execute', async (exec) => {
+      askedArgs = exec.arguments
+      return { kind: 'ask', reason: 'confirm rewritten' }
+    })
+
+    send(agent, 'go')
+    await waitForIdle(ctx, agent)
+
+    expect(askedArgs).toEqual({ text: 'rewritten' })
+    const result = events(agent).find(e => e.type === 'tool/result')
+    expect(result?.type === 'tool/result' && result.data.message.content[0].isError).toBe(true)
+  })
+})

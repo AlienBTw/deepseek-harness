@@ -11,6 +11,7 @@ import { DeepSeekSearchProvider } from '@maple/web-search-deepseek'
 /** Construct the provider over a fixed options value; production passes a live thunk. */
 import type { DeepSeekSearchProviderOptions } from '@maple/web-search-deepseek'
 
+const aliveSignal = new AbortController().signal
 const searchProvider = (options: DeepSeekSearchProviderOptions): DeepSeekSearchProvider =>
   new DeepSeekSearchProvider(() => options)
 
@@ -61,7 +62,7 @@ describe('DeepSeekSearchProvider redirect policy', () => {
       maxUses: 1,
     })
 
-    await expect(provider.search({ query: TEST_QUERY }))
+    await expect(provider.search({ query: TEST_QUERY }, aliveSignal))
       .rejects.toMatchObject({ code: 'WEB_PROVIDER_ERROR' })
     expect(targetRequests).toHaveLength(0)
   })

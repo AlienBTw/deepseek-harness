@@ -20,6 +20,7 @@ import { SandboxPolicyService } from '@maple/sandbox-policy'
 import LocalSubprocessRuntime from '@maple/subprocess-local'
 import { SandboxPwshExecutor } from '../src/index.ts'
 
+const LIVE = new AbortController().signal
 const isWin32 = process.platform === 'win32'
 
 function pwshAvailable(): boolean {
@@ -68,7 +69,7 @@ describe.skipIf(!isWin32 || !pwshAvailable())('pwsh-sandbox real ACL confinement
       `try{Set-Content -Path '${escapeFile}' -Value ok -ErrorAction Stop;'ESCAPE-WRITE: OK'}catch{'ESCAPE-WRITE: DENIED'};`,
       `try{Get-Content '${secretFile}' -ErrorAction Stop | Out-Null;'SECRET-READ: OK'}catch{'SECRET-READ: DENIED'}`,
     ].join('')
-    const result = await executor.run(executor.resolve({ command: probe, sandboxPolicy: policy }))
+    const result = await executor.run(executor.resolve({ command: probe, sandboxPolicy: policy, signal: LIVE }))
     expect(result.exitCode, `stderr: ${result.stderr.text}`).toBe(0)
     expect(result.stdout.text).toContain('TARGET-WRITE: DENIED')
     expect(result.stdout.text).toContain('TEMP-WRITE: DENIED')
@@ -81,7 +82,7 @@ describe.skipIf(!isWin32 || !pwshAvailable())('pwsh-sandbox real ACL confinement
     // A raw failing write must classify as a denial of the ACL dialect.
     const denied = await executor.run(executor.resolve({
       command: `Set-Content -Path '${escapeFile}' -Value x`,
-      sandboxPolicy: policy,
+      sandboxPolicy: policy, signal: LIVE,
     }))
     expect(denied.exitCode).not.toBe(0)
     expect(denied.sandbox).toEqual({ mode: 'read-only', denied: true, enforcement: 'partial' })
@@ -98,7 +99,7 @@ describe.skipIf(!isWin32 || !pwshAvailable())('pwsh-sandbox real ACL confinement
       `try{Get-Content '${secretFile}' -ErrorAction Stop | Out-Null;'SECRET-READ: OK'}catch{'SECRET-READ: DENIED'};`,
       "'TEMP-PATH: ' + $env:TEMP",
     ].join('')
-    const result = await executor.run(executor.resolve({ command: probe, sandboxPolicy: policy }))
+    const result = await executor.run(executor.resolve({ command: probe, sandboxPolicy: policy, signal: LIVE }))
     expect(result.exitCode, `stderr: ${result.stderr.text}`).toBe(0)
     expect(result.stdout.text).toContain('TARGET-WRITE: OK')
     expect(result.stdout.text).toContain('TEMP-WRITE: OK')

@@ -55,7 +55,7 @@ function liveAgent(
   id: string,
   turns: number,
   tail: Tail = 'none',
-  lineage: { parentSession?: SessionId; origin?: 'subagent' } = {},
+  lineage: { parentSession?: SessionId; origin?: 'subagent' | 'sidechat' } = {},
 ): Session {
   const session = ctx.sessions.create(sid(id), { meta: { cwd: '/proj', ...lineage } })
   for (let turn = 1; turn <= turns; turn++) {

@@ -1,17 +1,24 @@
 /**
- * Safe HTTP(S) retrieval for `ctx.web`: validates URLs, follows only same-origin redirects,
- * enforces time and size limits, classifies and decodes text, and leaves presentation to
+ * Safe HTTP(S) retrieval for `ctx.web`: validates URLs, resolves DNS then refuses
+ * private/loopback/link-local/multicast destinations (unless `allowPrivateNetwork`),
+ * follows only same-origin redirects with the same checks on every hop, enforces time
+ * and size limits, classifies and decodes text, and leaves presentation to
  * `@maple/tool-web`. Requests carry no browser cookies or ambient credentials.
  *
- * Private-network and SSRF protection is not implemented; do not enable this provider where
- * it can reach sensitive internal targets.
  * @module @maple/web-fetch-http/provider
  */
 
 import { WebError } from '@maple/web'
 import type { WebFetchBody, WebFetchProvider, WebFetchRequest, WebFetchResult } from '@maple/web'
 import { deadline, timeoutOf } from '@maple/timeout'
-import { classifyContentType, decoderForCharset, isSameOrigin, parseCharset, validateFetchUrl } from './policy.ts'
+import {
+  assertPublicFetchDestination,
+  classifyContentType,
+  decoderForCharset,
+  isSameOrigin,
+  parseCharset,
+  validateFetchUrl,
+} from './policy.ts'
 
 /** Resolved provider limits (the plugin's schemastery Config supplies defaults). */
 export interface HttpFetchLimits {
@@ -27,6 +34,12 @@ export interface HttpFetchLimits {
   maxRedirects: number
   /** `User-Agent` header sent on every request. */
   userAgent: string
+  /**
+   * When true, skip post-DNS private/loopback/link-local/multicast destination
+   * checks. Default false; set only for trusted lab profiles that intentionally
+   * fetch loopback or internal targets.
+   */
+  allowPrivateNetwork: boolean
 }
 
 /** Stable id this provider registers under. */
@@ -43,8 +56,8 @@ export class HttpFetchProvider implements WebFetchProvider {
     return true
   }
 
-  async fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult> {
-    if (signal?.aborted) throw new WebError('web fetch aborted', 'WEB_ABORTED')
+  async fetch(request: WebFetchRequest, signal: AbortSignal): Promise<WebFetchResult> {
+    if (signal.aborted) throw new WebError('web fetch aborted', 'WEB_ABORTED')
 
     // One signal stops both the request and body read. The deadline's TimeoutReason later
     // distinguishes this provider's timeout from caller or outer-deadline cancellation.
@@ -55,6 +68,7 @@ export class HttpFetchProvider implements WebFetchProvider {
   /** Follow same-origin redirects up to the hop cap, then read the final response. */
   private async followAndRead(initialUrl: string, signal: AbortSignal): Promise<WebFetchResult> {
     let currentUrl = validateFetchUrl(initialUrl, this.limits.maxUrlLength)
+    await assertPublicFetchDestination(currentUrl, this.limits.allowPrivateNetwork)
     let redirectsFollowed = 0
 
     for (;;) {
@@ -74,12 +88,13 @@ export class HttpFetchProvider implements WebFetchProvider {
           throw new WebError(`redirect response (HTTP ${response.status}) without a Location header`, 'WEB_PROVIDER_ERROR')
         }
         const target = resolveRedirect(location, currentUrl)
-        // Re-validate the target against the same transport hygiene a direct request gets: a
-        // redirect must not be a back door to a credentialed, non-http(s), or over-long URL
-        // that validateFetchUrl would reject.
+        // Re-validate the target against the same transport hygiene and destination
+        // policy a direct request gets: a redirect must not be a back door to a
+        // credentialed, non-http(s), over-long, or private-network URL.
         let validatedTarget: URL
         try {
           validatedTarget = validateFetchUrl(target.toString(), this.limits.maxUrlLength)
+          await assertPublicFetchDestination(validatedTarget, this.limits.allowPrivateNetwork)
           if (!isSameOrigin(validatedTarget, currentUrl)) {
             throw new WebError(
               `cross-origin redirect to ${validatedTarget.origin} is not followed automatically; retry against that URL directly`,

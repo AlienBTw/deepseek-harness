@@ -26,7 +26,6 @@
   "peerDependencies": {
     "@maple/brand": "workspace:^",
     "@maple/invariants": "workspace:^",
-    "@maple/session": "workspace:^",
     "@maple/cordis": "workspace:^"
   },
   "devDependencies": {

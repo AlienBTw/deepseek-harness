@@ -103,8 +103,14 @@ export interface WebSearchProvider {
   readonly id: string
   /** Cheap local usability check; must not make network calls. */
   available(): boolean
-  /** Run one search; honor `signal` for cancellation. */
-  search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult>
+  /**
+   * Run one search; honor `signal` for cancellation. `signal` is a required
+   * caller-owned {@link AbortSignal}: this is a tool-reachable capability call
+   * that owns a live network request, so cancellation must remain type-provable
+   * to the provider. The seam and its direct consumers forward the signal they
+   * own; no provider synthesizes a never-abort sentinel.
+   */
+  search(request: WebSearchRequest, signal: AbortSignal): Promise<WebSearchResult>
 }
 
 /**
@@ -115,8 +121,14 @@ export interface WebFetchProvider {
   readonly id: string
   /** Cheap local usability check; must not make network calls. */
   available(): boolean
-  /** Retrieve one URL; honor `signal` for cancellation. */
-  fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult>
+  /**
+   * Retrieve one URL; honor `signal` for cancellation. `signal` is a required
+   * caller-owned {@link AbortSignal}: this is a tool-reachable capability call
+   * that owns a live network request, so cancellation must remain type-provable
+   * to the provider. The seam and its direct consumers forward the signal they
+   * own; no provider synthesizes a never-abort sentinel.
+   */
+  fetch(request: WebFetchRequest, signal: AbortSignal): Promise<WebFetchResult>
 }
 
 /**

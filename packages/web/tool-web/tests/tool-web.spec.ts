@@ -8,23 +8,27 @@ import WebRuntime from '@maple/web'
 import type { WebSearchProvider, WebSearchResult } from '@maple/web'
 import * as ToolWeb from '@maple/tool-web'
 import {
-  formatSearchOutput,
-  formatFetchOutput,
-  parseFetchArgs,
-  presentSearchCall,
-  presentFetchCall,
   presentSearchResult,
   presentFetchResult,
   searchMetaFromValue,
   searchMetaFromResult,
   fetchMetaFromValue,
   fetchMetaFromResult,
-  WEB_SEARCH_MAX_QUERIES,
-  WEB_SEARCH_MAX_RESULTS,
 } from '@maple/tool-web'
 import type { ContentBlock } from '@maple/llm'
 import type { ToolResult } from '@maple/tools'
-import { parseSearchArgs } from '../src/search.ts'
+import {
+  formatSearchOutput,
+  parseSearchArgs,
+  presentSearchCall,
+  WEB_SEARCH_MAX_QUERIES,
+  WEB_SEARCH_MAX_RESULTS,
+} from '../src/search.ts'
+import {
+  formatFetchOutput,
+  parseFetchArgs,
+  presentFetchCall,
+} from '../src/fetch.ts'
 
 const testToolSignal = new AbortController().signal
 
@@ -711,11 +715,11 @@ describe('tool-web execution through the real registry', () => {
   })
 
   it('executes web_fetch, forwarding the url (no timeout param) and the abort signal to the seam', async () => {
-    const seen: { request?: { url: string }; signal?: AbortSignal | undefined } = {}
+    const seen: { request?: { url: string }; signal?: AbortSignal } = {}
     const fetchProvider = {
       id: 'stub-fetch',
       available: () => available,
-      fetch: (request: { url: string }, signal?: AbortSignal) => {
+      fetch: (request: { url: string }, signal: AbortSignal) => {
         seen.request = request
         seen.signal = signal
         return Promise.resolve({ url: request.url, statusCode: 200, body: { kind: 'text' as const, content: 'ok' }, truncated: false })
@@ -739,12 +743,12 @@ describe('tool-web execution through the real registry', () => {
   })
 
   it('forwards the required caller signal to web_fetch', async () => {
-    const seen: { signal?: AbortSignal | undefined; passedSignal?: boolean } = {}
+    const seen: { signal?: AbortSignal; passedSignal?: boolean } = {}
     const fetchProvider = {
       id: 'stub-fetch',
       available: () => available,
-      fetch: (request: { url: string }, signal?: AbortSignal) => {
-        seen.passedSignal = signal !== undefined
+      fetch: (request: { url: string }, signal: AbortSignal) => {
+        seen.passedSignal = true
         seen.signal = signal
         return Promise.resolve({ url: request.url, statusCode: 200, body: { kind: 'text' as const, content: 'ok' }, truncated: false })
       },
@@ -764,7 +768,7 @@ describe('tool-web execution through the real registry', () => {
   })
 
   it('executes web_search, forwarding the abort signal to the seam', async () => {
-    const seen: { signal?: AbortSignal | undefined } = {}
+    const seen: { signal?: AbortSignal } = {}
     const provider: WebSearchProvider = {
       id: 'stub-search',
       available: () => available,
@@ -778,14 +782,14 @@ describe('tool-web execution through the real registry', () => {
   })
 
   it('cascades caller cancellation to every multi-query search', async () => {
-    const signals: (AbortSignal | undefined)[] = []
+    const signals: AbortSignal[] = []
     const provider: WebSearchProvider = {
       id: 'stub-search',
       available: () => available,
       search: (_request, signal) => {
         signals.push(signal)
         return new Promise((_resolve, reject) => {
-          signal?.addEventListener('abort', () => { reject(new Error('search aborted')) }, { once: true })
+          signal.addEventListener('abort', () => { reject(new Error('search aborted')) }, { once: true })
         })
       },
     }

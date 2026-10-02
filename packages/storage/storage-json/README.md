@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-JSON backend for the [storage hub](../storage/README.md): one human-readable `<unit>.json` file per unit under a configured root, registered as backend `json`. Design: [domain KV storage Agent Note](../../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md).
+JSON backend for the [storage hub](../storage/README.md): one human-readable `<unit>.json` file per unit under a configured root, registered as backend `json`. Design: [domain KV storage Agent Note](../../../.agents/notes/implemented/architecture/2026-07-24-domain-kv-storage-and-workspace.md).
 
 ## Model
 
@@ -14,7 +14,7 @@ JSON backend for the [storage hub](../storage/README.md): one human-readable `<u
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `root` | string | required — no default (a cwd fallback would scatter files) | Directory holding unit files; created `0o700` on demand |
+| `root` | string | required — no default (a cwd fallback would scatter files) | Directory holding unit files; resolved once at construction so later `process.cwd()` changes cannot split one backend across roots; created `0o700` on demand |
 
 ## Model Experience
 

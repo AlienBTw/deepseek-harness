@@ -69,7 +69,7 @@ export function apply(ctx: ClientContext): void {
     'conversation.composer',
     () => ctx.slots.register({
       name: 'conversation.composer',
-      priority: -10,
+      phase: 'restriction',
       locale: NS,
       select: selectReadOnlySubagent,
     }, SubagentReadOnlyComposer),

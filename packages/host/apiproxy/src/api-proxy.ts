@@ -20,6 +20,7 @@ import type { ContentBlock, MessageSource } from '@maple/llm'
 import { isAppendSurfaceEvent, isJsonValue } from '@maple/session'
 import type { JsonValue, Session, SessionEvent, SessionEventMap, SessionHeader, SessionId, UserMessage } from '@maple/session'
 import type { SessionPersistence } from '@maple/session-persistence'
+import { isHumanPromptEvent, pageSessionListKeys } from '@maple/session-persistence'
 import { SessionQueryError, type SessionSearchCursor } from '@maple/session-query'
 import { SubagentError } from '@maple/subagent'
 import type { SubagentListEntry as CatalogSubagentListEntry } from '@maple/subagent'
@@ -126,6 +127,8 @@ const SESSION_SEARCH_PROVIDER_CALL_LIMIT = 100
 
 /** Bound cold-log stat fan-out and settle each started batch before cancellation returns. */
 const COLD_SUMMARY_BATCH_SIZE = 16
+/** Default page size for `session.list` when the client omits `limit`. */
+const DEFAULT_SESSION_LIST_LIMIT = 50
 /** Default maximum artifact size eligible for one cold blankness read. */
 export const DEFAULT_COLD_BLANK_PROBE_MAX_BYTES = 1024
 
@@ -459,9 +462,7 @@ function sessionBlank(session: Session): boolean {
 /** Advance the Session-list hint projection by one committed event. */
 function applySessionListMetadata(state: SessionListMetadata, event: SessionEvent): SessionListMetadata {
   const blank = state.blank && event.type !== 'turn/start'
-  const lastPromptAt = event.type === 'user/message' && event.data.source.kind === 'user'
-    ? event.time
-    : state.lastPromptAt
+  const lastPromptAt = isHumanPromptEvent(event) ? event.time : state.lastPromptAt
   return blank === state.blank && lastPromptAt === state.lastPromptAt
     ? state
     : { blank, lastPromptAt }
@@ -474,15 +475,31 @@ function sessionListMetadata(events: readonly SessionEvent[]): SessionListMetada
   return state
 }
 
-/** Sort by creation or latest human prompt, whichever is newer. */
-function sessionListUpdatedAt(header: SessionHeader, metadata: SessionListMetadata | undefined): number {
-  return Math.max(header.createdAt, metadata?.lastPromptAt ?? 0)
+/**
+ * Sort by creation or latest human prompt, whichever is newer.
+ * Attached rows fold the live log. Cold rows prefer the durable persistence
+ * index, then an exact small-artifact probe fold, then `createdAt` — never a
+ * fail-soft projection-cache recency hint alone.
+ */
+function sessionListUpdatedAt(
+  header: SessionHeader,
+  metadata: SessionListMetadata | undefined,
+): number {
+  return Math.max(header.createdAt, metadata?.lastPromptAt ?? header.lastPromptAt ?? 0)
+}
+
+/** Cold-list recency from the durable index, exact probe, or creation time. */
+function coldSessionUpdatedAt(
+  header: SessionHeader,
+  probed: SessionListMetadata | undefined,
+): number {
+  return Math.max(header.createdAt, header.lastPromptAt ?? probed?.lastPromptAt ?? 0)
 }
 
 /** Shared Session-header projection for list baselines and creation frames. */
 function sessionListFields(header: SessionHeader, events: readonly SessionEvent[] = []): {
   parentSessionId?: SessionId
-  origin?: 'subagent'
+  origin?: 'subagent' | 'sidechat'
   cwd?: string
   agentPreset?: string
 } {
@@ -562,7 +579,7 @@ async function summarizeCold(
     : await probeColdSessionMetadata(ctx, persistence, meta, blankProbeMaxBytes, signal)
   return {
     sessionId: meta.id,
-    updatedAt: sessionListUpdatedAt(meta, probed ?? metadata),
+    updatedAt: coldSessionUpdatedAt(meta, probed),
     running: false,
     blank: metadata?.blank === false ? false : probed?.blank ?? false,
     // Header-only: reading the log for a blank-window preset switch would
@@ -1666,11 +1683,14 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   }
 
   /**
-   * Build the session.list baseline shared by listing and search visibility.
-   * Attached sessions come from memory; servable cold sessions merge from
-   * persistence, and the final order is newest-first.
+   * Build one page of session.list rows. Attached sessions summarize from
+   * memory; cold headers come from persistence metadata without summarizing
+   * every artifact — only the selected page runs blank probes.
    */
-  async function listVisibleSessionSummaries(signal?: AbortSignal): Promise<SessionSummary[]> {
+  async function listVisibleSessionSummariesPage(
+    query: { cursor?: string; limit: number },
+    signal?: AbortSignal,
+  ): Promise<{ items: SessionSummary[]; nextCursor?: string }> {
     signal?.throwIfAborted()
     const summarizeAttached = (session: Session): SessionSummary => {
       const agent = ctx.agents.get(session.id)
@@ -1680,21 +1700,56 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         ...projections === undefined ? {} : { projections },
       }
     }
-    const items = ctx.sessions.list().map(summarizeAttached)
-    signal?.throwIfAborted()
-    const attached = new Set(items.map(item => item.sessionId))
+    const attachedSummaries = ctx.sessions.list().map(summarizeAttached)
+    const attachedById = new Map(attachedSummaries.map(item => [item.sessionId, item]))
+    type ListKey = {
+      id: string
+      activityAt: number
+      kind: 'attached' | 'cold'
+      meta?: SessionHeader
+    }
+    const keys: ListKey[] = attachedSummaries.map(item => ({
+      id: item.sessionId,
+      activityAt: item.updatedAt,
+      kind: 'attached',
+    }))
     const persistence = ctx.get('sessionPersistence')
     if (persistence !== undefined) {
       const cold = (await persistence.list(signal))
-        .filter(meta => !attached.has(meta.id) && meta.cwd !== undefined)
+        .filter(meta => !attachedById.has(meta.id) && meta.cwd !== undefined)
       signal?.throwIfAborted()
-      for (let offset = 0; offset < cold.length; offset += COLD_SUMMARY_BATCH_SIZE) {
+      for (const meta of cold) {
+        keys.push({
+          id: meta.id,
+          activityAt: meta.lastPromptAt ?? meta.createdAt,
+          kind: 'cold',
+          meta,
+        })
+      }
+    }
+    let page: { items: ListKey[]; nextCursor?: string }
+    try {
+      page = pageSessionListKeys(keys, query)
+    } catch (error: unknown) {
+      throw new SessionListCursorError(String(error))
+    }
+    const items: SessionSummary[] = []
+    const coldBatch: SessionHeader[] = []
+    for (const key of page.items) {
+      if (key.kind === 'attached') {
+        const summary = attachedById.get(key.id as SessionId)
+        if (summary !== undefined) items.push(summary)
+        continue
+      }
+      if (key.meta !== undefined) coldBatch.push(key.meta)
+    }
+    if (persistence !== undefined && coldBatch.length > 0) {
+      const coldSummaries = new Map<SessionId, SessionSummary>()
+      for (let offset = 0; offset < coldBatch.length; offset += COLD_SUMMARY_BATCH_SIZE) {
         signal?.throwIfAborted()
-        const batch = cold.slice(offset, offset + COLD_SUMMARY_BATCH_SIZE)
+        const batch = coldBatch.slice(offset, offset + COLD_SUMMARY_BATCH_SIZE)
         const settled = await Promise.allSettled(
           batch.map(async (meta) => {
-            // Projection hints remain optional. Blank verification may read
-            // this Session's artifact only when it passes the configured size check.
             const projections = listProjectionsFor(ctx, meta, undefined)
             const summary = await summarizeCold(
               ctx,
@@ -1712,26 +1767,50 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             }
           }),
         )
-        const summaries: SessionSummary[] = []
         let rejected = false
         let failure: unknown
         for (const result of settled) {
           if (result.status === 'fulfilled') {
-            summaries.push(result.value)
+            coldSummaries.set(result.value.sessionId, result.value)
           } else if (!rejected) {
             rejected = true
             failure = result.reason
           }
         }
         if (rejected) throw failure
-        signal?.throwIfAborted()
-        items.push(...summaries)
+      }
+      for (const key of page.items) {
+        if (key.kind !== 'cold') continue
+        const summary = coldSummaries.get(key.id as SessionId)
+        if (summary !== undefined) items.push(summary)
       }
     }
-    items.sort((a, b) => b.updatedAt - a.updatedAt)
-    return items
+    return {
+      items,
+      ...page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor },
+    }
   }
 
+  /**
+   * Build the complete session.list baseline shared by search visibility.
+   * Attached sessions come from memory; servable cold sessions merge from
+   * persistence, and the final order is newest-first.
+   */
+  async function listVisibleSessionSummaries(signal?: AbortSignal): Promise<SessionSummary[]> {
+    const page = await listVisibleSessionSummariesPage(
+      { limit: Number.MAX_SAFE_INTEGER },
+      signal,
+    )
+    return page.items
+  }
+
+  /** Malformed session.list cursor; mapped to a wire `bad-request` error. */
+  class SessionListCursorError extends Error {
+    constructor(message: string) {
+      super(message)
+      this.name = 'SessionListCursorError'
+    }
+  }
   /**
    * Resolve the goal service THIS agent runs.
    *
@@ -1898,7 +1977,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
 
   /** Missing-service report shared by the credentials domain. */
   function credentialsAbsent(): RpcError {
-    return { code: 'internal', message: 'credentials service is absent: this deployment does not mount a credential provider (e.g. @maple/credentials-local) in its composition', details: {} }
+    return { code: 'internal', message: 'credentials service is absent: this deployment does not mount a credential provider (e.g. @maple/credentials-local or @maple/credentials-keychain) in its composition', details: {} }
   }
 
   /** Map one redacted settings descriptor to its wire view. */
@@ -1977,7 +2056,23 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       // Logs without a cwd are not served; every session records its project
       // at create time.
       async list(request) {
-        return ok(request, { items: await listVisibleSessionSummaries() })
+        const limit = request.payload.limit ?? DEFAULT_SESSION_LIST_LIMIT
+        try {
+          const page = await listVisibleSessionSummariesPage({
+            limit,
+            ...request.payload.cursor === undefined ? {} : { cursor: request.payload.cursor },
+          })
+          return ok(request, page)
+        } catch (error: unknown) {
+          if (error instanceof SessionListCursorError) {
+            return err(request, {
+              code: 'bad-request',
+              message: error.message,
+              details: { issues: [] },
+            })
+          }
+          throw error
+        }
       },
 
       async search(request, signal) {

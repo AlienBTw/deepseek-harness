@@ -14,6 +14,12 @@ declare module '@maple/client-ui-slots' {
     'test.list': { kind: 'list'; scope: 'root' }
     'test.keyed': { kind: 'keyed'; scope: 'session' }
     'test.chain': { kind: 'chain'; scope: 'session'; owner: { tags: string[] } }
+    'test.phased': {
+      kind: 'chain'
+      scope: 'session'
+      owner: { tags: string[] }
+      phases: readonly ['early', 'late']
+    }
     'test.grandchild': { kind: 'single'; scope: 'root' }
   }
 }
@@ -41,6 +47,7 @@ function mountFrame(core: SlotCore) {
       'test.list': { kind: 'list', scope: 'root' },
       'test.keyed': { kind: 'keyed', scope: 'session' },
       'test.chain': { kind: 'chain', scope: 'session' },
+      'test.phased': { kind: 'chain', scope: 'session', phases: ['early', 'late'] },
     },
   // Type-level renderSlot presence is proven by the type-chain spec; erasing
   // here keeps runtime fixtures terse.
@@ -173,6 +180,69 @@ describe('kind semantics', () => {
     core.register({ name: 'test.chain', select: sel, priority: -1, registrant: 'first' }, Comp as never)
     expect(core.entries('test.chain').map(e => e.registrant))
       .toEqual(['first', 'default-a', 'default-b', 'late'])
+  })
+
+  it('phased chain: phase order dominates local priorities; within-phase priority and registration order still apply', () => {
+    const core = new SlotCore()
+    mountFrame(core)
+    const sel = () => null
+    // Register late-phase first with a priority that would win on an unphased chain.
+    core.register({
+      name: 'test.phased', select: sel, phase: 'late', priority: -100, registrant: 'late-first',
+    }, Comp as never)
+    core.register({
+      name: 'test.phased', select: sel, phase: 'early', priority: 50, registrant: 'early-second',
+    }, Comp as never)
+    core.register({
+      name: 'test.phased', select: sel, phase: 'early', priority: 10, registrant: 'early-first',
+    }, Comp as never)
+    core.register({
+      name: 'test.phased', select: sel, phase: 'late', registrant: 'late-default-a',
+    }, Comp as never)
+    core.register({
+      name: 'test.phased', select: sel, phase: 'late', registrant: 'late-default-b',
+    }, Comp as never)
+    expect(core.entries('test.phased').map(e => e.registrant)).toEqual([
+      'early-first',
+      'early-second',
+      'late-first',
+      'late-default-a',
+      'late-default-b',
+    ])
+    expect(core.entries('test.phased').map(e => e.options.phase))
+      .toEqual(['early', 'early', 'late', 'late', 'late'])
+  })
+
+  it('phased chain: omitted or unknown phase fails loud; phase lands on the stored entry', () => {
+    const core = new SlotCore()
+    mountFrame(core)
+    const sel = () => null
+    // @ts-expect-error phased registration requires options.phase
+    expect(() => core.register({ name: 'test.phased', select: sel }, Comp as never))
+      .toThrow(/requires options\.phase/)
+    expect(() => core.register({
+      name: 'test.phased', select: sel, phase: 'missing' as 'early', registrant: 'bad',
+    }, Comp as never)).toThrow(/not in declared phases/)
+    core.register({ name: 'test.phased', select: sel, phase: 'early', priority: 3 }, Comp as never)
+    const entry = core.entries('test.phased')[0]!
+    expect(entry.options.phase).toBe('early')
+    expect(entry.options.priority).toBe(3)
+  })
+
+  it('unphased chain: a phase field fails loud; numeric sort stays unchanged', () => {
+    const core = new SlotCore()
+    mountFrame(core)
+    const sel = () => null
+    expect(() => core.register({
+      name: 'test.chain',
+      select: sel,
+      // @ts-expect-error unphased chains reject options.phase
+      phase: 'early',
+    }, Comp as never)).toThrow(/does not declare phases/)
+    core.register({ name: 'test.chain', select: sel, priority: 1, registrant: 'b' }, Comp as never)
+    core.register({ name: 'test.chain', select: sel, priority: 0, registrant: 'a' }, Comp as never)
+    expect(core.entries('test.chain').map(e => e.registrant)).toEqual(['a', 'b'])
+    expect(core.entries('test.chain').every(e => e.options.phase === undefined)).toBe(true)
   })
 
   it('single: second registration throws, disposer frees the seat', () => {
@@ -375,7 +445,9 @@ describe('subscription API', () => {
     const off = core.onMutate(key => keys.push(key))
     mountFrame(core)
     // Contribution first, then each declared child key.
-    expect(keys).toEqual(['root', 'test.single', 'test.session', 'test.list', 'test.keyed', 'test.chain'])
+    expect(keys).toEqual([
+      'root', 'test.single', 'test.session', 'test.list', 'test.keyed', 'test.chain', 'test.phased',
+    ])
     keys.length = 0
     core.register({ name: 'test.list', id: 'a' }, Comp)
     expect(keys).toEqual(['test.list'])

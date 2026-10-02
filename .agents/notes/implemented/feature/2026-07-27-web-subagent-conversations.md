@@ -22,7 +22,7 @@ The generic Host domain preserves the same ownership boundary. `session.history`
 
 Stopping an addressed child never falls through to `session.cancel`. `SubagentRuntime.followup()` owns admission only until inbox acceptance and grants no cancellation handle; a running continuable child is stopped through the dedicated `subagent.interrupt` route under the [current-turn interrupt contract](2026-08-06-continuable-subagent-interrupt.md), which parks pending work instead of discarding it. One-shot children remain uncancellable from the Web.
 
-This decision covers Web discovery, transcript viewing, and parent-authorized human continuation. It does not make a subagent independently user-owned; that product remains [interactive side sessions](../../proposed/feature/2026-07-08-interactive-side-sessions.md).
+This decision covers Web discovery, transcript viewing, and parent-authorized human continuation. It does not make a subagent independently user-owned; that product remains [interactive side sessions](2026-07-08-interactive-side-sessions.md).
 
 ## Design context
 

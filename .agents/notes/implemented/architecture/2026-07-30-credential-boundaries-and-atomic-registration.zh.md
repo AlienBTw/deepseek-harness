@@ -32,9 +32,9 @@ Status: implemented
 
 - **用沙箱点名拒读 `$DSH_HOME/.env`**——已按 `readDenyPaths` 策略字段实现过（末尾一条 SBPL `deny file-read* file-write*`、一条 `/dev/null` 的 bwrap bind），又被它自己的证据推翻。bwrap 必须在自己 profile 已经置为只读的目录树内部创建该 bind 的挂载点，因此只要父目录不存在，它就会拒绝整次约束——那是每一台还没有存过凭据的主机，包括全新安装；Landlock 无法从它自己对 `/` 的读取授权中减去任何东西，于是每一次受限调用都会为一个它其实从未藏起的文件报 `partial`。一项在生效之处破坏约束、在不生效之处误报的保护，比一条写明的「没有保护」更糟。至于拒掉整个 harness home，早先另有理由被否：它同时覆盖 `sessions/`，而 `DSH_SESSION_JSONL` 是一项成文的、模型可见的能力。
 - **把 `DSH_HOME` 从模型的 bash 环境中移除**——作为纵深防御考虑过，最终按「有真实代价的表演」不予采纳：默认 home 是 agent（智能体）能自行重建的成文约定，而这个变量正是正当工具链定位 harness 状态的途径。这里并不存在一条需要它来补强的边界，藏起指针只会让这种缺失更难被看见。
-- **现在就交付 OS 钥匙串提供方**——只有这个设计能让模型的进程真正读不到机密，而它是一个带三种平台后端的兄弟包。把它与其余这些修复放在一起评估体量，会拖慢其他每一项；它被记录为那个延后的答案，而不是一个「也许」。
+- **在同一变更中交付 OS 钥匙串提供方**——只有这个设计能让模型的进程真正读不到机密，而它是一个带平台后端的兄弟包。把它与其余这些修复放在一起评估体量，会拖慢其他每一项；它后来以 [`@maple/credentials-keychain`](../../../../packages/credentials/credentials-keychain/README.zh.md) 交付（[决策](../feature/2026-09-28-os-keychain-credentials-provider.zh.md)）。
 - **做成 `replaceRegistration(previous, next)` 服务方法**——不予采纳：它要求调用方自行携带上一个句柄，也允许它传入一个不匹配的句柄。把 `replace` 挂在注册句柄上，让归属关系变成结构性的：只有持有路由的那一项注册才能替换它们。
 
 ## 后果
 
-与 `update()` 相关的行为多了成文的失败模式：凭据写入现在可能因锁截止时间到期、或磁盘文档无法解析而失败，`describe()` 对它不会改写的多行条目报告 `writable: false`。`LlmAdapter` 的注册方无需改动即可继续工作（句柄本身仍可当作释放器调用），`DeepSeekConnectionOptions` 则新增了凭据字段，因此以编程方式构造该适配器必须提供 `apiKeyEnv`。延后事项：OS 钥匙串凭据提供方，以及针对两个写方编辑同一引用的逐值修订号检查（后写胜出仍是成文的解决方式）。
+与 `update()` 相关的行为多了成文的失败模式：凭据写入现在可能因锁截止时间到期、或磁盘文档无法解析而失败，`describe()` 对它不会改写的多行条目报告 `writable: false`。`LlmAdapter` 的注册方无需改动即可继续工作（句柄本身仍可当作释放器调用），`DeepSeekConnectionOptions` 则新增了凭据字段，因此以编程方式构造该适配器必须提供 `apiKeyEnv`。OS 钥匙串凭据提供方以 [`@maple/credentials-keychain`](../../../../packages/credentials/credentials-keychain/README.zh.md) 交付（[决策](../feature/2026-09-28-os-keychain-credentials-provider.zh.md)）；针对两个写方编辑同一引用的逐值修订号检查仍延后（后写胜出仍是成文的解决方式）。

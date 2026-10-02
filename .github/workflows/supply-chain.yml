@@ -1,0 +1,85 @@
+name: Supply chain
+
+# Lockfile advisory scan and offline vendor-drift index check. License inventory
+# runs in the ordinary CI static/hygiene aggregates (`verify-vendored-licenses`).
+# Full upstream reconstruction (`pnpm run verify-vendor-drift` without --offline)
+# needs private-mirror credentials; maintainers run that as the local agent job
+# documented in vendor/patches/README.md.
+on:
+  workflow_dispatch:
+  schedule:
+    # 03:17 UTC nightly — offset from e2e's 00:17 stampede.
+    - cron: '17 3 * * *'
+  push:
+    paths:
+      - 'pnpm-lock.yaml'
+      - 'vendor/patches/**'
+      - 'vendor/README.md'
+      - 'scripts/audit-dependencies.ts'
+      - 'scripts/verify-vendor-drift.ts'
+      - 'scripts/verify-vendored-licenses.ts'
+      - 'scripts/vendor-manifest.ts'
+  pull_request:
+    paths:
+      - 'pnpm-lock.yaml'
+      - 'vendor/patches/**'
+      - 'vendor/README.md'
+      - 'scripts/audit-dependencies.ts'
+      - 'scripts/verify-vendor-drift.ts'
+      - 'scripts/verify-vendored-licenses.ts'
+      - 'scripts/vendor-manifest.ts'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    name: dependency audit
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+      - name: Configure pnpm store path
+        id: pnpm-store
+        run: |
+          store_root="$HOME/.local/share/pnpm/store"
+          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
+          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit lockfile advisories
+        run: pnpm run audit:deps
+
+      - name: Vendored license inventory
+        run: pnpm run verify-vendored-licenses
+
+      - name: Vendor drift offline (patch index)
+        run: pnpm run verify-vendor-drift:offline

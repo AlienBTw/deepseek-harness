@@ -11,7 +11,6 @@ import type { CodeRunRequest, CodeRunResult } from '@maple/code-runtime'
  */
 class StubRuntime extends CodeRuntime {
   readonly language = 'typescript'
-  readonly isolation = 'in-process-stub'
   requests: CodeRunRequest[] = []
   nextResult: CodeRunResult = { logs: [] }
 
@@ -40,7 +39,6 @@ describe('CodeRuntime service seam', () => {
   it('registers as ctx.codeRuntime and serves the abstract API', async () => {
     const { runtime } = await setup()
     expect(runtime.language).toBe('typescript')
-    expect(runtime.isolation).toBe('in-process-stub')
 
     const calls: unknown[] = []
     const result = await runtime.run({

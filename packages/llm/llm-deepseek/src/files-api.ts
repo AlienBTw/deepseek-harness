@@ -51,7 +51,7 @@ export class DeepSeekFilesError extends LlmError {
         ? 'RATE_LIMIT'
         : status >= 500
           ? 'SERVER'
-          : 'FILES_API', { status })
+          : 'FILES_API')
     this.name = 'DeepSeekFilesError'
     this.detail = detail
   }

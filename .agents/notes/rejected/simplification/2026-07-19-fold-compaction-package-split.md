@@ -16,7 +16,7 @@ Move the basic implementation into `@maple/compaction` and remove `@maple/compac
 
 Preserve `summarize()` as a protected customization hook. A deployment-specific summarizer can subclass or intercept the existing LLM call without requiring a second capability package. Reintroduce a separate Service Definition package only when a second complete backend and an independent Consumer need substitution.
 
-Amend the implemented compaction decision and the [recallable-compaction proposal](../../proposed/feature/2026-07-06-recallable-compaction.md) if this proposal is accepted so package ownership has one durable description.
+Amend the implemented compaction decision and the [recallable-compaction decision](../../implemented/feature/2026-07-06-recallable-compaction.md) if this proposal is accepted so package ownership has one durable description.
 
 ## Alternatives considered
 

@@ -52,7 +52,7 @@ The shadowing rule on `set`/`unset` is deliberate fail-loud: when a read-only so
 
 ## Providers
 
-[`dsh-credentials-local`](../credentials-local/README.md) layers the inherited process environment over its managed `$MAPLE_HOME/.credentials.yaml` document, with the launcher's project and user `.env` layers as fallbacks. The seam shape leaves room for keyring-, helper-command-, and KMS-backed providers; a remote settings provider never needs to carry secrets.
+[`dsh-credentials-local`](../credentials-local/README.md) layers the inherited process environment over its managed `$MAPLE_HOME/.credentials.yaml` document, with the launcher's project and user `.env` layers as fallbacks. [`dsh-credentials-keychain`](../credentials-keychain/README.md) keeps that same layering and moves the managed store into the OS keychain — an optional composition swap when the file document's same-UID boundary is not enough. A remote settings provider never needs to carry secrets.
 
 ## Model Experience
 

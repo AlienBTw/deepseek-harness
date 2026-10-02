@@ -166,9 +166,17 @@ declare module '@maple/client-ui-slots' {
      * of the default InputBar. Declared by this package's 'conversation'
      * entry; the owner dispatches the {@link ComposerChainProps} currency and
      * routing lives in entry selectors — new takeover kinds register with
-     * zero owner changes.
+     * zero owner changes. Phases own semantic dominance:
+     * `interaction` (resolve a live Host wait) before `restriction` (block
+     * ordinary composer work); local `priority` orders only within a phase
+     * (decision: `.agents/notes/implemented/architecture/2026-08-08-semantic-composer-chain-phases.md`).
      */
-    'conversation.composer': { kind: 'chain'; scope: 'session'; owner: ComposerChainProps }
+    'conversation.composer': {
+      kind: 'chain'
+      scope: 'session'
+      owner: ComposerChainProps
+      phases: readonly ['interaction', 'restriction']
+    }
     /**
      * The hero-phase Workspace picker hole: rendered by ConversationRoot
      * while the session is blank (picking another workspace switches to that

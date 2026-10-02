@@ -1,6 +1,6 @@
 /**
  * Opt-in SQLite persistence provider. Logical sessions remain unchanged;
- * the physical backend packs eligible chunk runs into schema-17 rows.
+ * the physical backend packs eligible chunk runs into schema-18 rows.
  * @module @maple/session-persistence-sqlite
  */
 
@@ -21,6 +21,7 @@ import {
   type SessionInspection,
   type SessionLocation,
   type SessionPersistenceSnapshot,
+  type SessionRetentionPolicy,
 } from '@maple/session-persistence'
 import type { JournalMode } from './schema.ts'
 import { SqliteStore } from './store.ts'
@@ -44,6 +45,10 @@ export interface Config {
   preparedSessionCacheSize?: number
   /** Fixed live-event coalescing window; not a backend completion deadline. */
   writeBatchMaxDelayMs?: number
+  /** Optional age ceiling in whole days for {@link SessionPersistence.gc}. */
+  maxAgeDays?: number
+  /** Optional newest-session count ceiling for {@link SessionPersistence.gc}. */
+  maxSessions?: number
 }
 
 /**
@@ -62,10 +67,13 @@ export class SqliteSessionPersistence extends SessionPersistence {
     preparedSessionCacheSize: z.number().step(1).min(1).default(DEFAULT_PREPARED_SESSION_CACHE_SIZE),
     writeBatchMaxDelayMs: z.number().step(1).min(1).max(MAX_WRITE_BATCH_DELAY_MS)
       .default(DEFAULT_WRITE_BATCH_MAX_DELAY_MS),
+    maxAgeDays: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER),
+    maxSessions: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER),
   })
 
   private readonly store: SqliteStore
   private readonly coordinator: PersistenceCoordinator<number>
+  private readonly retention: SessionRetentionPolicy | undefined
 
   constructor(ctx: Context, public config: Config) {
     super(ctx)
@@ -73,6 +81,7 @@ export class SqliteSessionPersistence extends SessionPersistence {
       ?? DEFAULT_PREPARED_SESSION_CACHE_SIZE
     const writeBatchMaxDelayMs = config.writeBatchMaxDelayMs
       ?? DEFAULT_WRITE_BATCH_MAX_DELAY_MS
+    this.retention = retentionFromConfig(config)
     this.store = new SqliteStore({
       path: config.path,
       journalMode: config.journalMode ?? 'wal',
@@ -126,8 +135,30 @@ export class SqliteSessionPersistence extends SessionPersistence {
     return this.store.list(signal)
   }
 
+  async delete(id: SessionId, signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted()
+    const live = this.ctx.sessions.get(id)
+    if (live !== undefined) {
+      throw new Error(`cannot delete session "${id}": a live Session is still attached`)
+    }
+    await this.store.delete(id, signal)
+  }
+
+  protected override retentionPolicy(): SessionRetentionPolicy | undefined {
+    return this.retention
+  }
+
   listSnapshots(signal?: AbortSignal): Promise<SessionPersistenceSnapshot[]> {
     return this.store.listSnapshots(signal)
+  }
+}
+
+/** Build an immutable retention policy from optional Config ceilings. */
+function retentionFromConfig(config: Config): SessionRetentionPolicy | undefined {
+  if (config.maxAgeDays === undefined && config.maxSessions === undefined) return undefined
+  return {
+    ...config.maxAgeDays === undefined ? {} : { maxAgeDays: config.maxAgeDays },
+    ...config.maxSessions === undefined ? {} : { maxSessions: config.maxSessions },
   }
 }
 

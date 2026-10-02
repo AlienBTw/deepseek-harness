@@ -19,10 +19,6 @@ const COMPACTION_ID = CompactionId('command-compact-test')
 
 const RESULT: CompactionResult = {
   compactionId: COMPACTION_ID,
-  startSeq: 1,
-  summarySeq: 2,
-  endSeq: 3,
-  summary: [{ type: 'text', text: 'summary' }],
   shadowedRange: { start: 1, end: 7 },
   shadowedSeqs: [1, 3, 7],
   shadowedTokenCount: 42,
@@ -55,7 +51,6 @@ class StubCompactionEngine extends CompactionEngine {
     if (this.operation !== undefined) return this.operation()
     return this.failure === undefined
       ? Promise.resolve(this.result === null ? null : this.appendResult(agent, this.result, sourceCommandId))
-      // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- exercise arbitrary backend rejection values.
       : Promise.reject(this.failure)
   }
 
@@ -69,9 +64,9 @@ class StubCompactionEngine extends CompactionEngine {
       ...sourceCommandId === undefined ? {} : { sourceCommandId },
     }
     agent.session.append('compaction/start', { ...provenance, turn: null })
-    agent.session.append('compaction/summary', {
+    const summaryEvent = agent.session.append('compaction/summary', {
       ...provenance,
-      summary: result.summary,
+      summary: [{ type: 'text', text: 'summary' }],
       shadowedRange: result.shadowedRange,
       shadowedSeqs: result.shadowedSeqs,
       shadowedTokenCount: result.shadowedTokenCount,
@@ -79,6 +74,7 @@ class StubCompactionEngine extends CompactionEngine {
       model: 'command-test',
     })
     agent.session.append('compaction/end', { ...provenance, turn: null })
+    void summaryEvent
     return { ...result, ...provenance }
   }
 }
@@ -176,10 +172,12 @@ describe('/compact human command', () => {
     const test = await harness()
     const controller = new AbortController()
     const execution = await run(test, '', controller)
+    const summaryEvent = test.agent.session.events.find(event => event.type === 'compaction/summary')
+    expect(summaryEvent).toBeDefined()
     expect(execution.result).toEqual({
       kind: 'success',
       text: 'Compacted 3 history items (~42 tokens).',
-      sourceEventSeq: RESULT.summarySeq,
+      sourceEventSeq: summaryEvent!.seq,
     })
     expect(execution.commandId).toBe(expectLastLifecycle(test, '', execution.result))
     expect(test.compact.calls).toEqual([{ agent: test.agent, signal: controller.signal }])

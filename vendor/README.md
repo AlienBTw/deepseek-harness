@@ -2,9 +2,9 @@
 
 This directory contains source-vendored copies of the Cordis framework and its foundation libraries. They are copied into this monorepo instead of being depended on via npm, so that the harness fully owns its framework layer (auditable, patchable, pinned).
 
-All vendored packages are **renamed into the `@maple` scope** (`cordis` → `@maple/cordis`, `@cordisjs/plugin-<x>` → `@maple/cordis-plugin-<x>`): every harness package declares `cordis` as a peer dependency, so publishing the harness publishes this framework layer too, and a publication under the upstream names would squat them on the registry. Directory names and upstream version numbers are deliberately unchanged, so the manifest below still reads as an upstream snapshot. `pnpm-workspace.yaml#linkWorkspacePackages` makes those preserved semver ranges resolve these pinned workspaces, including imports from built `lib/`. The `hygiene` gate `verify-vendored-links` asserts every vendored name resolves to a workspace `link:` in `pnpm-lock.yaml` with no registry copy alongside. Schemastery's manifest additionally declares a conditional `exports` map (import → `.mjs`, require → `.cjs`): pnpm links the directory itself, so without `exports` Node's ESM resolver would fall back to `main` and load the CJS entry whose lazy `require('@maple/cosmokit')` can race ESM loading of the same linked module under module-hook hosts (vitest). Upstream MIT `LICENSE` files are preserved in each package directory.
+All vendored packages are **renamed into the `@maple` scope** (`cordis` → `@maple/cordis`, `@cordisjs/plugin-<x>` → `@maple/cordis-plugin-<x>`): every harness package declares `cordis` as a peer dependency, so publishing the harness publishes this framework layer too, and a publication under the upstream names would squat them on the registry. Directory names and upstream version numbers are deliberately unchanged, so the manifest below still reads as an upstream snapshot. `pnpm-workspace.yaml#linkWorkspacePackages` makes those preserved semver ranges resolve these pinned workspaces, including imports from built `lib/`. The `hygiene` gate `verify-vendored-links` asserts every vendored name resolves to a workspace `link:` in `pnpm-lock.yaml` with no registry copy alongside. Schemastery's manifest additionally declares a conditional `exports` map (import → `.mjs`, require → `.cjs`): pnpm links the directory itself, so without `exports` Node's ESM resolver would fall back to `main` and load the CJS entry whose lazy `require('@maple/cosmokit')` can race ESM loading of the same linked module under module-hook hosts (vitest). Upstream MIT `LICENSE` files are preserved in each package directory. The [license inventory](#license-inventory) below is the authority `pnpm run verify-vendored-licenses` checks against.
 
-This file covers the manifest, the local-modification log, and the procedure for **updating** an existing vendored package. To **add a new** one, see the cookbook guide: [docs/cookbook/adding-a-vendored-package.md](../docs/cookbook/adding-a-vendored-package.md).
+This file covers the manifest, the license inventory, the local-modification log, supply-chain checks, and the procedure for **updating** an existing vendored package. To **add a new** one, see the cookbook guide: [docs/cookbook/adding-a-vendored-package.md](../docs/cookbook/adding-a-vendored-package.md).
 
 ## Manifest
 
@@ -25,6 +25,22 @@ Upstream workspace: `cordis-workspace` (local checkout: `~/repos/cordis-workspac
 Third-party dependencies of the vendored packages stay on npm: `@standard-schema/spec`, `js-yaml`, `chokidar`, `picomatch`, `@babel/code-frame`, `supports-color`, `node-addon-require-builtin`.
 
 Intentionally **not** vendored (verified unused by this set): `reggol`, `@cordisjs/utils`, `@cordisjs/element`, `@cordisjs/unyaml` (dev-time YAML import hook only).
+
+## License inventory
+
+Every vendored package declares the SPDX id below in `package.json` and preserves an upstream `LICENSE` file in its directory. `pnpm run verify-vendored-licenses` (hygiene / CI static) fails on a missing `LICENSE` or a `license` field that contradicts this table.
+
+| Directory | SPDX license |
+|---|---|
+| `cosmokit/` | `MIT` |
+| `schemastery/` | `MIT` |
+| `cordis/` | `MIT` |
+| `loader/` | `MIT` |
+| `include/` | `MIT` |
+| `group/` | `MIT` |
+| `timer/` | `MIT` |
+| `hmr/` | `MIT` |
+| `logger-console/` | `MIT` |
 
 ## Local modifications
 
@@ -49,12 +65,22 @@ Keep this log exhaustive — every divergence from upstream must be listed.
 17. **`@maple` rescope**: every vendored manifest `name`, every internal dependency entry among the vendored set, and every module specifier that reaches them use the scoped names in the manifest table's `npm name` column. Directory names, version numbers, and dependency ranges are unchanged, and no upstream runtime identifier is renamed — `Symbol.for('schemastery')` and Schemastery's `vendor:` metadata field keep their upstream values. Re-apply with `pnpm run rescope-vendor --apply` after a sync; the table's two name columns are the mapping, restated for consumers in [docs/rescope.md](../docs/rescope.md).
 18. **Entry `disabled` interpolation in `loader/src/config/entry.ts`**: a `disabled: !!js` expression evaluates against the loader context at every mount decision; the raw node stays in the options, so write-back keeps the `!!js` form. `disabled` is the only interpolated metadata field. Covered by `packages/boot/app-boot/tests/user-patches.spec.ts` and `apps/cli/tests/windows-shell.spec.ts`.
 
+## Supply-chain checks
+
+| Check | Command | When |
+|---|---|---|
+| Vendored license inventory | `pnpm run verify-vendored-licenses` | hygiene + CI static |
+| Lockfile advisories | `pnpm run audit:deps` | scheduled workflow + lockfile-touching PRs |
+| Vendor drift (manifest SHA + patches) | `pnpm run verify-vendor-drift` | scheduled / local agent; `--offline` validates the patch index without upstream |
+
+Checked-in patches live under [patches/](patches/). Most upstream remotes are private mirrors; when CI cannot clone them, run `pnpm run verify-vendor-drift` from a machine with cordis-workspace credentials ([patches/README.md](patches/README.md)).
+
 ## Sync procedure
 
 To update a vendored package from upstream:
 
 1. In the upstream workspace, note `git rev-parse HEAD` of the relevant submodule.
 2. Copy the package's `src/` (and `bin.js`, `README.md`, `LICENSE` if changed) over the vendored directory.
-3. Re-apply the local modifications listed above (or drop them if upstream made them unnecessary — update the log either way).
-4. Update the version and commit hash in the manifest table.
-5. Run `pnpm install && pnpm run test && pnpm run build` at the repo root.
+3. Re-apply the local modifications listed above (or drop them if upstream made them unnecessary — update the log either way). Capture newly feasible deltas as unified diffs under `vendor/patches/` and update `vendor/patches/index.json`.
+4. Update the version and commit hash in the manifest table; keep the [license inventory](#license-inventory) aligned when a package is added or removed.
+5. Run `pnpm install && pnpm run test && pnpm run build` at the repo root, then `pnpm run verify-vendored-licenses` and `pnpm run verify-vendor-drift`.

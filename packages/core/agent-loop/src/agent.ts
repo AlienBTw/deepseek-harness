@@ -48,7 +48,7 @@ type Phase =
 type StepEndReason = Extract<TurnEndReason, { kind: 'completed' | 'max-tokens' }>
 
 type PreparedStep =
-  | { kind: 'reject' }
+  | { kind: 'reject'; reason?: TurnEndReason }
   | { kind: 'enter'; messages: UserMessage[]; assembly: PromptAssembly }
 
 /** Remove adapter-derived values before plugins propose the next request config. */
@@ -265,7 +265,7 @@ export class ReactLoopAgent implements Agent {
         const step = phase.step + 1
         const decision = await this.preStep(target, { turn, step })
         if (decision.kind === 'reject') {
-          turnEnds = { kind: 'blocked' }
+          turnEnds = decision.reason ?? { kind: 'blocked' }
           return false
         }
         if (turnEnds && decision.messages.length === 0) break

@@ -32,6 +32,12 @@ export function SessionId(id: string): SessionId {
 }
 
 /**
+ * Coarse durable classification for a child session: subagent delegation or
+ * an interactive side-session advisor. Ordinary root and fork sessions omit it.
+ */
+export type SessionOrigin = 'subagent' | 'sidechat'
+
+/**
  * The on-disk session format version, stamped into every newly-written {@link SessionHeader}
  * and enforced by every persistence backend on load. The single source of truth for the
  * version — write sites and the load-time check all read it.
@@ -80,10 +86,11 @@ export interface SessionHeader {
    */
   readonly seedLength?: number
   /**
-   * Coarse product classification for a session created as a subagent child.
-   * This is presentation metadata, not proof that the child is continuable.
+   * Coarse product classification for a session created as a subagent child or
+   * an interactive side-session advisor. Presentation and policy metadata —
+   * not proof that a subagent child is continuable.
    */
-  readonly origin?: 'subagent'
+  readonly origin?: SessionOrigin
   /**
    * Delegation depth: absent (zero) for a top-level session, parent depth + 1
    * for a subagent child. Persisted so a recursion budget survives restart and
@@ -97,6 +104,14 @@ export interface SessionHeader {
    * would replay history the model can no longer act on.
    */
   readonly agentPreset?: string
+  /**
+   * Latest human-authored prompt time (`user/message` with `source.kind`
+   * `'user'`), when the persistence index has recorded one. Absent on
+   * pre-index artifacts and on live headers that have not been restored
+   * from storage; listing falls back to `createdAt`. Not part of the
+   * immutable JSONL header line — backends merge it from the durable index.
+   */
+  readonly lastPromptAt?: number
 }
 
 /**
@@ -116,7 +131,7 @@ export interface CreateSessionOptions {
     readonly parentSession?: SessionId
     readonly createdAt?: number
     readonly seedLength?: number
-    readonly origin?: 'subagent'
+    readonly origin?: SessionOrigin
     readonly delegationDepth?: number
     readonly agentPreset?: string
   }
@@ -159,6 +174,13 @@ export interface TurnEndReasonMap {
   aborted: { kind: 'aborted'; reason: TurnEndCancelCause }
 
   blocked: { kind: 'blocked' }
+  /**
+   * A deployment spend / turn / token budget refused further work. `code`
+   * names which configured ceiling won; plugins such as `@maple/run-budget`
+   * emit this instead of a generic `blocked` so clients and ACP can map it
+   * to a quota stop reason.
+   */
+  quota: { kind: 'quota'; code: 'MAX_TURNS' | 'MAX_OUTPUT_TOKENS' }
   /**
    * The turn failed. `error` is always a structured failure: the `LlmError`
    * facts verbatim, or `{ message: errorChain(error), code: 'UNKNOWN' }`
@@ -278,10 +300,19 @@ export interface SessionEventMap {
   'assistant/message': { turn: number; step: number; message: AssistantMessage; usage?: TokenUsage; interrupted?: true }
   /**
    * The model requested one tool invocation: `name` with the raw `arguments`
-   * JSON string exactly as the model produced it (unparsed). `callId` pairs the
-   * call with its `tool/result`.
+   * JSON string of the effective call (what ran, what presentation renders, and
+   * what derived history carries after a rewrite). `callId` pairs the call with
+   * its `tool/result`. When a `tools/pre-rewrite` decision changed the input,
+   * `originalArguments` retains the model's unparsed emission for audit.
    */
-  'tool/call': { turn: number; step: number; callId: CallId; name: string; arguments: string }
+  'tool/call': {
+    turn: number
+    step: number
+    callId: CallId
+    name: string
+    arguments: string
+    originalArguments?: string
+  }
   /**
    * A completed tool call's model-facing result, optional internal failure
    * identity, and optional tool-private `meta` presentation payload. `meta` is
@@ -339,7 +370,6 @@ export interface SessionEventMap {
    * Records one unreadable durable image reference for request projection.
    * Owned by `@maple/attachment`; merged here because `session` already
    * depends on `@maple/attachment` through `@maple/llm`.
-   * @mode log-only
    */
   'attachment/quarantine': {
     attachmentId: AttachmentId
@@ -347,7 +377,6 @@ export interface SessionEventMap {
   }
   /**
    * Clears quarantine for one attachment after verified `readImage` recovery.
-   * @mode log-only
    */
   'attachment/recovered': {
     attachmentId: AttachmentId

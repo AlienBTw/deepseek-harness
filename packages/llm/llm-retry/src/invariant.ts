@@ -27,10 +27,6 @@ function validateFailure(value: unknown, fail: InvariantFailure): asserts value 
   if (typeof failure.code !== 'string' || failure.code.length === 0) {
     fail('llm/retry failure.code must be a non-empty string')
   }
-  if (failure.status !== undefined
-    && (!Number.isInteger(failure.status) || failure.status < 100 || failure.status > 599)) {
-    fail('llm/retry failure.status must be an integer from 100 through 599 when present')
-  }
   if (failure.providerRetryAfterMs !== undefined
     && (!Number.isFinite(failure.providerRetryAfterMs) || failure.providerRetryAfterMs <= 0)) {
     fail('llm/retry failure.providerRetryAfterMs must be a positive finite number when present')

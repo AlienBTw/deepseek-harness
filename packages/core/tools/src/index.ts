@@ -141,6 +141,18 @@ declare module '@maple/cordis' {
 
   interface Events {
     /**
+     * Choose effective arguments for one pending model tool call before the
+     * loop commits `tool/call` and before the registry mints an immutable
+     * {@link ToolExecution}. `next()` keeps the pending arguments; a
+     * `rewrite` decision replaces them for audit, derived history,
+     * presentation, and execution together. Allow/deny/ask stay on
+     * `tools/pre-execute` and must not re-run work already done here.
+     * Scope-filtered dispatch (`@maple/scope`): agent-scoped listeners receive only that agent's calls.
+     * @param pending - the model call before identity sealing (name, parsed arguments, caller agent).
+     * @mode waterfall
+     */
+    'tools/pre-rewrite'(this: Scoped<ToolRuntime>, pending: ToolRewriteRequest, next: () => Promise<ToolRewriteDecision>): Promise<ToolRewriteDecision>
+    /**
      * Allow, deny, or ask before dispatch. `next()` delegates to allow; missing
      * approval support turns `ask` into denial. Async gates must observe
      * `exec.signal`; the registry rechecks cancellation after they settle but
@@ -580,10 +592,33 @@ export interface ToolExecutionFailure {
 export type ToolExecutionResult = ToolExecutionSuccess | ToolExecutionFailure
 
 /**
+ * Pending model tool call presented to {@link Events}' `tools/pre-rewrite`
+ * before durable `tool/call` commit and {@link ToolExecution} minting.
+ */
+export interface ToolRewriteRequest {
+  readonly callId: CallId
+  readonly name: string
+  /** Parsed arguments as the model emitted them (not yet registry-frozen). */
+  readonly arguments: unknown
+  /** The initiating agent that owns the session log and derived history. */
+  readonly agent: Agent
+  /** Step cancellation signal shared with later pipeline stages. */
+  readonly signal: AbortSignal
+}
+
+/**
+ * Pre-identity argument decision. `keep` preserves the pending arguments;
+ * `rewrite` supplies the effective arguments every reader must observe.
+ */
+export type ToolRewriteDecision =
+  | { kind: 'keep' }
+  | { kind: 'rewrite'; arguments: unknown }
+
+/**
  * Pre-dispatch decision. `allow` runs the call; `deny` materializes an error;
  * `ask` runs only after an approval service returns `allowed-once` and otherwise
- * denies. Input rewriting is excluded because arguments are already logged and
- * presented.
+ * denies. Argument rewrite belongs on `tools/pre-rewrite` before identity
+ * sealing; this decision observes the already-effective {@link ToolExecution}.
  */
 export type PreToolDecision =
   | { kind: 'allow' }
@@ -969,7 +1004,6 @@ export class ToolRuntime extends Service {
         yield ctx.systemPrompt.section(this.sdkSection())
       }
     }.bind(this), 'tools.presentAs()')
-    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous composite teardown; direct return preserves disposer identity
     return dispose
   }
 
@@ -1094,6 +1128,22 @@ export class ToolRuntime extends Service {
       this.ctx,
       layer => layer.restrictions.append(compiled),
       { label: 'tools.restrict()' },
+    )
+  }
+
+  /**
+   * Resolve a pre-identity argument rewrite for one pending model tool call.
+   * The agent loop calls this before durable `tool/call` commit and before
+   * {@link createExecution}; direct `execute()` callers that already own their
+   * arguments skip it.
+   * @param pending - the model call before identity sealing.
+   * @returns `keep` or `rewrite` with the effective arguments.
+   */
+  async rewrite(pending: ToolRewriteRequest): Promise<ToolRewriteDecision> {
+    const carrier = scopeTarget(this, pending.agent)
+    return this.ctx.waterfall(
+      carrier, 'tools/pre-rewrite', pending,
+      () => Promise.resolve<ToolRewriteDecision>({ kind: 'keep' }),
     )
   }
 

@@ -130,7 +130,7 @@ export type HostFrame =
     sessionId: SessionId
     blank: boolean
     parentSessionId?: SessionId
-    origin?: 'subagent'
+    origin?: 'subagent' | 'sidechat'
     cwd?: string
     agentPreset?: string
   }

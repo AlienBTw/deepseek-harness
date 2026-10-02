@@ -6,8 +6,18 @@ import WebRuntime from '@maple/web'
 import { HttpFetchProvider, LOCAL_FETCH_PROVIDER_ID } from '@maple/web-fetch-http'
 import type { HttpFetchLimits } from '@maple/web-fetch-http'
 import * as fetchPlugin from '@maple/web-fetch-http'
-import { classifyContentType, decoderForCharset, isSameOrigin, parseCharset, validateFetchUrl } from '../src/policy.ts'
+import {
+  assertPublicFetchDestination,
+  classifyContentType,
+  decoderForCharset,
+  isBlockedIpAddress,
+  isSameOrigin,
+  parseCharset,
+  setDnsLookupForTests,
+  validateFetchUrl,
+} from '../src/policy.ts'
 
+const aliveSignal = new AbortController().signal
 const limits: HttpFetchLimits = {
   maxUrlLength: 2048,
   maxResponseBytes: 5_000_000,
@@ -15,6 +25,8 @@ const limits: HttpFetchLimits = {
   timeoutMs: 5_000,
   maxRedirects: 5,
   userAgent: 'test-agent/1.0',
+  // Loopback fixture server; production default is false.
+  allowPrivateNetwork: true,
 }
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => void
@@ -32,6 +44,7 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
+  setDnsLookupForTests(undefined)
   vi.unstubAllGlobals()
   await new Promise<void>(resolve => server.close(() => { resolve() }))
 })
@@ -76,12 +89,63 @@ describe('policy helpers', () => {
     expect(decoderForCharset('iso-8859-1').encoding).toBe('windows-1252')
     expect(() => decoderForCharset('not-a-charset')).toThrow(expect.objectContaining({ code: 'WEB_UNSUPPORTED_CONTENT_TYPE' }))
   })
+
+  it('classifies private, loopback, link-local, multicast, and metadata addresses as blocked', () => {
+    expect(isBlockedIpAddress('10.0.0.1')).toBe(true)
+    expect(isBlockedIpAddress('172.16.5.1')).toBe(true)
+    expect(isBlockedIpAddress('192.168.1.1')).toBe(true)
+    expect(isBlockedIpAddress('127.0.0.1')).toBe(true)
+    expect(isBlockedIpAddress('169.254.169.254')).toBe(true)
+    expect(isBlockedIpAddress('100.64.0.1')).toBe(true)
+    expect(isBlockedIpAddress('224.0.0.1')).toBe(true)
+    expect(isBlockedIpAddress('0.0.0.0')).toBe(true)
+    expect(isBlockedIpAddress('::1')).toBe(true)
+    expect(isBlockedIpAddress('::')).toBe(true)
+    expect(isBlockedIpAddress('fc00::1')).toBe(true)
+    expect(isBlockedIpAddress('fe80::1')).toBe(true)
+    expect(isBlockedIpAddress('ff02::1')).toBe(true)
+    expect(isBlockedIpAddress('::ffff:127.0.0.1')).toBe(true)
+    expect(isBlockedIpAddress('::ffff:7f00:1')).toBe(true)
+    expect(isBlockedIpAddress('not-an-ip')).toBe(true)
+    expect(isBlockedIpAddress('8.8.8.8')).toBe(false)
+    expect(isBlockedIpAddress('1.1.1.1')).toBe(false)
+    expect(isBlockedIpAddress('2001:4860:4860::8888')).toBe(false)
+  })
+
+  it('assertPublicFetchDestination skips checks when allowPrivateNetwork is true', async () => {
+    await expect(assertPublicFetchDestination(new URL('http://127.0.0.1/'), true)).resolves.toBeUndefined()
+  })
+
+  it('assertPublicFetchDestination refuses a literal private IP when allowPrivateNetwork is false', async () => {
+    await expect(assertPublicFetchDestination(new URL('http://127.0.0.1/'), false))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
+    await expect(assertPublicFetchDestination(new URL('http://169.254.169.254/'), false))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
+  })
+
+  it('assertPublicFetchDestination allows a public literal and a publicly resolving hostname', async () => {
+    await expect(assertPublicFetchDestination(new URL('http://1.1.1.1/'), false)).resolves.toBeUndefined()
+    setDnsLookupForTests(async () => [{ address: '1.1.1.1', family: 4 }])
+    await expect(assertPublicFetchDestination(new URL('http://ok.example/'), false)).resolves.toBeUndefined()
+  })
+
+  it('assertPublicFetchDestination refuses a hostname that resolves to a blocked address', async () => {
+    setDnsLookupForTests(async () => [{ address: '10.0.0.1', family: 4 }])
+    await expect(assertPublicFetchDestination(new URL('http://evil.example/'), false))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL', message: expect.stringContaining('10.0.0.1') }))
+  })
+
+  it('assertPublicFetchDestination maps DNS lookup failure to WEB_PROVIDER_ERROR', async () => {
+    setDnsLookupForTests(async () => { throw new Error('ENOTFOUND') })
+    await expect(assertPublicFetchDestination(new URL('http://missing.example/'), false))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_PROVIDER_ERROR' }))
+  })
 })
 
 describe('HttpFetchProvider success', () => {
   it('fetches a text body', async () => {
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('hello world') }
-    const result = await provider().fetch({ url: base })
+    const result = await provider().fetch({ url: base }, aliveSignal)
     expect(provider().available()).toBe(true)
     expect(result.statusCode).toBe(200)
     expect(result.body).toEqual({ kind: 'text', content: 'hello world' })
@@ -90,20 +154,20 @@ describe('HttpFetchProvider success', () => {
 
   it('fetches an html body and classifies it as html', async () => {
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/html' }); res.end('<h1>hi</h1>') }
-    const result = await provider().fetch({ url: base })
+    const result = await provider().fetch({ url: base }, aliveSignal)
     expect(result.body).toEqual({ kind: 'html', content: '<h1>hi</h1>' })
   })
 
   it('sends the configured user agent', async () => {
     let seen: string | undefined
     handler = (req, res) => { seen = req.headers['user-agent']; res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok') }
-    await provider().fetch({ url: base })
+    await provider().fetch({ url: base }, aliveSignal)
     expect(seen).toBe('test-agent/1.0')
   })
 
   it('returns a non-2xx response as a result, not an error', async () => {
     handler = (_req, res) => { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('nope') }
-    const result = await provider().fetch({ url: base })
+    const result = await provider().fetch({ url: base }, aliveSignal)
     expect(result.statusCode).toBe(404)
     expect(result.body).toEqual({ kind: 'text', content: 'nope' })
   })
@@ -112,59 +176,59 @@ describe('HttpFetchProvider success', () => {
 describe('HttpFetchProvider caps', () => {
   it('rejects an over-cap Content-Length with WEB_FETCH_TOO_LARGE', async () => {
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/plain', 'content-length': '999999' }); res.end('x'.repeat(999999)) }
-    await expect(provider({ maxResponseBytes: 10 }).fetch({ url: base }))
+    await expect(provider({ maxResponseBytes: 10 }).fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_FETCH_TOO_LARGE' }))
   })
 
   it('truncates a stream that grows past the byte cap', async () => {
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('abcdefghij') }
-    const result = await provider({ maxResponseBytes: 4 }).fetch({ url: base })
+    const result = await provider({ maxResponseBytes: 4 }).fetch({ url: base }, aliveSignal)
     expect(result.body.content).toBe('abcd')
     expect(result.truncated).toBe(true)
   })
 
   it('does not flag a body that exactly fills the byte cap as truncated', async () => {
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('abcd') }
-    const result = await provider({ maxResponseBytes: 4 }).fetch({ url: base })
+    const result = await provider({ maxResponseBytes: 4 }).fetch({ url: base }, aliveSignal)
     expect(result.body.content).toBe('abcd')
     expect(result.truncated).toBe(false)
   })
 
   it('truncates a decoded body past the character cap', async () => {
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('abcdefghij') }
-    const result = await provider({ maxBodyChars: 3 }).fetch({ url: base })
+    const result = await provider({ maxBodyChars: 3 }).fetch({ url: base }, aliveSignal)
     expect(result.body.content).toBe('abc')
     expect(result.truncated).toBe(true)
   })
 
   it('rejects an unsupported content type', async () => {
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'image/png' }); res.end('binary') }
-    await expect(provider().fetch({ url: base }))
+    await expect(provider().fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_UNSUPPORTED_CONTENT_TYPE' }))
   })
 
   it('rejects a response with no content type at all', async () => {
     handler = (_req, res) => { res.writeHead(200); res.end('no type') }
-    await expect(provider().fetch({ url: base }))
+    await expect(provider().fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_UNSUPPORTED_CONTENT_TYPE' }))
   })
 
   it('accepts a declared content-length within the cap', async () => {
     handler = (_req, res) => { const body = 'sized'; res.writeHead(200, { 'content-type': 'text/plain', 'content-length': String(body.length) }); res.end(body) }
-    const result = await provider().fetch({ url: base })
+    const result = await provider().fetch({ url: base }, aliveSignal)
     expect(result.body.content).toBe('sized')
   })
 
   it('decodes a non-UTF-8 declared charset', async () => {
     // 0xE9 is "é" in ISO-8859-1; decoded as UTF-8 it would be a replacement char.
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/plain; charset=iso-8859-1' }); res.end(Buffer.from([0x63, 0x61, 0x66, 0xE9])) }
-    const result = await provider().fetch({ url: base })
+    const result = await provider().fetch({ url: base }, aliveSignal)
     expect(result.body.content).toBe('café')
   })
 
   it('rejects an unsupported declared charset', async () => {
     handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/plain; charset=not-a-charset' }); res.end('x') }
-    await expect(provider().fetch({ url: base }))
+    await expect(provider().fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_UNSUPPORTED_CONTENT_TYPE' }))
   })
 })
@@ -175,21 +239,21 @@ describe('HttpFetchProvider redirects', () => {
       if (req.url === '/start') { res.writeHead(302, { location: '/end' }); res.end() }
       else { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('arrived') }
     }
-    const result = await provider().fetch({ url: `${base}/start` })
+    const result = await provider().fetch({ url: `${base}/start` }, aliveSignal)
     expect(result.body.content).toBe('arrived')
     expect(result.url).toBe(`${base}/end`)
   })
 
   it('blocks a cross-origin redirect with WEB_REDIRECT_BLOCKED', async () => {
     handler = (_req, res) => { res.writeHead(302, { location: 'https://example.com/' }); res.end() }
-    await expect(provider().fetch({ url: base }))
+    await expect(provider().fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_REDIRECT_BLOCKED' }))
   })
 
   it('re-validates a redirect target, rejecting same-origin credentials in the Location', async () => {
     const { port } = server.address() as AddressInfo
     handler = (_req, res) => { res.writeHead(302, { location: `http://user:pass@127.0.0.1:${port}/` }); res.end() }
-    await expect(provider().fetch({ url: base }))
+    await expect(provider().fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
   })
 
@@ -199,7 +263,7 @@ describe('HttpFetchProvider redirects', () => {
       res.writeHead(302, { location: `/?n=${n + 1}` })
       res.end()
     }
-    await expect(provider({ maxRedirects: 2 }).fetch({ url: `${base}/?n=0` }))
+    await expect(provider({ maxRedirects: 2 }).fetch({ url: `${base}/?n=0` }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_REDIRECT_BLOCKED' }))
   })
 
@@ -213,7 +277,7 @@ describe('HttpFetchProvider redirects', () => {
       if (n >= 2) { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('landed') }
       else { res.writeHead(302, { location: `/?n=${n + 1}` }); res.end() }
     }
-    const result = await provider({ maxRedirects: 2 }).fetch({ url: `${base}/?n=0` })
+    const result = await provider({ maxRedirects: 2 }).fetch({ url: `${base}/?n=0` }, aliveSignal)
     expect(result.body.content).toBe('landed')
     expect(requests).toBe(3)
   })
@@ -228,7 +292,7 @@ describe('HttpFetchProvider redirects', () => {
       res.writeHead(302, { location: `/?n=${n + 1}` })
       res.end()
     }
-    await expect(provider({ maxRedirects: 2 }).fetch({ url: `${base}/?n=0` }))
+    await expect(provider({ maxRedirects: 2 }).fetch({ url: `${base}/?n=0` }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_REDIRECT_BLOCKED', message: 'exceeded the maximum of 2 redirects' }))
     expect(requests).toBe(3)
   })
@@ -242,7 +306,7 @@ describe('HttpFetchProvider redirects', () => {
       res.writeHead(302, { location })
       res.end()
     }
-    await expect(provider({ maxRedirects: 1 }).fetch({ url: `${base}/?n=0` }))
+    await expect(provider({ maxRedirects: 1 }).fetch({ url: `${base}/?n=0` }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_REDIRECT_BLOCKED', message: 'exceeded the maximum of 1 redirects' }))
   })
 
@@ -251,15 +315,15 @@ describe('HttpFetchProvider redirects', () => {
       if (req.url === '/r') { res.writeHead(302, { location: '/done' }); res.end() }
       else { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('direct') }
     }
-    await expect(provider({ maxRedirects: 0 }).fetch({ url: `${base}/r` }))
+    await expect(provider({ maxRedirects: 0 }).fetch({ url: `${base}/r` }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_REDIRECT_BLOCKED' }))
-    const direct = await provider({ maxRedirects: 0 }).fetch({ url: `${base}/done` })
+    const direct = await provider({ maxRedirects: 0 }).fetch({ url: `${base}/done` }, aliveSignal)
     expect(direct.body.content).toBe('direct')
   })
 
   it('treats a redirect without a Location header as a provider error', async () => {
     handler = (_req, res) => { res.writeHead(302); res.end() }
-    await expect(provider().fetch({ url: base }))
+    await expect(provider().fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_PROVIDER_ERROR' }))
   })
 
@@ -268,19 +332,80 @@ describe('HttpFetchProvider redirects', () => {
       if (req.url === '/a') { res.writeHead(301, { location: 'b' }); res.end() }
       else { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('landed') }
     }
-    const result = await provider().fetch({ url: `${base}/a` })
+    const result = await provider().fetch({ url: `${base}/a` }, aliveSignal)
     expect(result.body.content).toBe('landed')
+  })
+
+  it('blocks a redirect to a private IP literal with WEB_BLOCKED_URL', async () => {
+    const { response, cancelled } = (() => {
+      let cancelled = false
+      const headers = new Headers()
+      headers.set('location', 'http://127.0.0.1:9/')
+      const response = {
+        status: 302,
+        headers,
+        body: { cancel: () => { cancelled = true; return Promise.resolve() } },
+      } as unknown as Response
+      return { response, cancelled: () => cancelled }
+    })()
+    vi.stubGlobal('fetch', vi.fn(async () => response))
+    await expect(provider({ allowPrivateNetwork: false }).fetch({ url: 'http://1.1.1.1/' }, aliveSignal))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
+    expect(cancelled()).toBe(true)
+  })
+
+  it('re-validates DNS on each redirect hop so a rebinding hostname is blocked', async () => {
+    let lookups = 0
+    setDnsLookupForTests(async () => {
+      lookups += 1
+      if (lookups === 1) return [{ address: '1.1.1.1', family: 4 }]
+      return [{ address: '127.0.0.1', family: 4 }]
+    })
+    const { response, cancelled } = (() => {
+      let cancelled = false
+      const headers = new Headers()
+      headers.set('location', '/next')
+      const response = {
+        status: 302,
+        headers,
+        body: { cancel: () => { cancelled = true; return Promise.resolve() } },
+      } as unknown as Response
+      return { response, cancelled: () => cancelled }
+    })()
+    vi.stubGlobal('fetch', vi.fn(async () => response))
+    await expect(provider({ allowPrivateNetwork: false }).fetch({ url: 'http://rebind.test/' }, aliveSignal))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
+    expect(cancelled()).toBe(true)
+    expect(lookups).toBe(2)
+  })
+})
+
+describe('HttpFetchProvider SSRF destination policy', () => {
+  it('blocks a loopback URL when allowPrivateNetwork is false', async () => {
+    await expect(provider({ allowPrivateNetwork: false }).fetch({ url: base }, aliveSignal))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
+  })
+
+  it('blocks cloud metadata link-local when allowPrivateNetwork is false', async () => {
+    await expect(provider({ allowPrivateNetwork: false }).fetch({ url: 'http://169.254.169.254/' }, aliveSignal))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
+  })
+
+  it('allows loopback when allowPrivateNetwork is true', async () => {
+    handler = (_req, res) => { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('lab') }
+    const result = await provider({ allowPrivateNetwork: true }).fetch({ url: base }, aliveSignal)
+    expect(result.body.content).toBe('lab')
   })
 })
 
 describe('HttpFetchProvider invalid URLs and abort', () => {
   it('rejects a non-http scheme before any network access', async () => {
-    await expect(provider().fetch({ url: 'ftp://example.com' }))
+    await expect(provider().fetch({ url: 'ftp://example.com' }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_INVALID_URL' }))
   })
 
   it('rejects credentials in the URL', async () => {
-    await expect(provider().fetch({ url: 'http://user:pass@127.0.0.1/' }))
+    await expect(provider().fetch({ url: 'http://user:pass@127.0.0.1/' }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
   })
 
@@ -301,7 +426,7 @@ describe('HttpFetchProvider invalid URLs and abort', () => {
 
   it('times out a slow response with WEB_FETCH_TIMEOUT', async () => {
     handler = (_req, _res) => { /* never responds */ }
-    await expect(provider({ timeoutMs: 50 }).fetch({ url: base }))
+    await expect(provider({ timeoutMs: 50 }).fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_FETCH_TIMEOUT' }))
   })
 
@@ -315,13 +440,13 @@ describe('HttpFetchProvider invalid URLs and abort', () => {
       res.write('partial')
       // never send the remaining bytes nor end the response
     }
-    await expect(provider({ timeoutMs: 80 }).fetch({ url: base }))
+    await expect(provider({ timeoutMs: 80 }).fetch({ url: base }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_FETCH_TIMEOUT' }))
   })
 
   it('maps a connection failure to WEB_PROVIDER_ERROR', async () => {
     // Port 1 on loopback is not listening: a real connection failure (not abort).
-    await expect(provider().fetch({ url: 'http://127.0.0.1:1/' }))
+    await expect(provider().fetch({ url: 'http://127.0.0.1:1/' }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_PROVIDER_ERROR' }))
   })
 
@@ -345,7 +470,7 @@ describe('HttpFetchProvider body cancellation on error paths', () => {
   it('cancels the body when a cross-origin redirect is blocked', async () => {
     const { response, cancelled } = fakeResponse({ status: 302, headers: {}, location: 'https://elsewhere.test/' })
     vi.stubGlobal('fetch', vi.fn(async () => response))
-    await expect(provider().fetch({ url: 'http://127.0.0.1:9/' }))
+    await expect(provider().fetch({ url: 'http://127.0.0.1:9/' }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_REDIRECT_BLOCKED' }))
     expect(cancelled()).toBe(true)
   })
@@ -353,7 +478,7 @@ describe('HttpFetchProvider body cancellation on error paths', () => {
   it('cancels the body when an unsupported charset is rejected', async () => {
     const { response, cancelled } = fakeResponse({ status: 200, headers: { 'content-type': 'text/plain; charset=not-a-charset' } })
     vi.stubGlobal('fetch', vi.fn(async () => response))
-    await expect(provider().fetch({ url: 'http://127.0.0.1:9/' }))
+    await expect(provider().fetch({ url: 'http://127.0.0.1:9/' }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_UNSUPPORTED_CONTENT_TYPE' }))
     expect(cancelled()).toBe(true)
   })
@@ -361,7 +486,7 @@ describe('HttpFetchProvider body cancellation on error paths', () => {
   it('cancels the body when a redirect has no Location header', async () => {
     const { response, cancelled } = fakeResponse({ status: 302, headers: {} })
     vi.stubGlobal('fetch', vi.fn(async () => response))
-    await expect(provider().fetch({ url: 'http://127.0.0.1:9/' }))
+    await expect(provider().fetch({ url: 'http://127.0.0.1:9/' }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_PROVIDER_ERROR' }))
     expect(cancelled()).toBe(true)
   })
@@ -371,11 +496,11 @@ describe('web-fetch-http plugin registration', () => {
   it('registers the provider into ctx.web (HMR-safe)', async () => {
     const ctx = new Context()
     await ctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
-    const fiber = await ctx.plugin(fetchPlugin, {})
-    await expect(ctx.web.fetch({ url: `${base}/` }))
+    const fiber = await ctx.plugin(fetchPlugin, { allowPrivateNetwork: true })
+    await expect(ctx.web.fetch({ url: `${base}/` }, aliveSignal))
       .resolves.toMatchObject({ statusCode: 200 })
     await fiber.dispose()
-    await expect(ctx.web.fetch({ url: `${base}/` }))
+    await expect(ctx.web.fetch({ url: `${base}/` }, aliveSignal))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_PROVIDER_CONFIGURED_MISSING' }))
   })
 
@@ -421,9 +546,18 @@ describe('web-fetch-http plugin registration', () => {
   it('accepts maxRedirects: 0 (follow no redirects) as valid config', async () => {
     const ctx = new Context()
     await ctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
-    const fiber = await ctx.plugin(fetchPlugin, { maxRedirects: 0 })
-    await expect(ctx.web.fetch({ url: `${base}/` }))
+    const fiber = await ctx.plugin(fetchPlugin, { maxRedirects: 0, allowPrivateNetwork: true })
+    await expect(ctx.web.fetch({ url: `${base}/` }, aliveSignal))
       .resolves.toMatchObject({ statusCode: 200 })
+    await fiber.dispose()
+  })
+
+  it('defaults allowPrivateNetwork to false and blocks loopback', async () => {
+    const ctx = new Context()
+    await ctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
+    const fiber = await ctx.plugin(fetchPlugin, {})
+    await expect(ctx.web.fetch({ url: `${base}/` }, aliveSignal))
+      .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
     await fiber.dispose()
   })
 })

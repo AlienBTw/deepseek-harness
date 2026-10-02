@@ -38,7 +38,7 @@ export interface HeaderLine {
   cwd?: string
   parentSession?: SessionId
   seedLength?: number
-  origin?: 'subagent'
+  origin?: 'subagent' | 'sidechat'
   delegationDepth: number
   agentPreset?: string
 }
@@ -101,7 +101,8 @@ function isHeaderLine(value: unknown): value is HeaderLine {
     && (value as { delegationDepth: number }).delegationDepth >= 0
     && !Object.is((value as { delegationDepth: number }).delegationDepth, -0)
     && ((value as { origin?: unknown }).origin === undefined
-      || (value as { origin?: unknown }).origin === 'subagent')
+      || (value as { origin?: unknown }).origin === 'subagent'
+      || (value as { origin?: unknown }).origin === 'sidechat')
     && ((value as { agentPreset?: unknown }).agentPreset === undefined
       || typeof (value as { agentPreset?: unknown }).agentPreset === 'string')
   )
@@ -205,6 +206,18 @@ export function logPath(
   compression: JsonlCompression,
 ): string {
   return join(sessionDir(root, cwd, id), `session${logSuffix(compression)}`)
+}
+
+/**
+ * Per-session durable last-activity sidecar beside the append-only log.
+ * Mutable index fields cannot live on the immutable JSONL header line.
+ * @param root - the backend's session root directory.
+ * @param cwd - the session's project directory (`undefined` → `_no-cwd`).
+ * @param id - the session id, path-encoded via {@link encodeSegment}.
+ * @returns the session's `session.activity` path.
+ */
+export function activityPath(root: string, cwd: string | undefined, id: SessionId): string {
+  return join(sessionDir(root, cwd, id), 'session.activity')
 }
 
 /**

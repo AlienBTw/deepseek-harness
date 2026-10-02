@@ -8,7 +8,7 @@
 import type { Context } from '@maple/cordis'
 import type { Scoped } from '@maple/scope'
 import type { LlmCallConfig, LlmFailure, ResolvedRetryPolicy } from '@maple/llm'
-import type { AgentCancelCause, Session, SessionId, UserMessage } from '@maple/session'
+import type { AgentCancelCause, Session, SessionId, TurnEndReason, UserMessage } from '@maple/session'
 export type { AgentCancelCause } from '@maple/session'
 import type { Inbox } from './inbox.ts'
 import type { InboxTarget } from './types.ts'
@@ -49,9 +49,13 @@ export interface CancelOptions {
  */
 export type AgentStatus = 'idle' | 'running'
 
-/** Whether and with which messages the loop enters a proposed step. */
+/**
+ * Whether and with which messages the loop enters a proposed step.
+ * A reject may carry the durable {@link TurnEndReason} the loop records on
+ * `turn/end`; omission keeps the historical `{ kind: 'blocked' }` ending.
+ */
 export type PreStepDecision =
-  | { kind: 'reject' }
+  | { kind: 'reject'; reason?: TurnEndReason }
   | { kind: 'enter'; messages: UserMessage[] }
 
 /** Action returned by a listener that owns model-request recovery. */

@@ -2,9 +2,10 @@
  * Bridge for unmodified Codex command hooks on harness interception points. It
  * supports five points (SessionStart, prompt/tool pre/post, Stop), regex-only
  * matchers, snake_case payloads without a trailing newline, no hook environment
- * or command substitution, and no pre-tool approval or rewrite path; only
- * blocking decisions are honored. Shared execution and parsing live in
- * `dsh-hook-protocol`; see the
+ * or command substitution, and no pre-tool approval path; only blocking
+ * decisions are honored. `updatedInput` is honored via `tools/pre-rewrite`
+ * (Codex `{ command }` splice into object args). Shared execution and parsing
+ * live in `dsh-hook-protocol`; see the
  * [hook-bridges Agent Note](../../../../.agents/notes/implemented/feature/2026-06-30-hook-bridges.md).
  * @module @maple/hooks-codex
  */
@@ -20,7 +21,14 @@ import { createUserMessage } from '@maple/llm'
 import type { ContentBlock, MessageSource } from '@maple/llm'
 import type { UserMessage } from '@maple/session'
 import type {} from '@maple/session-persistence'
-import type { PostToolDecision, PreToolDecision, ToolExecution, ToolExecutionResult } from '@maple/tools'
+import type {
+  PostToolDecision,
+  PreToolDecision,
+  ToolExecution,
+  ToolExecutionResult,
+  ToolRewriteDecision,
+  ToolRewriteRequest,
+} from '@maple/tools'
 import {
   appendHookInvoked,
   appendHookResult,
@@ -221,10 +229,38 @@ export function apply(ctx: Context, config: Config): void {
     }
   })
 
+  // PreToolUse runs once at tools/pre-rewrite (rewrite + block), then the
+  // cached outcome drives tools/pre-execute so deny does not re-run hooks.
+  const preToolCache = new Map<string, MergedHookOutcome>()
+  const preToolKey = (agent: Agent | undefined, callId: string): string =>
+    `${agent?.session.id ?? ''}:${callId}`
+
+  // PreToolUse → tools/pre-rewrite (updatedInput) + cached deny decision.
+  ctx.on('tools/pre-rewrite', async (pending: ToolRewriteRequest, next): Promise<ToolRewriteDecision> => {
+    const turn = lastTurn(pending.agent)
+    const merged = await runPoint('PreToolUse', pending.name, preToolPayload(ctx, pending, model), {
+      agent: pending.agent, turn, signal: pending.signal,
+    })
+    preToolCache.set(preToolKey(pending.agent, String(pending.callId)), merged)
+    const downstream = await next()
+    if (merged.updatedInput !== undefined) {
+      return { kind: 'rewrite', arguments: applyCodexUpdatedInput(pending.arguments, merged.updatedInput) }
+    }
+    return downstream
+  })
+
   // PreToolUse → PreToolDecision. Codex blocks only (no allow/ask honored).
   ctx.on('tools/pre-execute', async (exec, next): Promise<PreToolDecision> => {
-    const turn = lastTurn(exec.agent)
-    const merged = await runPoint('PreToolUse', exec.name, preToolPayload(ctx, exec, model), { ...exec.agent ? { agent: exec.agent } : {}, turn, signal: exec.signal })
+    const key = preToolKey(exec.agent, String(exec.callId))
+    let merged = preToolCache.get(key)
+    if (merged !== undefined) {
+      preToolCache.delete(key)
+    } else {
+      const turn = lastTurn(exec.agent)
+      merged = await runPoint('PreToolUse', exec.name, preToolPayload(ctx, exec, model), {
+        ...exec.agent ? { agent: exec.agent } : {}, turn, signal: exec.signal,
+      })
+    }
     /* jscpd:ignore-end */
     if (merged.decision === 'deny') return { kind: 'deny', reason: merged.reason ?? 'blocked by PreToolUse hook' }
     return next()
@@ -316,12 +352,34 @@ function commandOf(args: unknown): string {
   return ''
 }
 
-function preToolPayload(ctx: Context, exec: ToolExecution, model: string): Record<string, unknown> {
-  // `tool_name` is the REAL tool name (matching the `exec.name` matcher subject);
+/**
+ * Apply Codex `updatedInput` onto pending args. Codex exposes only
+ * `{ command }`, so a string `command` splices into object args; otherwise the
+ * hook object replaces the pending value wholesale.
+ */
+function applyCodexUpdatedInput(args: unknown, updated: Record<string, unknown>): unknown {
+  if (typeof updated.command === 'string'
+    && typeof args === 'object' && args !== null && !Array.isArray(args)) {
+    return { ...(args as Record<string, unknown>), command: updated.command }
+  }
+  return updated
+}
+
+function preToolPayload(
+  ctx: Context,
+  call: { name: string; arguments: unknown; callId: unknown; agent?: Agent },
+  model: string,
+): Record<string, unknown> {
+  // `tool_name` is the REAL tool name (matching the matcher subject);
   // a hardcoded constant would disagree with what the matcher tests and make a
   // config's tool matcher never fire. `tool_input` keeps Codex's `{ command }`
   // shape (its shell payload), derived from the call's `command` arg when present.
-  return { ...turnBase(ctx, exec.agent, 'PreToolUse', model), tool_name: exec.name, tool_input: { command: commandOf(exec.arguments) }, tool_use_id: exec.callId }
+  return {
+    ...turnBase(ctx, call.agent, 'PreToolUse', model),
+    tool_name: call.name,
+    tool_input: { command: commandOf(call.arguments) },
+    tool_use_id: call.callId,
+  }
 }
 
 function postToolPayload(ctx: Context, exec: ToolExecution, result: ToolExecutionResult, model: string): Record<string, unknown> {

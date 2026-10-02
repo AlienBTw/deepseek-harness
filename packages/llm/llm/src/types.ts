@@ -42,8 +42,6 @@ export interface LlmFailure {
   readonly message: string
   /** Stable provider-neutral machine-routing code. */
   readonly code: string
-  /** HTTP status returned by the provider, when available. */
-  readonly status?: number
   /** Provider-requested delay in milliseconds, when valid and available. */
   readonly providerRetryAfterMs?: number
   /** Opaque provider-issued request identifier for diagnostics. */

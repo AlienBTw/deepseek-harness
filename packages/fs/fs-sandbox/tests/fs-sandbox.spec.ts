@@ -20,6 +20,8 @@ import SandboxPolicyService from '@maple/sandbox-policy'
 import type { SandboxMode } from '@maple/sandbox'
 import { SandboxedFileSystem } from '@maple/fs-sandbox'
 
+const signal = new AbortController().signal
+
 let base: string
 let workspace: string
 let outside: string
@@ -53,7 +55,7 @@ afterEach(async () => {
 
 /** Resolve a path through the backend and return its target. */
 function target(path: string): Promise<FsTarget> {
-  return fs.resolve(path)
+  return fs.resolve(path, { signal })
 }
 
 describe('the capability fact', () => {
@@ -68,14 +70,14 @@ describe('read-only', () => {
 
   it('denies write, leaving no file on disk', async () => {
     const path = join(workspace, 'denied.txt')
-    await expect(fs.writeText(await target(path), 'x')).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+    await expect(fs.writeText(await target(path), 'x', undefined, signal)).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
     expect(existsSync(path)).toBe(false)
   })
 
   it('denies edit of an existing file (the content is unchanged)', async () => {
     const path = join(workspace, 'file.txt')
     await writeFile(path, 'original')
-    await expect(fs.editText(await target(path), { oldString: 'original', newString: 'changed', replaceAll: false }))
+    await expect(fs.editText(await target(path), { oldString: 'original', newString: 'changed', replaceAll: false }, undefined, signal))
       .rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
     expect(await readFile(path, 'utf8')).toBe('original')
   })
@@ -83,7 +85,7 @@ describe('read-only', () => {
   it('allows reads (every mode permits reading)', async () => {
     const path = join(workspace, 'readable.txt')
     await writeFile(path, 'hello')
-    expect(await fs.readText(await target(path))).toBe('hello')
+    expect(await fs.readText(await target(path), signal)).toBe('hello')
   })
 })
 
@@ -92,26 +94,26 @@ describe('workspace-write containment', () => {
 
   it('a write under the workspace lands', async () => {
     const path = join(workspace, 'nested', 'ok.txt')
-    const outcome = await fs.writeText(await target(path), 'inside')
+    const outcome = await fs.writeText(await target(path), 'inside', undefined, signal)
     expect(outcome.operation).toBe('create')
     expect(await readFile(path, 'utf8')).toBe('inside')
   })
 
   it('a write to the platform temp area lands (parity with the bash runner grant)', async () => {
     const path = join(await mkdtemp(join(tmpdir(), 'dsh-fssbx-tmp-')), 'temp.txt')
-    await fs.writeText(await target(path), 'temp')
+    await fs.writeText(await target(path), 'temp', undefined, signal)
     expect(await readFile(path, 'utf8')).toBe('temp')
   })
 
   it('an absolute path outside the workspace is denied, no file created', async () => {
     const path = join(outside, 'escape.txt')
-    await expect(fs.writeText(await target(path), 'x')).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+    await expect(fs.writeText(await target(path), 'x', undefined, signal)).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
     expect(existsSync(path)).toBe(false)
   })
 
   it('a `..` traversal out of the workspace is denied', async () => {
     const path = join(workspace, '..', 'sibling-escape.txt')
-    await expect(fs.writeText(await target(path), 'x')).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+    await expect(fs.writeText(await target(path), 'x', undefined, signal)).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
     expect(existsSync(join(workspace, '..', 'sibling-escape.txt'))).toBe(false)
   })
 
@@ -119,21 +121,21 @@ describe('workspace-write containment', () => {
     // workspace/link -> outside ; writing workspace/link/f.txt would land in outside/f.txt.
     await symlink(outside, join(workspace, 'link'))
     const path = join(workspace, 'link', 'f.txt')
-    await expect(fs.writeText(await target(path), 'x')).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+    await expect(fs.writeText(await target(path), 'x', undefined, signal)).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
     expect(existsSync(join(outside, 'f.txt'))).toBe(false)
   })
 
   it('a NEW file created under a symlinked-out directory is denied (deepest-ancestor realpath)', async () => {
     await symlink(outside, join(workspace, 'link'))
     const path = join(workspace, 'link', 'newdir', 'deep.txt')
-    await expect(fs.writeText(await target(path), 'x')).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+    await expect(fs.writeText(await target(path), 'x', undefined, signal)).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
     expect(existsSync(join(outside, 'newdir'))).toBe(false)
   })
 
   it('an edit outside the workspace is denied; the original is untouched', async () => {
     const path = join(outside, 'file.txt')
     await writeFile(path, 'original')
-    await expect(fs.editText(await target(path), { oldString: 'original', newString: 'x', replaceAll: false }))
+    await expect(fs.editText(await target(path), { oldString: 'original', newString: 'x', replaceAll: false }, undefined, signal))
       .rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
     expect(await readFile(path, 'utf8')).toBe('original')
   })
@@ -141,7 +143,7 @@ describe('workspace-write containment', () => {
   it('an edit inside the workspace lands', async () => {
     const path = join(workspace, 'edit.txt')
     await writeFile(path, 'original')
-    const outcome = await fs.editText(await target(path), { oldString: 'original', newString: 'changed', replaceAll: false })
+    const outcome = await fs.editText(await target(path), { oldString: 'original', newString: 'changed', replaceAll: false }, undefined, signal)
     expect(outcome.after).toBe('changed')
     expect(await readFile(path, 'utf8')).toBe('changed')
   })
@@ -154,7 +156,7 @@ describe('workspace-write containment', () => {
     // lands inside and the stale outside path is never written.
     const insidePath = join(workspace, 'landed.txt')
     const staleTarget: FsTarget = { displayPath: insidePath, targetKey: FsTargetKey(join(outside, 'escaped.txt')) }
-    await fs.writeText(staleTarget, 'inside')
+    await fs.writeText(staleTarget, 'inside', undefined, signal)
     expect(await readFile(insidePath, 'utf8')).toBe('inside')
     expect(existsSync(join(outside, 'escaped.txt'))).toBe(false)
   })
@@ -162,7 +164,7 @@ describe('workspace-write containment', () => {
   it('the workspace root itself passes the fence (path equal to a writable root), failing only on file type', async () => {
     // isUnder's path-equals-root branch: the fence allows the root, and the
     // write then fails because the root is a directory, not a regular file.
-    await expect(fs.writeText(await target(workspace), 'x')).rejects.toMatchObject({ code: 'FS_NOT_REGULAR_FILE' })
+    await expect(fs.writeText(await target(workspace), 'x', undefined, signal)).rejects.toMatchObject({ code: 'FS_NOT_REGULAR_FILE' })
   })
 })
 
@@ -176,7 +178,7 @@ describe('workspace-write with the filesystem root as the workspace (a root endi
     const rootFs = rootCtx.fs as SandboxedFileSystem
     try {
       const path = join(base, 'anywhere.txt') // under HOME, outside temp — allowed only via the filesystem root
-      await rootFs.writeText(await rootFs.resolve(path), 'anywhere')
+      await rootFs.writeText(await rootFs.resolve(path, { signal }), 'anywhere', undefined, signal)
       expect(await readFile(path, 'utf8')).toBe('anywhere')
     } finally {
       await rootFiber.dispose()
@@ -189,7 +191,7 @@ describe('danger-full-access', () => {
 
   it('writes anywhere, unfenced', async () => {
     const path = join(outside, 'free.txt')
-    await fs.writeText(await target(path), 'free')
+    await fs.writeText(await target(path), 'free', undefined, signal)
     expect(await readFile(path, 'utf8')).toBe('free')
   })
 })
@@ -199,17 +201,17 @@ describe('the per-call policy override (escalation)', () => {
     await boot('read-only')
     const path = join(workspace, 'escalated.txt')
     // Default read-only would deny; the per-call workspace-write policy allows it (contained).
-    await fs.writeText(await target(path), 'granted', undefined, undefined, { mode: 'workspace-write', workspaceRoot: workspace })
+    await fs.writeText(await target(path), 'granted', undefined, signal, { mode: 'workspace-write', workspaceRoot: workspace })
     expect(await readFile(path, 'utf8')).toBe('granted')
     // A neighboring plain call still runs under the read-only default.
-    await expect(fs.writeText(await target(join(workspace, 'plain.txt')), 'x'))
+    await expect(fs.writeText(await target(join(workspace, 'plain.txt')), 'x', undefined, signal))
       .rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
   })
 
   it('a danger-full-access stamp bypasses the fence for that call', async () => {
     await boot('read-only')
     const path = join(outside, 'granted-full.txt')
-    await fs.writeText(await target(path), 'full', undefined, undefined, { mode: 'danger-full-access', workspaceRoot: workspace })
+    await fs.writeText(await target(path), 'full', undefined, signal, { mode: 'danger-full-access', workspaceRoot: workspace })
     expect(await readFile(path, 'utf8')).toBe('full')
   })
 })
@@ -229,7 +231,7 @@ describe('registration and HMR safety', () => {
 describe('FsError identity', () => {
   it('the denial is a structured FsError distinct from a host permission error', async () => {
     await boot('read-only')
-    const error = await fs.writeText(await target(join(workspace, 'x.txt')), 'x').catch((e: unknown) => e)
+    const error = await fs.writeText(await target(join(workspace, 'x.txt')), 'x', undefined, signal).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(FsError)
     expect((error as FsError).code).toBe('FS_SANDBOX_DENIED')
   })
