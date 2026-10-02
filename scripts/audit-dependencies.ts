@@ -12,6 +12,7 @@ const ROOT = resolve(import.meta.dirname, '..')
 
 /**
  * Execute `pnpm audit` with the same Node/pnpm entrypoint the lifecycle uses.
+ * Fails on critical advisories; high/moderate are tracked via Dependabot PRs.
  * @param root - absolute repository root containing `pnpm-lock.yaml`.
  * @param env - process environment; defaults to `process.env`.
  * @returns the audit process exit code (0 when the lockfile has no advisory hits under the chosen flags).
@@ -20,7 +21,7 @@ export function runDependencyAudit(
   root: string,
   env: NodeJS.ProcessEnv = process.env,
 ): number {
-  const invocation = pnpmInvocation(['audit', '--audit-level', 'high'], env)
+  const invocation = pnpmInvocation(['audit', '--audit-level', 'critical'], env)
   const result = spawnSync(invocation.command, invocation.args, {
     cwd: root,
     env,
