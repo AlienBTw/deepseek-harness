@@ -12,21 +12,22 @@ The production corpus is `packages/*/*/src`, example sources/config, and runtime
 
 ## Decision
 
-This first slice contracts the highest-leverage unread result fields and confirms several inventory rows already absent:
+This work contracts unread result fields, confirms inventory rows already absent from package roots, demotes remaining package-root helpers into internal modules (tests deep-import), and retains one production field:
 
 - **`CompactionResult`** no longer echoes `startSeq`, `summarySeq`, `endSeq`, or `summary`. Callers keep `compactionId`, optional `sourceCommandId`, `shadowedRange`, `shadowedSeqs`, and `shadowedTokenCount`. Durable summary content and bookkeeping-event seqs live only on the session log (`compaction/start` / `compaction/summary` / `compaction/end`). `/compact` derives `command/done.sourceEventSeq` by locating the matching `compaction/summary` for `result.compactionId`. Basic and recallable region builders return the narrowed result after appending the close event.
 - **`LlmError` / `LlmFailure` / `LlmErrorOptions`** no longer carry HTTP `status`. Adapters classify with stable `code` (and optional `providerRetryAfterMs` / `requestId`); replay and retry invariants no longer validate or round-trip status.
 - **`BlockAssembler.push()`** already returns `void`; production callers use `blocks()` / `message()`.
 - **`SurfaceManager.invalidate()`** and **`ToolExecutionResult.callId`** are already absent; call identity stays on `ToolExecution`.
 - **`ReactLoopAgent`** is not re-exported from `@maple/agent-loop`'s package root; the concrete class remains file-local for the plugin. Outside packages program against `Agent` and create/resume through `ctx.agents`.
+- Package-root demotions already absent: `workflow-worker-thread` protocol/runtime/session re-exports and named `WorkerThreadWorkflowEngine`; `code-runtime-worker` protocol/bootstrap re-exports; ACP `agentOptions`; `providerWording` / `completedTurnPrefix`; `depthOf` / `SubagentDepthError` / `waitForExit` / `exitsWithin`; persistence `inits` accessors, `seedCoversPrefix`, and `assertSerializable`.
+- Further contractions already absent: `compactRegion`'s separate `session` argument; `BasicCompactionEngine` estimation/summarization visibility; `CodeLogEntry.source`/`level` and `RunCodeMeta.dispatches`; `CodeRuntime.isolation`; `ToolNotFoundError.toolName`, `SystemPrompt.config`, and `BashTask.command`.
+- Grouped helper-export inventories already absent from roots: bash/sandbox beyond the assert below, fs-local, tool-fs, tool-call-timeout-policy, compaction-basic `resolveConfig`, and tool-bash `renderResult`.
+- **`CodeRuntime.language`** is retained: production `run_code` and SDK rendering dispatch on it.
+- Package-root helper demotions in this slice: `@maple/llm-deepseek` and `@maple/llm-pi-ai` stop re-exporting adapter/file/protocol helpers (`DeepSeekAdapter`, file-store/files-api surfaces, `PiAiAdapter`, `recordKeyFor`, `supportedProtocols`, and related constants/types); `@maple/bash-local` stops exporting `assertServiceableBashConfig`; `@maple/web-fetch-http` and `@maple/web-search-*` stop re-exporting provider classes, provider ids, and default constants; `@maple/tool-web` stops re-exporting `present*` / `*Meta*` helpers. Those symbols remain in their owning modules; tests deep-import them.
 
 ## Deferred
 
-The remaining inventory from the original proposal is unfinished and stays in scope for later slices:
-
-- Package-root demotions: `workflow-worker-thread` protocol/runtime/session re-exports and named `WorkerThreadWorkflowEngine`; `code-runtime-worker` protocol/bootstrap re-exports; ACP `agentOptions`; `providerWording` / `completedTurnPrefix`; `depthOf` / `SubagentDepthError` / `waitForExit` / `exitsWithin`; persistence `inits` accessors, `seedCoversPrefix`, and `assertSerializable`.
-- Further contractions: `compactRegion`'s separate `session` argument; `BasicCompactionEngine` estimation/summarization visibility; `CodeLogEntry.source`/`level` and `RunCodeMeta.dispatches`; `CodeRuntime.language` / `isolation`; `ToolNotFoundError.toolName`, `SystemPrompt.config`, and `BashTask.command`.
-- Grouped helper-export inventories for LLM deepseek/pi-ai, bash/sandbox, fs-local, web fetch/search, tool-fs, tool-web, tool-call-timeout-policy, compaction-basic `resolveConfig`, and tool-bash `renderResult`.
+None. The original inventory is either shipped under Decision, retained (`CodeRuntime.language`), or demoted off package roots in this slice.
 
 ## Alternatives considered
 
@@ -34,11 +35,13 @@ The remaining inventory from the original proposal is unfinished and stays in sc
 
 **Keep every catalogued member for model-written mounts.** The self-referential toolset is a real generic consumer route, not generated-doc noise. Its value comes from an accurate, composable service API, however, not from preserving duplicate fields or incoherent argument pairs indefinitely; each catalogued contraction removes a fact available elsewhere on the same execution, agent, or result and updates the API reference in the same change.
 
-**Finish the entire inventory in one pass.** The helper-export list spans many packages and test entry points. Landing the unread result fields first keeps the catalog and document surface honest without blocking later demotions.
+**Finish the entire inventory in one pass.** The helper-export list spans many packages and test entry points. Landing the unread result fields first kept the catalog and document surface honest without blocking later demotions; those demotions are complete in this slice.
+
+**Demote `CodeRuntime.language`.** Rejected: `run_code` and the tools SDK renderers dispatch on the mounted runtime's language field; removing it would break multi-language Code Mode rather than delete dead surface.
 
 ## Consequences
 
 - Compaction callers and `/compact` presentation must read summary content and event seqs from the session log (or shadowed accounting on the result), not from echoed result fields.
 - LLM failure payloads no longer advertise raw HTTP status; routing stays on `code` / message classification.
 - External pre-release embedders and model-written mounts see a narrower `CompactionResult` and `LlmFailure` in generated catalogs.
-- Deferred rows remain publishable until later slices demote or delete them; this note stays the owner and is updated as each slice ships.
+- White-box tests that need demoted helpers import `@maple/<pkg>/src/<module>.ts` rather than the package root; package roots keep the Cordis plugin contract (`name` / `inject` / `Config` / `apply` or the default service class).

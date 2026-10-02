@@ -9,12 +9,14 @@ import type { WebSearchProvider, WebSearchResult } from '@maple/web'
 import * as ToolWeb from '@maple/tool-web'
 import {
   presentSearchResult,
-  presentFetchResult,
   searchMetaFromValue,
   searchMetaFromResult,
+} from '../src/search.ts'
+import {
+  presentFetchResult,
   fetchMetaFromValue,
   fetchMetaFromResult,
-} from '@maple/tool-web'
+} from '../src/fetch.ts'
 import type { ContentBlock } from '@maple/llm'
 import type { ToolResult } from '@maple/tools'
 import {

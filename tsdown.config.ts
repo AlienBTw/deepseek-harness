@@ -16,7 +16,12 @@ function isBuildFaceClient(value: unknown): boolean {
 export default defineConfig(({ env }) => {
   const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
   return {
-    workspace: ['vendor/*', 'packages/*/*', 'apps/cli'],
+    workspace: {
+      include: ['vendor/*', 'packages/*/*', 'apps/cli'],
+      // Patch file tree only — not an npm package. Including it makes tsdown
+      // resolve the monorepo root package name and fail the lib/types entry glob.
+      exclude: ['**/node_modules/**', '**/dist/**', '**/test?(s)/**', '**/t?(e)mp/**', 'vendor/patches'],
+    },
     entry: client ? '' : ['lib/types/{index,invariant,startup}.js'],
     outDir: 'lib',
     format: ['esm'],

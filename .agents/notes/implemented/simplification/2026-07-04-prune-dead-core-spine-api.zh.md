@@ -12,21 +12,22 @@ Status: implemented
 
 ## 决策
 
-本切片收缩了杠杆最高的未读结果字段，并确认若干清单行已经不存在：
+本工作收缩了未读结果字段，确认清单中已从包根消失的项，将剩余包根辅助函数降级到内部模块（测试改为深导入），并保留一个生产字段：
 
 - **`CompactionResult`** 不再回显 `startSeq`、`summarySeq`、`endSeq` 或 `summary`。调用方保留 `compactionId`、可选的 `sourceCommandId`、`shadowedRange`、`shadowedSeqs` 与 `shadowedTokenCount`。持久摘要内容与记账事件 seq 只留在会话日志（`compaction/start` / `compaction/summary` / `compaction/end`）。`/compact` 通过定位与 `result.compactionId` 匹配的 `compaction/summary` 推导 `command/done.sourceEventSeq`。basic 与 recallable 的 region 构建器在追加关闭事件后返回收窄后的结果。
 - **`LlmError` / `LlmFailure` / `LlmErrorOptions`** 不再携带 HTTP `status`。适配器以稳定的 `code`（以及可选的 `providerRetryAfterMs` / `requestId`）分类；回放与重试不变量不再校验或往返 status。
 - **`BlockAssembler.push()`** 已返回 `void`；生产调用方使用 `blocks()` / `message()`。
 - **`SurfaceManager.invalidate()`** 与 **`ToolExecutionResult.callId`** 已不存在；调用身份留在 `ToolExecution` 上。
 - **`ReactLoopAgent`** 未从 `@maple/agent-loop` 包根再导出；具体类为插件保留在文件内。包外面向 `Agent` 编程，并通过 `ctx.agents` 创建/恢复。
+- 已从包根消失的降级项：`workflow-worker-thread` 的 protocol/runtime/session 再导出与命名的 `WorkerThreadWorkflowEngine`；`code-runtime-worker` 的 protocol/bootstrap 再导出；ACP 的 `agentOptions`；`providerWording` / `completedTurnPrefix`；`depthOf` / `SubagentDepthError` / `waitForExit` / `exitsWithin`；持久化 `inits` 访问器、`seedCoversPrefix` 与 `assertSerializable`。
+- 已消失的进一步收缩：`compactRegion` 的独立 `session` 参数；`BasicCompactionEngine` 的估算/摘要方法可见性；`CodeLogEntry.source`/`level` 与 `RunCodeMeta.dispatches`；`CodeRuntime.isolation`；`ToolNotFoundError.toolName`、`SystemPrompt.config` 与 `BashTask.command`。
+- 已从包根消失的分组辅助导出：下文 assert 之外的 bash/sandbox、fs-local、tool-fs、tool-call-timeout-policy、compaction-basic 的 `resolveConfig`，以及 tool-bash 的 `renderResult`。
+- **`CodeRuntime.language`** 予以保留：生产路径上的 `run_code` 与 SDK 渲染按该字段分发。
+- 本切片的包根辅助降级：`@maple/llm-deepseek` 与 `@maple/llm-pi-ai` 不再再导出适配器/文件/协议辅助（`DeepSeekAdapter`、file-store/files-api 表面、`PiAiAdapter`、`recordKeyFor`、`supportedProtocols` 及相关常量/类型）；`@maple/bash-local` 不再导出 `assertServiceableBashConfig`；`@maple/web-fetch-http` 与 `@maple/web-search-*` 不再再导出 provider 类、provider id 与默认常量；`@maple/tool-web` 不再再导出 `present*` / `*Meta*` 辅助。这些符号仍留在各自模块中；测试改为深导入。
 
 ## 延期
 
-原提案的其余清单尚未完成，仍属后续切片范围：
-
-- 包根降级：`workflow-worker-thread` 的 protocol/runtime/session 再导出与命名的 `WorkerThreadWorkflowEngine`；`code-runtime-worker` 的 protocol/bootstrap 再导出；ACP 的 `agentOptions`；`providerWording` / `completedTurnPrefix`；`depthOf` / `SubagentDepthError` / `waitForExit` / `exitsWithin`；持久化 `inits` 访问器、`seedCoversPrefix` 与 `assertSerializable`。
-- 进一步收缩：`compactRegion` 的独立 `session` 参数；`BasicCompactionEngine` 的估算/摘要方法可见性；`CodeLogEntry.source`/`level` 与 `RunCodeMeta.dispatches`；`CodeRuntime.language` / `isolation`；`ToolNotFoundError.toolName`、`SystemPrompt.config` 与 `BashTask.command`。
-- 分组辅助导出清单：LLM deepseek/pi-ai、bash/sandbox、fs-local、web fetch/search、tool-fs、tool-web、tool-call-timeout-policy、compaction-basic 的 `resolveConfig`，以及 tool-bash 的 `renderResult`。
+无。原提案清单已全部落入上方决策、予以保留（`CodeRuntime.language`），或在本切片中从包根降级。
 
 ## 曾考虑的替代方案
 
@@ -34,11 +35,13 @@ Status: implemented
 
 **保留所有 catalog 成员以供模型编写的 mount 使用。** 自引用工具集是一条真实的通用消费路径，而非生成文档的噪音。然而，它的价值来自准确、可组合的服务接口，而非无限期保留重复字段或不一致的参数对；每一项 catalog 收缩都移除了在同一次执行、同一个 agent（智能体）或同一结果中其他位置已可获得的事实，并在同一变更中更新 API 参考。
 
-**在一次变更中完成全部清单。** 辅助导出列表跨越许多包与测试入口。先落地未读结果字段，可使 catalog 与文档表面诚实，同时不阻塞后续降级。
+**在一次变更中完成全部清单。** 辅助导出列表跨越许多包与测试入口。先落地未读结果字段，可使 catalog 与文档表面诚实，同时不阻塞后续降级；那些降级已在本切片完成。
+
+**降级 `CodeRuntime.language`。** 已否决：`run_code` 与 tools SDK 渲染器按所挂载运行时的 language 字段分发；移除它会破坏多语言 Code Mode，而不是删除无用表面。
 
 ## 后果
 
 - 压缩调用方与 `/compact` 呈现必须从会话日志（或结果上的遮蔽计量）读取摘要内容与事件 seq，而不能依赖结果回显字段。
 - LLM 失败 payload 不再宣传原始 HTTP status；路由仍基于 `code` / 消息分类。
 - 外部预发布嵌入者与模型编写的 mount 在生成 catalog 中会看到更窄的 `CompactionResult` 与 `LlmFailure`。
-- 延期行在后续切片降级或删除前仍可发布；本 Agent Note 继续作为所有者，并在每一切片交付时更新。
+- 需要降级辅助的白盒测试改为导入 `@maple/<pkg>/src/<module>.ts`，而非包根；包根保留 Cordis 插件约定（`name` / `inject` / `Config` / `apply` 或默认服务类）。

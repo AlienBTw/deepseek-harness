@@ -6,10 +6,10 @@ import {
   DEEPSEEK_DEFAULT_MAX_TOKENS,
   DEEPSEEK_DEFAULT_MAX_USES,
   DEEPSEEK_DEFAULT_MODEL,
-} from '@maple/web-search-deepseek'
+} from '../src/provider.ts'
 
 /** Construct the provider over a fixed options value; production passes a live thunk. */
-import type { DeepSeekSearchProviderOptions } from '@maple/web-search-deepseek'
+import type { DeepSeekSearchProviderOptions } from '../src/provider.ts'
 
 const aliveSignal = new AbortController().signal
 const searchProvider = (options: DeepSeekSearchProviderOptions): DeepSeekSearchProvider =>

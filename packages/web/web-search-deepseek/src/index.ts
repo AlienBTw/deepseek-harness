@@ -23,17 +23,6 @@ import {
 } from './provider.ts'
 import type { DeepSeekSearchProviderOptions } from './provider.ts'
 
-export {
-  DeepSeekSearchProvider,
-  DEEPSEEK_DEFAULT_API_VERSION,
-  DEEPSEEK_DEFAULT_BASE_URL,
-  DEEPSEEK_DEFAULT_MAX_TOKENS,
-  DEEPSEEK_DEFAULT_MAX_USES,
-  DEEPSEEK_DEFAULT_MODEL,
-  DEEPSEEK_PROVIDER_ID,
-} from './provider.ts'
-export type { DeepSeekSearchLlmRequest, DeepSeekSearchProviderOptions } from './provider.ts'
-
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-deepseek'
 

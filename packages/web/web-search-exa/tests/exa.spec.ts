@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@maple/cordis'
 import WebRuntime from '@maple/web'
-import { ExaSearchProvider, EXA_PROVIDER_ID } from '@maple/web-search-exa'
+import { ExaSearchProvider, EXA_PROVIDER_ID } from '../src/provider.ts'
 import * as exaPlugin from '@maple/web-search-exa'
 import { mapExaResponse, mapExaResult } from '../src/provider.ts'
 

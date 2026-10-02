@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PerplexitySearchProvider, PERPLEXITY_DEFAULT_BASE_URL, PERPLEXITY_DEFAULT_MAX_TOKENS, PERPLEXITY_DEFAULT_MODEL } from '@maple/web-search-perplexity'
+import { PerplexitySearchProvider, PERPLEXITY_DEFAULT_BASE_URL, PERPLEXITY_DEFAULT_MAX_TOKENS, PERPLEXITY_DEFAULT_MODEL } from '../src/provider.ts'
 
 /**
  * Real-API smoke for the Perplexity search provider. Self-skips without

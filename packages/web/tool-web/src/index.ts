@@ -12,11 +12,6 @@ import type {} from '@maple/web'
 import { applyWebSearchTool, WEB_SEARCH_MAX_QUERIES, WEB_SEARCH_MAX_RESULTS } from './search.ts'
 import { applyWebFetchTool } from './fetch.ts'
 
-export { presentSearchResult, searchMetaFromValue, searchMetaFromResult } from './search.ts'
-export type { WebSearchMeta } from './search.ts'
-export { presentFetchResult, fetchMetaFromValue, fetchMetaFromResult } from './fetch.ts'
-export type { WebFetchMeta } from './fetch.ts'
-
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'tool-web'
 

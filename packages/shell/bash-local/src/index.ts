@@ -80,7 +80,7 @@ function assertPositiveFinite(name: string, value: number): void {
  * @param config - the resolved section, schema-valid by construction.
  * @throws Error naming the field that cannot be used.
  */
-export function assertServiceableBashConfig(config: Config): void {
+function assertServiceableBashConfig(config: Config): void {
   const resolved = config as ResolvedConfig
   assertPositiveFinite('timeoutMs', resolved.timeoutMs)
   assertPositiveFinite('maxTimeoutMs', resolved.maxTimeoutMs)

@@ -19,8 +19,11 @@ import { getOrCreateAnonymousUserId, type AnonymousUserId } from '@maple/anonymo
 import { SessionId } from '@maple/session'
 import SessionStore from '@maple/session'
 import * as LlmDeepSeek from '@maple/llm-deepseek'
-import { DeepSeekAdapter, PUBLIC_BASE_URL, resolveAdapterOptions } from '@maple/llm-deepseek'
-import { httpErrorCode, resolveRequestImagePolicy } from '../src/adapter.ts'
+import { PUBLIC_BASE_URL, resolveAdapterOptions } from '@maple/llm-deepseek'
+import type { DeepSeekCatalogModel } from '../src/adapter.ts'
+import { DeepSeekAdapter, httpErrorCode, resolveRequestImagePolicy } from '../src/adapter.ts'
+import { DeepSeekFileId } from '../src/file-id.ts'
+import type { DeepSeekFileStore } from '../src/file-store.ts'
 import { assemble } from './assemble.ts'
 import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
 import type { Behavior } from './mock-server.ts'
@@ -54,7 +57,7 @@ async function harness(baseURL: string, config: object = {}) {
 function adapterOf(
   config: Partial<LlmDeepSeek.Config> & { apiKey?: string } = {},
   attachments?: AttachmentStore,
-  files?: LlmDeepSeek.DeepSeekFileStore,
+  files?: DeepSeekFileStore,
 ): DeepSeekAdapter {
   const { apiKey, ...rest } = config
   return new DeepSeekAdapter({
@@ -107,22 +110,22 @@ function attachmentStoreOf(
 }
 
 function fileStoreOf(
-  implementation: (...args: Parameters<LlmDeepSeek.DeepSeekFileStore['ensureUploaded']>) => ReturnType<LlmDeepSeek.DeepSeekFileStore['ensureUploaded']>,
+  implementation: (...args: Parameters<DeepSeekFileStore['ensureUploaded']>) => ReturnType<DeepSeekFileStore['ensureUploaded']>,
 ) {
   const ensureUploaded = vi.fn(implementation)
   const invalidate = vi.fn(() => Promise.resolve())
   return {
-    store: { ensureUploaded, invalidate } as unknown as LlmDeepSeek.DeepSeekFileStore,
+    store: { ensureUploaded, invalidate } as unknown as DeepSeekFileStore,
     ensureUploaded,
     invalidate,
   }
 }
 
-function fileReference(fileId: string): Awaited<ReturnType<LlmDeepSeek.DeepSeekFileStore['ensureUploaded']>> {
+function fileReference(fileId: string): Awaited<ReturnType<DeepSeekFileStore['ensureUploaded']>> {
   return {
-    record: { fileId: LlmDeepSeek.DeepSeekFileId(fileId) },
+    record: { fileId: DeepSeekFileId(fileId) },
     uploaded: true,
-  } as Awaited<ReturnType<LlmDeepSeek.DeepSeekFileStore['ensureUploaded']>>
+  } as Awaited<ReturnType<DeepSeekFileStore['ensureUploaded']>>
 }
 
 function successfulSseResponse(): Response {
@@ -1736,7 +1739,7 @@ describe('plugin registration and config', () => {
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([])
   })
 
-  const invalidModels: Array<[LlmDeepSeek.DeepSeekCatalogModel[], RegExp]> = [
+  const invalidModels: Array<[DeepSeekCatalogModel[], RegExp]> = [
     [[{ id: '' }], /ids must be non-empty/],
     [[{ id: 'm', name: '' }], /empty name/],
     [[{ id: 'm', contextWindow: 0 }], /contextWindow/],
@@ -1745,7 +1748,7 @@ describe('plugin registration and config', () => {
     [[{ id: 'm', inputModalities: ['text', 'text'] }], /inputModalities must not contain duplicates/],
     [[{
       id: 'm',
-      inputModalities: ['audio'] as unknown as NonNullable<LlmDeepSeek.DeepSeekCatalogModel['inputModalities']>,
+      inputModalities: ['audio'] as unknown as NonNullable<DeepSeekCatalogModel['inputModalities']>,
     }], /expected "text" \| "image"/],
     [[{ id: 'm' }, { id: 'm' }], /duplicate catalog model/],
   ]
@@ -1760,11 +1763,11 @@ describe('plugin registration and config', () => {
     expect(ctx.llm.listProviders()).toEqual([])
   })
 
-  const invalidProgrammaticModalities: Array<[LlmDeepSeek.DeepSeekCatalogModel[], RegExp]> = [
+  const invalidProgrammaticModalities: Array<[DeepSeekCatalogModel[], RegExp]> = [
     [[{ id: 'm', inputModalities: [] }], /inputModalities must not be empty/],
     [[{
       id: 'm',
-      inputModalities: ['audio'] as unknown as NonNullable<LlmDeepSeek.DeepSeekCatalogModel['inputModalities']>,
+      inputModalities: ['audio'] as unknown as NonNullable<DeepSeekCatalogModel['inputModalities']>,
     }], /inputModalities must contain only "text" and "image"/],
   ]
 

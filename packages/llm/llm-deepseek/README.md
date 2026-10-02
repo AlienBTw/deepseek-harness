@@ -6,7 +6,7 @@ DeepSeek chat-completions adapter for the harness LLM seam: direct `fetch` + SSE
 
 A second, library-backed implementation of the same seam exists in `@maple/llm-pi-ai`. This package owns the `deepseek-official` provider route — deliberately distinct from pi-ai's catalog name `deepseek`, so one composition can mount both DeepSeek paths side by side; registering another adapter for `deepseek-official` itself still throws `LlmError('DUPLICATE_ADAPTER')`.
 
-The package root exposes the Cordis plugin contract and `DeepSeekAdapter`; wire serialization, SSE parsing, and chunk translation helpers are not part of that root contract.
+The package root exposes the Cordis plugin contract; `DeepSeekAdapter`, Files API helpers, and wire serialization/SSE/translation modules remain package-internal.
 
 ## Config
 

@@ -10,13 +10,13 @@ import WebRuntime from '@maple/web'
 import {
   DeepSeekSearchProvider,
   DEEPSEEK_PROVIDER_ID,
-} from '@maple/web-search-deepseek'
+} from '../src/provider.ts'
 import * as deepseekPlugin from '@maple/web-search-deepseek'
 import { citationSnippets, mapAnthropicResponse } from '../src/provider.ts'
-import type { AnthropicResponse } from '@maple/web-search-deepseek/src/types.ts'
+import type { AnthropicResponse } from '../src/types.ts'
 
 /** Construct the provider over a fixed options value; production passes a live thunk. */
-import type { DeepSeekSearchProviderOptions } from '@maple/web-search-deepseek'
+import type { DeepSeekSearchProviderOptions } from '../src/provider.ts'
 
 const aliveSignal = new AbortController().signal
 const searchProvider = (options: DeepSeekSearchProviderOptions): DeepSeekSearchProvider =>

@@ -4,7 +4,7 @@ import WebRuntime from '@maple/web'
 import {
   PerplexitySearchProvider,
   PERPLEXITY_PROVIDER_ID,
-} from '@maple/web-search-perplexity'
+} from '../src/provider.ts'
 import * as perplexityPlugin from '@maple/web-search-perplexity'
 import { mapPerplexityResponse } from '../src/provider.ts'
 

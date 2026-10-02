@@ -13,15 +13,6 @@ import z from '@maple/schemastery'
 import type {} from '@maple/web'
 import { PerplexitySearchProvider, PERPLEXITY_DEFAULT_BASE_URL, PERPLEXITY_DEFAULT_MAX_TOKENS, PERPLEXITY_DEFAULT_MODEL } from './provider.ts'
 
-export {
-  PERPLEXITY_DEFAULT_BASE_URL,
-  PERPLEXITY_DEFAULT_MAX_TOKENS,
-  PERPLEXITY_DEFAULT_MODEL,
-  PERPLEXITY_PROVIDER_ID,
-  PerplexitySearchProvider,
-} from './provider.ts'
-export type { PerplexityRecency, PerplexitySearchProviderOptions } from './provider.ts'
-
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-perplexity'
 

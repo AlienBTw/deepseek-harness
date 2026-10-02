@@ -3,8 +3,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { AddressInfo } from 'node:net'
 import { Context } from '@maple/cordis'
 import WebRuntime from '@maple/web'
-import { HttpFetchProvider, LOCAL_FETCH_PROVIDER_ID } from '@maple/web-fetch-http'
-import type { HttpFetchLimits } from '@maple/web-fetch-http'
+import { HttpFetchProvider, LOCAL_FETCH_PROVIDER_ID } from '../src/provider.ts'
+import type { HttpFetchLimits } from '../src/provider.ts'
 import * as fetchPlugin from '@maple/web-fetch-http'
 import {
   assertPublicFetchDestination,
